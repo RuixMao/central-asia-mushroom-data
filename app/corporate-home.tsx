@@ -19,9 +19,9 @@ const solutions=[
   ["academic", "高校与学术研究", "支持课题研究、论文数据、区域比较与产学研合作。"],
 ];
 const insights=[
-  ["市场观察", "中亚重点菌类贸易结构：增长与口径差异", "梳理五国进口基线，并说明镜像差异如何用于发现转口和统计口径问题。", "2026.08.10", "insight-a"],
-  ["区域研究", "从喀什看中国—中亚农业数据走廊", "讨论在地资源、公开统计和合作方信息如何形成可持续的数据基础。", "2026.08.10", "insight-b"],
-  ["方法论", "从零散市场信息到可信市场判断", "介绍来源分级、字段标准化、交叉核验和持续更新的研究流程。", "2026.08.10", "insight-c"],
+  ["市场观察", "中亚重点菌类贸易结构：增长与口径差异", "梳理五国进口基线，并说明镜像差异如何用于发现转口和统计口径问题。", "2026.08.10", "insight-a", "/central-asia-market.png"],
+  ["区域研究", "从喀什看中国—中亚农业数据走廊", "讨论在地资源、公开统计和合作方信息如何形成可持续的数据基础。", "2026.08.10", "insight-b", "/central-asia-corridor.png"],
+  ["方法论", "从零散市场信息到可信市场判断", "介绍来源分级、字段标准化、交叉核验和持续更新的研究流程。", "2026.08.10", "insight-c", "/central-asia-research.png"],
 ];
 
 export default function CorporateHome(){
@@ -30,7 +30,7 @@ export default function CorporateHome(){
   return <div className="corp-site">
     <header className="corp-nav"><a className="corp-logo" href="#home" aria-label="因恒科技首页"><Image src="/inhen-tech-logo.png" alt="因恒科技 Inhen Tech" width={282} height={90} priority /></a><button className="menu-toggle" aria-label="打开导航" aria-expanded={menu} onClick={()=>setMenu(!menu)}>☰</button><nav className={menu?"open":""}>{[["#home","首页"],["#products","产品与服务"],["/market-data","数据中心"],["#solutions","解决方案"],["#insights","市场洞察"],["#about","关于我们"]].map(([href,label])=><a href={href} key={href} onClick={()=>setMenu(false)}>{label}</a>)}</nav><button className="lang-switch" onClick={()=>setLang(lang==="中文"?"EN":"中文")} aria-label="切换语言">{lang}⌄</button><a className="nav-demo" href="#contact">申请演示</a></header>
     <main>
-      <section className="corp-hero" id="home"><div className="corp-hero-copy"><span>YINHENG · CENTRAL ASIA DATA & RESEARCH</span><h1>洞察中亚市场，<br/>连接数据与决策</h1><p>汇集区域宏观经济、产业、企业与市场信息，为金融机构、投资者和企业提供可信、及时、可执行的市场研究支持。</p><div><a className="corp-primary" href="#contact">申请产品演示</a><a className="corp-secondary" href="#solutions">了解解决方案 →</a></div></div><div className="corp-hero-visual"><Image src="/corporate-hero.png" alt="中亚城市、商业与区域连接的品牌视觉" width={1536} height={1024} priority/><div className="visual-caption"><span>REGIONAL FOCUS</span><b>中国 · 喀什 · 中亚五国</b></div></div></section>
+      <section className="corp-hero" id="home"><div className="corp-hero-copy"><span>YINHENG · CENTRAL ASIA DATA & RESEARCH</span><h1>洞察中亚市场，<br/>连接数据与决策</h1><p>汇集区域宏观经济、产业、企业与市场信息，为金融机构、投资者和企业提供可信、及时、可执行的市场研究支持。</p><div><a className="corp-primary" href="#contact">申请产品演示</a><a className="corp-secondary" href="#solutions">了解解决方案 →</a></div></div><div className="corp-hero-visual"><Image src="/central-asia-corridor.png" alt="喀什连接中亚的跨境物流与农业走廊" width={1536} height={1024} priority/><div className="visual-caption"><span>REGIONAL FOCUS</span><b>中国 · 喀什 · 中亚五国</b></div></div></section>
 
       <section className="value-section"><div className="corp-section-head"><span>CORE VALUE</span><h2>从分散信息到可执行判断</h2><p>以区域专注、多源整合和严谨研究，降低中亚市场的信息获取与验证成本。</p></div><div className="value-grid">{[["整","区域数据整合","统一整理宏观、贸易、产业和市场信息，保留来源与统计口径。"],["监","市场持续监测","跟踪价格、渠道、政策和项目变化，形成连续的市场观察。"],["研","企业与产业研究","围绕重点行业、企业和产业链建立结构化研究框架。"],["策","决策研究服务","将数据转化为简报、专题报告和可执行的研究建议。"]].map(([icon,title,copy])=><article key={title}><i>{icon}</i><h3>{title}</h3><p>{copy}</p><a href="#products">了解更多 →</a></article>)}</div></section>
 
@@ -48,7 +48,7 @@ export default function CorporateHome(){
 
       <section className="solution-section" id="solutions"><div className="corp-section-head"><span>SOLUTIONS</span><h2>面向不同机构的区域研究支持</h2></div><div className="solution-list">{solutions.map(([slug,title,copy],i)=><article key={slug}><span>0{i+1}</span><h3>{title}</h3><p>{copy}</p><a href={`/solutions/${slug}`}>了解方案 →</a></article>)}</div></section>
 
-      <section className="insight-section" id="insights"><div className="corp-section-head"><span>MARKET INSIGHTS</span><h2>研究、观点与方法</h2><p>以少而精的专题内容，展示对中亚市场的持续观察和研究能力。</p></div><div className="insight-grid">{insights.map(([cat,title,copy,date,cls])=><article key={title}><div className={`insight-cover ${cls}`}><span>{cat}</span><b>YINHENG<br/>RESEARCH</b></div><div className="insight-body"><span>{cat} · {date}</span><h3>{title}</h3><p>{copy}</p><a href="#contact">获取样例报告 →</a></div></article>)}</div></section>
+      <section className="insight-section" id="insights"><div className="corp-section-head"><span>MARKET INSIGHTS</span><h2>研究、观点与方法</h2><p>以少而精的专题内容，展示对中亚市场的持续观察和研究能力。</p></div><div className="insight-grid">{insights.map(([cat,title,copy,date,cls,image])=><article key={title}><div className={`insight-cover ${cls}`}><Image src={image} alt="" fill sizes="(max-width: 580px) 100vw, (max-width: 820px) 50vw, 33vw"/><span>{cat}</span><b>YINHENG<br/>RESEARCH</b></div><div className="insight-body"><span>{cat} · {date}</span><h3>{title}</h3><p>{copy}</p><a href="#contact">获取样例报告 →</a></div></article>)}</div></section>
 
       <section className="trust-section" id="about"><div className="corp-section-head"><span>TRUST & METHODOLOGY</span><h2>可信度来自清晰的方法，而不是夸大的数字</h2></div><div className="trust-process">{[["01","来源分级","区分官方统计、行业资料、市场观察与合作方信息。"],["02","字段标准化","统一国家、商品、时间、币种、单位与主体标识。"],["03","交叉核验","通过报告国与伙伴国、公开信息与市场观察相互验证。"],["04","持续更新","保留采集时间、更新频率、缺失值与置信等级。"]].map(([no,title,copy])=><article key={no}><span>{no}</span><h3>{title}</h3><p>{copy}</p></article>)}</div><div className="source-line"><span>当前基础来源类型</span><b>联合国贸易统计</b><b>中国海关口径</b><b>FAOSTAT</b><b>市场公开挂牌</b><b>行业资料</b></div></section>
 
