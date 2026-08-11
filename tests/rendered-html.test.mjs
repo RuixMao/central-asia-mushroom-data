@@ -18,6 +18,8 @@ test("server-renders the corporate website and public interactions", async () =>
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
   assert.match(html, /因恒科技/);
+  assert.match(html, /inhen-tech-logo\.png/);
+  assert.doesNotMatch(html, />枢</);
   assert.match(html, /洞察中亚市场/);
   assert.match(html, /产品与服务/);
   assert.match(html, /数据覆盖/);
