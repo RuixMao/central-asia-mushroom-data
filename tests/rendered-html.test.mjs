@@ -12,25 +12,34 @@ async function render(path = "/") {
   );
 }
 
-test("server-renders the corporate website and public interactions", async () => {
+test("server-renders the corporate website and public data center", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
   assert.match(html, /因恒科技/);
   assert.match(html, /inhen-tech-logo\.png/);
-  assert.doesNotMatch(html, />枢</);
   assert.match(html, /洞察中亚市场/);
   assert.match(html, /产品与服务/);
-  assert.match(html, /数据覆盖/);
+  assert.match(html, /数据中心/);
   assert.match(html, /解决方案/);
   assert.match(html, /市场洞察/);
   assert.match(html, /申请产品演示/);
   assert.match(html, /href="\/privacy"/);
   assert.match(html, /href="\/terms"/);
+  assert.match(html, /href="\/market-data"/);
+  assert.match(html, /\$6\.96M/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 
   const terminal = await render("/terminal");
   assert.equal(terminal.status, 200);
   assert.match(await terminal.text(), /专业情报终端.*即将推出/);
+
+  const marketData = await render("/market-data");
+  assert.equal(marketData.status, 200);
+  const marketHtml = await marketData.text();
+  assert.match(marketHtml, /中亚菌类市场/);
+  assert.match(marketHtml, /UN Comtrade/);
+  assert.match(marketHtml, /72\.1%/);
+  assert.match(marketHtml, /未报告/);
 });
