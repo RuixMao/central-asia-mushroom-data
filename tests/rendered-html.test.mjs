@@ -18,9 +18,10 @@ test("server-renders the Central Asia agricultural data platform", async () => {
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
   assert.match(html, /因恒科技/);
-  assert.match(html, /连接零散数据/);
+  assert.match(html, /连接中国与中亚/);
+  assert.match(html, /中亚农业数据终端/);
   assert.match(html, /中国出口.*中亚进口/);
-  assert.match(html, /机会雷达/);
+  assert.match(html, /项目与机会平台/);
   assert.match(html, /现有可用数据/);
   assert.match(html, /待建设的高价值数据/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);

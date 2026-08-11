@@ -204,12 +204,12 @@ export default function Dashboard() {
         <div className="content-wrap">
           <section className="hero" id="overview">
             <div className="hero-copy">
-              <div className="eyebrow">CHINA × KASHGAR × CENTRAL ASIA</div>
-              <h1>连接零散数据，<br />形成中亚商业资产。</h1>
-              <p>以喀什为中转节点，整合官方贸易、市场价格、渠道、企业与项目资源，沉淀为可查询、可验证、可持续更新的数据产品。</p>
+              <div className="eyebrow">YINHENG DATA · CHINA × CENTRAL ASIA</div>
+              <h1>连接中国与中亚，<br />让农业数据触手可及。</h1>
+              <p>以喀什为数据与资源网关，汇集贸易、价格、物流、企业和项目数据，为农业贸易、投资研究与跨境合作提供可信的数据基础设施。</p>
               <div className="hero-actions">
-                <button className="button button-lime" onClick={() => jumpTo("opportunities")}>查看机会雷达 <span>↗</span></button>
-                <button className="button button-ghost" onClick={() => jumpTo("mirror")}>检查贸易信息差</button>
+                <button className="button button-lime" onClick={() => jumpTo("products")}>探索平台产品 <span>↗</span></button>
+                <button className="button button-ghost" onClick={() => jumpTo("brief")}>进入数据看板</button>
               </div>
             </div>
             <div className="corridor-card" aria-label="中国经喀什连接中亚五国的数据与贸易网络">
@@ -232,6 +232,19 @@ export default function Dashboard() {
                 <span><i className="legend-live" /> 已接入：贸易、价格、产量</span>
                 <span><i className="legend-gap" /> 待建设：企业、物流、成交与项目</span>
               </div>
+            </div>
+          </section>
+
+          <section className="product-portfolio" id="products">
+            <div className="section-heading">
+              <div><div className="eyebrow">OUR PRODUCTS</div><h2>面向中亚市场的数据产品与服务</h2></div>
+              <p>从数据查询、企业发现到项目跟踪和数据交付，形成一套服务跨境农业业务的产品体系。</p>
+            </div>
+            <div className="portfolio-grid">
+              <button onClick={() => jumpTo("brief")}><span>01</span><div><b>中亚农业数据终端</b><p>贸易、产量、价格和渠道的一站式查询、比较与可视化。</p></div><i>DATA TERMINAL ↗</i></button>
+              <button onClick={() => jumpTo("sources")}><span>02</span><div><b>企业与资源数据库</b><p>进口商、经销商、园区、供给企业及合作关系的结构化图谱。</p></div><i>COMPANY GRAPH ↗</i></button>
+              <button onClick={() => jumpTo("opportunities")}><span>03</span><div><b>项目与机会平台</b><p>持续跟踪采购、投资和产业项目，提供可解释的筛选与验证依据。</p></div><i>OPPORTUNITY HUB ↗</i></button>
+              <button onClick={() => jumpTo("sources")}><span>04</span><div><b>数据服务与数字资产</b><p>通过数据包、指数、API、报告及定制数据工程交付商业价值。</p></div><i>DATA SERVICES ↗</i></button>
             </div>
           </section>
 
