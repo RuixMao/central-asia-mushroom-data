@@ -36,7 +36,10 @@ test("server-renders the corporate website and public data center", async () => 
   const terminalHtml = await terminal.text();
   assert.match(terminalHtml, /中亚菌类数据终端/);
   assert.match(terminalHtml, /数据资产地图/);
-  assert.match(terminalHtml, /先用已有数据建立事实底座/);
+  assert.match(terminalHtml, /历史基线与最新数据连续查看/);
+  assert.match(terminalHtml, /年度/);
+  assert.match(terminalHtml, /月度/);
+  assert.match(terminalHtml, /日度价格/);
 
   const marketData = await render("/market-data");
   assert.equal(marketData.status, 200);
