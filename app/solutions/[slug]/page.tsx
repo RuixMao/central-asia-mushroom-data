@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 const solutions = {
-  financial: { label: "金融机构", en: "FINANCIAL INSTITUTIONS", headline: "把中亚区域数据转化为授信、研究与项目判断", intro: "为银行、基金、保险与金融服务机构建立来源可追溯的国别、行业和企业研究底座。", needs: ["国别与行业风险监测", "项目及交易对手背景", "贸易结构与异常识别", "区域研究简报"], deliverables: ["中亚五国宏观与产业数据库", "行业机会与风险看板", "企业及项目尽调数据包", "月度区域情报简报"] },
+  financial: { label: "金融机构", en: "FINANCIAL INSTITUTIONS", headline: "把中亚区域数据转化为授信、研究与项目判断", intro: "为银行、基金、保险与金融服务机构建立来源可追溯的国别、行业和企业研究底座。", needs: ["国别与行业风险监测", "项目及交易对手背景", "贸易结构与异常识别", "区域研究简报"], deliverables: ["中亚五国宏观与产业数据库", "行业机会与风险看板", "企业及项目尽调数据包", "月度区域研究简报"] },
   investors: { label: "跨境投资者", en: "CROSS-BORDER INVESTORS", headline: "用数据验证投资假设，提前识别市场与执行风险", intro: "围绕市场规模、供需结构、政策、项目和合作方，支持从机会筛选到投资决策。", needs: ["市场进入与规模判断", "竞争与供给结构", "项目可行性验证", "合作方风险识别"], deliverables: ["投资机会雷达", "国别与行业专题研究", "项目比较与评分模型", "合作方背景档案"] },
   trade: { label: "国际贸易企业", en: "INTERNATIONAL TRADE", headline: "找到市场、渠道、价格与买家，降低中亚进入成本", intro: "服务出口商、设备商和跨境供应链企业，连接贸易数据、渠道价格与企业线索。", needs: ["目标国家与品类选择", "进口商和经销商发现", "价格与渠道监测", "物流与到岸成本"], deliverables: ["买家与渠道数据库", "贸易及价格看板", "冷链成本计算模型", "重点客户开发清单"] },
   government: { label: "政府及研究机构", en: "PUBLIC SECTOR & RESEARCH", headline: "建立口径一致、可持续更新的区域研究基础设施", intro: "为政府部门、园区、智库和公共研究机构提供国别数据、产业监测和专题研究。", needs: ["区域经济与产业观察", "招商项目与企业线索", "政策及合作动态", "跨境产业比较"], deliverables: ["区域数据专题库", "招商与项目雷达", "季度产业运行报告", "定制区域研究"] },
