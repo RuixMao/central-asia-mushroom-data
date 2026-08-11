@@ -1,0 +1,4 @@
+import Link from "next/link";
+import ProductShell from "../product-shell";
+import { reports } from "../saas-data";
+export default function ReportsPage(){return <ProductShell><main className="saas-main"><section className="saas-hero compact"><span>AI REPORT CENTER</span><h1>从新数据到行动建议，不等分析师手工拼表</h1><p>系统汇总最近贸易、价格和物流变化，生成可追溯的中文市场简报；结论始终链接到底层证据。</p></section><div className="filter-bar"><b>全部报告</b><span>日报</span><span>周报</span><span>月报</span><span>专题</span><small>AI 生成内容均经过规则校验</small></div><section className="report-list">{reports.map((report,i)=><article key={report.title}><span>0{i+1}</span><div><div className="tag-row"><b>{report.type}</b><b>{report.country}</b><b>AI 生成</b></div><h2>{report.title}</h2><p>{report.summary}</p><small>{report.date} · 数据来源：UN Comtrade / 市场观察池</small></div><Link href="/pricing">阅读全文 →</Link></article>)}</section></main></ProductShell>}
