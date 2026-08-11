@@ -12,14 +12,16 @@ async function render() {
   );
 }
 
-test("server-renders the Central Asia intelligence dashboard", async () => {
+test("server-renders the Central Asia agricultural data platform", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
-  assert.match(html, /因恒数智/);
-  assert.match(html, /从喀什/);
+  assert.match(html, /因恒科技/);
+  assert.match(html, /连接零散数据/);
   assert.match(html, /中国出口.*中亚进口/);
   assert.match(html, /机会雷达/);
+  assert.match(html, /现有可用数据/);
+  assert.match(html, /待建设的高价值数据/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });

@@ -161,7 +161,7 @@ export default function Dashboard() {
       <aside className="sidebar">
         <button className="brand" onClick={() => jumpTo("overview")} aria-label="返回顶部">
           <span className="brand-seal">枢</span>
-          <span><strong>因恒数智</strong><small>KASHGAR GATEWAY</small></span>
+          <span><strong>因恒科技</strong><small>CENTRAL ASIA DATA</small></span>
         </button>
         <nav aria-label="主要导航">
           {navigation.map((item) => (
@@ -176,7 +176,7 @@ export default function Dashboard() {
           <div><strong>基线运行中</strong><small>数据核验日 2026-08-10</small></div>
         </div>
         <div className="coverage-box">
-          <span>情报覆盖</span>
+          <span>数据覆盖</span>
           <strong>5国 · 9组贸易 · 7条价格</strong>
           <small>首版基线，非实时行情</small>
         </div>
@@ -184,7 +184,7 @@ export default function Dashboard() {
 
       <main>
         <header className="topbar">
-          <div className="mobile-brand"><span>枢</span> 因恒数智</div>
+          <div className="mobile-brand"><span>枢</span> 因恒科技</div>
           <label className="search-box">
             <span>⌕</span>
             <input
@@ -205,35 +205,32 @@ export default function Dashboard() {
           <section className="hero" id="overview">
             <div className="hero-copy">
               <div className="eyebrow">CHINA × KASHGAR × CENTRAL ASIA</div>
-              <h1>从喀什，<br />看见中亚贸易机会。</h1>
-              <p>把分散的官方贸易、市场价格、渠道与项目数据，转化成可验证的商机、合作方简报与 AI 内容。</p>
+              <h1>连接零散数据，<br />形成中亚商业资产。</h1>
+              <p>以喀什为中转节点，整合官方贸易、市场价格、渠道、企业与项目资源，沉淀为可查询、可验证、可持续更新的数据产品。</p>
               <div className="hero-actions">
                 <button className="button button-lime" onClick={() => jumpTo("opportunities")}>查看机会雷达 <span>↗</span></button>
                 <button className="button button-ghost" onClick={() => jumpTo("mirror")}>检查贸易信息差</button>
               </div>
             </div>
-            <div className="corridor-card" aria-label="中国经喀什连接中亚五国的贸易走廊示意">
+            <div className="corridor-card" aria-label="中国经喀什连接中亚五国的数据与贸易网络">
               <div className="corridor-head">
-                <span>贸易走廊 / TRADE CORRIDOR</span>
-                <b>5国覆盖</b>
+                <span>数据与资源网络 / DATA CORRIDOR</span>
+                <b>中国 · 喀什 · 中亚五国</b>
               </div>
-              <div className="corridor-map">
-                <div className="route-line route-a" />
-                <div className="route-line route-b" />
-                <div className="route-line route-c" />
-                <div className="route-line route-d" />
-                <div className="route-line route-e" />
-                <div className="node node-china"><small>供给端</small><strong>中国</strong></div>
-                <div className="node node-kashgar"><span>枢纽</span><strong>喀什</strong><small>KASHGAR</small></div>
-                <div className="node node-kz"><i />哈萨克斯坦</div>
-                <div className="node node-uz"><i />乌兹别克斯坦</div>
-                <div className="node node-kg"><i />吉尔吉斯斯坦</div>
-                <div className="node node-tj"><i />塔吉克斯坦</div>
-                <div className="node node-tm"><i />土库曼斯坦</div>
+              <div className="corridor-network">
+                <div className="network-origin"><small>SUPPLY & DATA</small><strong>中国供给端</strong><span>企业 · 产品 · 海关出口</span></div>
+                <div className="network-link"><i /><span>数据汇集</span></div>
+                <div className="network-hub"><small>GATEWAY</small><strong>喀什</strong><span>KASHGAR</span></div>
+                <div className="network-link network-link-out"><i /><span>交叉核验</span></div>
+                <div className="network-markets">
+                  {[["KZ", "哈萨克斯坦"], ["UZ", "乌兹别克斯坦"], ["KG", "吉尔吉斯斯坦"], ["TJ", "塔吉克斯坦"], ["TM", "土库曼斯坦"]].map(([code, name]) => (
+                    <div key={code}><b>{code}</b><span>{name}</span><i /></div>
+                  ))}
+                </div>
               </div>
               <div className="corridor-foot">
-                <span><i className="legend-live" /> 已有公开数据</span>
-                <span><i className="legend-gap" /> 待补口岸数据</span>
+                <span><i className="legend-live" /> 已接入：贸易、价格、产量</span>
+                <span><i className="legend-gap" /> 待建设：企业、物流、成交与项目</span>
               </div>
             </div>
           </section>
@@ -247,7 +244,7 @@ export default function Dashboard() {
 
           <section className="country-section">
             <div className="section-heading compact-heading">
-              <div><div className="eyebrow">MARKET LENS</div><h2>按国家切换情报视角</h2></div>
+              <div><div className="eyebrow">MARKET LENS</div><h2>按国家切换市场视角</h2></div>
               <p>所有金额均为美元；缺失值不按零处理。</p>
             </div>
             <div className="country-tabs" role="tablist" aria-label="国家筛选">
@@ -283,7 +280,7 @@ export default function Dashboard() {
 
             <article className={`panel brief-panel ${briefReady ? "is-ready" : ""}`}>
               <div className="panel-title">
-                <div><span>AI 情报摘要</span><h3>{selectedLabel} · 本周信号</h3></div>
+                <div><span>AI 市场摘要</span><h3>{selectedLabel} · 本周信号</h3></div>
                 <small>{briefReady ? "刚刚生成" : "基线生成"}</small>
               </div>
               <ol className="brief-list">
@@ -309,8 +306,8 @@ export default function Dashboard() {
                 return (
                   <div className="table-row" role="row" key={`${record.countryCode}-${record.hs}`}>
                     <span className="product-cell"><strong>{record.country}</strong><small>HS {record.hs} · {record.product}</small></span>
-                    <span data-label="进口方 CIF">{fullCurrency(record.importerCifUsd)}</span>
-                    <span data-label="中国出口 FOB">{fullCurrency(record.chinaFobUsd)}</span>
+                    <span className="sourced-value" data-label="进口方 CIF"><strong>{fullCurrency(record.importerCifUsd)}</strong><small>来源：UN Comtrade · 2024</small></span>
+                    <span className="sourced-value" data-label="中国出口 FOB"><strong>{fullCurrency(record.chinaFobUsd)}</strong><small>来源：中国海关镜像口径 · 2024</small></span>
                     <span className="gap-cell" data-label="镜像差异率">
                       <strong>{metrics.gap === null ? "—" : `${metrics.gap.toFixed(1)}%`}</strong>
                       <i><b style={{ width: `${metrics.gap ?? 0}%` }} /></i>
@@ -321,7 +318,7 @@ export default function Dashboard() {
               })}
               {visibleMirrors.length === 0 && <div className="empty-state">当前筛选没有可比镜像记录，已加入补数队列。</div>}
             </div>
-            <div className="method-note"><span>口径说明</span><p>差异率 = |进口方CIF − 中国出口FOB| ÷ 两者较大值。任一侧缺失时显示“待补报”，不会把缺失值当作0。</p></div>
+            <div className="method-note"><span>来源与口径</span><p>进口方数据：UN Comtrade（报告国进口，CIF）；中国出口数据：中国海关出口镜像口径（FOB）。差异率 = |进口方CIF − 中国出口FOB| ÷ 两者较大值。任一侧缺失时显示“待补报”，不会把缺失值当作0。</p></div>
           </section>
 
           <section className="section-block dark-section" id="opportunities">
@@ -374,9 +371,29 @@ export default function Dashboard() {
 
           <section className="section-block" id="sources">
             <div className="section-heading">
-              <div><div className="eyebrow">DATA FOUNDATION</div><h2>数据源、等级与接入状态</h2></div>
-              <p>官方统计构成主表，市场观察构成证据层；两者不混写。</p>
+              <div><div className="eyebrow">DATA PRODUCT MAP</div><h2>从现有数据到可交易的数据资产</h2></div>
+              <p>平台不仅展示结论，更展示数据的来源、结构、缺口、更新能力与产品化路径。</p>
             </div>
+            <div className="asset-map">
+              <article className="asset-column asset-ready">
+                <div className="asset-column-head"><span>01 / AVAILABLE NOW</span><b>现有可用数据</b><em>已形成第一版基线</em></div>
+                <ul>
+                  <li><strong>官方贸易数据</strong><span>中亚五国进口、中国出口镜像、HS 商品与年度趋势</span><b>可做：市场规模、增长、信息差核验</b></li>
+                  <li><strong>产量与供给数据</strong><span>FAOSTAT 农业产量及中国供给端资源</span><b>可做：供需粗估、品类筛选</b></li>
+                  <li><strong>公开价格与渠道</strong><span>电商、商超、批发平台的规格化挂牌价</span><b>可做：价格带、渠道地图、周报</b></li>
+                </ul>
+              </article>
+              <article className="asset-column asset-future">
+                <div className="asset-column-head"><span>02 / COMMERCIAL VALUE</span><b>待建设的高价值数据</b><em>可沉淀为独家数字资产</em></div>
+                <ul>
+                  <li><strong>真实成交与采购需求</strong><span>成交价、采购量、频次、规格、账期与联系人</span><b>产品：采购价格指数、买家数据库</b></li>
+                  <li><strong>物流与口岸运行</strong><span>线路报价、通关时长、冷链损耗、异常原因</span><b>产品：喀什—中亚物流成本指数</b></li>
+                  <li><strong>企业、项目与资源网络</strong><span>进口商、经销商、园区、投资项目及合作状态</span><b>产品：企业图谱、项目库、机会订阅</b></li>
+                </ul>
+              </article>
+            </div>
+            <div className="product-strip"><span>零散信息</span><i>→</i><span>标准化字段</span><i>→</i><span>交叉核验</span><i>→</i><span>持续更新</span><i>→</i><strong>数据包 · 指数 · API · 订阅</strong></div>
+            <div className="section-subhead"><span>DATA SOURCES</span><h3>底层数据源与接入状态</h3></div>
             <div className="source-grid">
               {dataSources.map((source) => (
                 <a className="source-card" key={source.name} href={source.url} target={source.url.startsWith("http") ? "_blank" : undefined} rel="noreferrer">
@@ -405,7 +422,7 @@ export default function Dashboard() {
           </section>
 
           <footer>
-            <div><span className="brand-seal small">枢</span><strong>因恒数智 · 中亚农业贸易情报</strong></div>
+            <div><span className="brand-seal small">枢</span><strong>因恒科技 · 中亚农业数据平台</strong></div>
             <p>公开数据用于市场研究与内容生产参考，不构成贸易决策或投资建议。</p>
             <span>BASELINE / 2026-08-10</span>
           </footer>
