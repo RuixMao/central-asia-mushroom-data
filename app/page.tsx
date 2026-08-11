@@ -1,5 +1,6 @@
 import SiteNav from "./site-nav";
 import MarketingFooter from "./marketing-footer";
+import Image from "next/image";
 
 const products = [
   ["01", "中亚农业数据终端", "贸易、产量、价格、渠道与来源的一站式查询和交叉核验。", "/terminal", "DATA TERMINAL"],
@@ -14,7 +15,7 @@ export default function Home() {
     <main>
       <section className="landing-hero">
         <div className="landing-copy"><span>YINHENG · CENTRAL ASIA AGRI DATA</span><h1>连接中国与中亚，<br />让农业数据触手可及。</h1><p>以喀什为数据与资源网关，把零散的贸易、价格、企业、物流和项目数据转化为可查询、可验证、可持续更新的商业数据资产。</p><div><a className="primary-link" href="/terminal">进入数据终端 <b>↗</b></a><a className="text-link" href="/data-assets">查看数据资产体系 →</a></div></div>
-        <div className="landing-network" aria-label="中国经喀什连接中亚五国"><div className="network-title"><span>DATA CORRIDOR</span><b>数据与资源网络</b></div><div className="network-core"><span>中国供给</span><i>→</i><strong>喀什</strong><i>→</i><span>中亚五国</span></div><div className="network-tags"><b>贸易</b><b>价格</b><b>企业</b><b>物流</b><b>项目</b></div><small>公开数据 + 实地资源 + 持续采集</small></div>
+        <a className="terminal-preview" href="/terminal" aria-label="打开中亚农业数据终端"><div className="preview-label"><span>PRODUCT PREVIEW</span><b>中亚农业数据终端</b><i>进入终端 ↗</i></div><Image src="/terminal-preview.png" alt="因恒科技中亚农业数据终端界面预览" width={1536} height={1024} priority /></a>
       </section>
       <section className="landing-products"><div className="landing-heading"><span>OUR PRODUCTS</span><h2>为跨境农业业务提供完整的数据产品</h2><p>首页只呈现产品入口；每个产品均进入独立页面。</p></div><div className="landing-product-grid">{products.map(([no,title,copy,href,en]) => <a href={href} key={no}><span>{no}</span><div><b>{title}</b><p>{copy}</p></div><i>{en} ↗</i></a>)}</div></section>
       <section className="landing-proof"><div><span>现有基础</span><strong>5国</strong><p>中亚五国市场框架</p></div><div><span>已整合</span><strong>9组</strong><p>重点菌类贸易记录</p></div><div><span>可核验</span><strong>7条</strong><p>市场价格观察</p></div><div><span>核心能力</span><strong>双口径</strong><p>进口CIF × 出口FOB</p></div></section>

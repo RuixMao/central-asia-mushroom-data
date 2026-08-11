@@ -597,6 +597,13 @@ footer p, footer > span { font-size: 8px; }
 .network-tags { display: grid; grid-template-columns: repeat(5,1fr); gap: 6px; }
 .network-tags b { padding: 10px 4px; background: #edf3f6; color: var(--forest); text-align: center; font-size: 8px; font-weight: 500; }
 .landing-network > small { margin-top: 18px; color: var(--muted); font-size: 8px; text-align: center; }
+.terminal-preview { display: block; position: relative; padding: 12px; background: white; border: 1px solid #cdd8df; box-shadow: 0 28px 70px rgba(16,55,82,.13); transition: transform .25s ease, box-shadow .25s ease; }
+.terminal-preview:hover { transform: translateY(-6px); box-shadow: 0 36px 84px rgba(16,55,82,.18); }
+.terminal-preview img { display: block; width: 100%; height: auto; border: 1px solid #e2e7eb; }
+.preview-label { min-height: 46px; padding: 3px 4px 13px; display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; }
+.preview-label span { color: var(--gold); font: 7px/1 Arial; letter-spacing: .14em; }
+.preview-label b { font-size: 10px; font-weight: 600; }
+.preview-label i { color: var(--forest); font-size: 8px; font-style: normal; font-weight: 700; }
 .landing-products, .differentiation, .asset-section { padding: 92px clamp(24px,7vw,110px); }
 .landing-heading { max-width: 760px; margin-bottom: 38px; }
 .landing-heading > span { color: var(--gold); font: 9px/1 Arial; letter-spacing: .16em; font-weight: 700; }
@@ -688,6 +695,9 @@ footer p, footer > span { font-size: 8px; }
   .landing-copy > div { align-items: flex-start; flex-direction: column; }
   .network-core { margin-block: 55px 38px; grid-template-columns: 1fr 20px 78px 20px 1fr; }
   .network-core strong { width: 78px; height: 78px; }
+  .terminal-preview { padding: 8px; }
+  .preview-label { grid-template-columns: 1fr auto; padding: 6px 2px 12px; }
+  .preview-label span { display: none; }
   .landing-products, .differentiation, .asset-section { padding: 64px 24px; }
   .landing-product-grid, .landing-proof, .diff-grid, .potential-grid, .opportunity-page-grid, .service-grid { grid-template-columns: 1fr; }
   .landing-proof { padding: 0 24px 64px; }
