@@ -510,11 +510,24 @@ footer p, footer > span { font-size: 8px; }
   .hero h1 { font-size: 46px; }
   .hero-actions { flex-direction: column; align-items: stretch; }
   .corridor-map { height: 280px; }
-  .corridor-network { min-height: 0; padding: 22px 16px; grid-template-columns: 1fr 30px 1fr; gap: 6px; }
-  .network-origin, .network-hub { min-height: 112px; padding: 15px 11px; }
-  .network-origin strong, .network-hub strong { font-size: 17px; }
-  .network-markets { grid-template-columns: 1fr; width: 100%; margin-top: 10px; }
-  .network-markets > div { grid-template-columns: 38px 1fr 8px; min-height: 38px; text-align: left; padding: 0 10px; }
+  .corridor-card { border: 0; background: transparent; }
+  .corridor-head { padding: 12px 4px 14px; border-bottom: 0; }
+  .corridor-head b { font-size: 7px; }
+  .corridor-network { min-height: 0; padding: 26px 18px 20px; grid-template-columns: 1fr 42px 118px; gap: 8px; border: 1px solid #d7e0e6; background: radial-gradient(circle at 82% 22%, rgba(30,101,143,.1), transparent 31%), #f8fafb; position: relative; overflow: hidden; }
+  .corridor-network::after { content: ""; position: absolute; width: 220px; height: 220px; border: 1px solid rgba(30,101,143,.08); border-radius: 50%; right: -118px; top: -92px; pointer-events: none; }
+  .network-origin { min-height: 92px; padding: 14px 13px; border: 0; border-left: 3px solid var(--lime); background: white; box-shadow: 0 7px 22px rgba(16,55,82,.06); }
+  .network-hub { width: 106px; height: 106px; min-height: 0; padding: 0; border-radius: 50%; box-shadow: 0 0 0 8px rgba(30,101,143,.08), 0 12px 28px rgba(16,55,82,.16); position: relative; z-index: 1; }
+  .network-origin strong { font-size: 16px; }
+  .network-hub strong { margin-top: 8px; font-size: 21px; }
+  .network-hub span { margin-top: 3px; font-size: 7px; }
+  .network-link { gap: 5px; }
+  .network-link span { font-size: 6px; }
+  .network-link i::after { width: 6px; height: 6px; top: -2.5px; }
+  .network-markets { grid-column: 1/-1; grid-template-columns: 1fr 1fr; width: 100%; margin-top: 22px; gap: 8px; position: relative; }
+  .network-markets::before { content: "中亚五国市场"; grid-column: 1/-1; padding-bottom: 3px; color: var(--gold); font: 8px/1 Arial; letter-spacing: .12em; }
+  .network-markets > div { grid-template-columns: 30px 1fr 6px; min-height: 48px; text-align: left; padding: 0 11px; border: 0; background: white; box-shadow: 0 3px 14px rgba(16,55,82,.055); }
+  .network-markets > div:last-child { grid-column: 1/-1; }
+  .corridor-foot { padding: 15px 4px 0; border-top: 0; display: grid; gap: 9px; font-size: 7px; line-height: 1.4; }
   .asset-map { grid-template-columns: 1fr; }
   .product-strip { justify-content: flex-start; }
   .node-kashgar { left: 32%; }
