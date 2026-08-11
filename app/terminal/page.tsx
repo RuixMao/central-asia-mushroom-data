@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Country = "ALL" | "KZ" | "UZ" | "KG" | "TJ" | "TM";
 
@@ -45,9 +45,24 @@ const usd = (value: number | null) => value === null ? "未报告" : new Intl.Nu
 export default function TerminalPage() {
   const [country, setCountry] = useState<Country>("ALL");
   const [view, setView] = useState<"market" | "assets">("market");
-  const rows = useMemo(() => country === "ALL" ? trade : trade.filter(item => item.country === country), [country]);
+  const [liveRecords, setLiveRecords] = useState<{ year: number; reporterCode: number; hs: string; valueUsd: number | null; netWeightKg: number | null }[]>([]);
+  const [liveState, setLiveState] = useState<"loading" | "live" | "fallback">("loading");
+
+  useEffect(() => {
+    fetch("/api/trade")
+      .then(response => response.ok ? response.json() : Promise.reject())
+      .then(payload => { setLiveRecords(payload.records ?? []); setLiveState("live"); })
+      .catch(() => setLiveState("fallback"));
+  }, []);
+
+  const enrichedTrade = useMemo(() => trade.map(item => {
+    const reporterCodes: Record<string, number> = { KZ: 398, UZ: 860, KG: 417, TJ: 762, TM: 795 };
+    const match = liveRecords.find(record => record.year === 2024 && record.reporterCode === reporterCodes[item.country] && record.hs === item.hs);
+    return match ? { ...item, y2024: match.valueUsd, weight: match.netWeightKg ? Math.round(match.netWeightKg / 1000) : item.weight, quality: "API实时" } : item;
+  }), [liveRecords]);
+  const rows = useMemo(() => country === "ALL" ? enrichedTrade : enrichedTrade.filter(item => item.country === country), [country, enrichedTrade]);
   const total = rows.reduce((sum, row) => sum + (row.y2024 ?? 0), 0);
-  const verified = rows.filter(row => row.quality === "已核验").length;
+  const verified = rows.filter(row => row.quality === "已核验" || row.quality === "API实时").length;
   const max = Math.max(...rows.map(row => row.y2024 ?? 0), 1);
 
   return <div className="intel-app">
@@ -58,13 +73,13 @@ export default function TerminalPage() {
       <div className="intel-side-note"><b>数据原则</b><p>来源可追溯、缺失不填零、官方数据与商业采集分层管理。</p></div>
     </aside>
     <main className="intel-main">
-      <header className="intel-top"><div><span>中亚五国 / 菌类产业</span><b>{view === "market" ? "市场概览" : "数据资产与采集路线"}</b></div><div className="freshness"><i /> 数据基线更新至 2026-08-11</div></header>
+      <header className="intel-top"><div><span>中亚五国 / 菌类产业</span><b>{view === "market" ? "市场概览" : "数据资产与采集路线"}</b></div><div className={`freshness ${liveState}`}><i />{liveState === "live" ? "UN Comtrade 已连接" : liveState === "loading" ? "正在同步官方数据" : "显示已验证基线"}</div></header>
 
       {view === "market" ? <>
         <section className="intel-hero"><div><span>MARKET BASELINE</span><h1>先用已有数据建立事实底座</h1><p>当前看板整合重点菌类贸易记录，并明确标记已核验、待复核和缺失数据。下一步将扩展月度、伙伴国和数量口径。</p></div><div className="country-switch">{countries.map(item => <button key={item.code} className={country === item.code ? "active" : ""} onClick={() => setCountry(item.code)}>{item.label}</button>)}</div></section>
         <section className="intel-kpis"><article><span>2024 已报告进口额</span><strong>{usd(total)}</strong><small>当前筛选口径</small></article><article><span>贸易序列</span><strong>{rows.length}</strong><small>国家 × HS 编码</small></article><article><span>已核验记录</span><strong>{verified}</strong><small>已通过官方接口复核</small></article><article><span>待补数据</span><strong>{rows.filter(row => row.y2024 === null).length}</strong><small>不以 0 替代缺失</small></article></section>
         <section className="intel-grid"><article className="intel-panel intel-chart"><div className="intel-panel-head"><div><span>2024 IMPORT VALUE</span><h2>市场与品类结构</h2></div><small>UN Comtrade · USD</small></div><div className="intel-bars">{rows.map(row => <div key={row.country + row.hs}><span><b>{row.name}</b><small>HS {row.hs} · {row.product}</small></span><i><em style={{ width: `${((row.y2024 ?? 0) / max) * 100}%` }} /></i><strong>{usd(row.y2024)}</strong></div>)}</div></article><article className="intel-panel production-card"><div className="intel-panel-head"><div><span>LOCAL PRODUCTION</span><h2>乌兹别克斯坦产量信号</h2></div><small>官方统计 · 千吨</small></div><div className="production-number"><strong>0.3</strong><span>2024年全国食用菌产量</span></div><div className="production-regions"><span><b>撒马尔罕</b>0.1</span><span><b>苏尔汉河</b>0.1</span><span><b>塔什干州</b>0.1</span></div><p>官方序列显示2023年为0.1千吨、2024年为0.3千吨；进口与本地产量联合观察，比单看贸易额更接近真实供需。</p><a href="https://api.siat.stat.uz/media/uploads/sdmx/sdmx_data_519.pdf" target="_blank" rel="noreferrer">查看原始数据 →</a></article></section>
-        <section className="intel-table-panel"><div className="intel-panel-head"><div><span>TRACEABLE RECORDS</span><h2>贸易数据明细</h2></div><small>数值保留原始美元口径</small></div><div className="intel-table"><div className="intel-row head"><span>市场 / 商品</span><span>2022</span><span>2023</span><span>2024</span><span>数量</span><span>质量</span></div>{rows.map(row => <div className="intel-row" key={row.country + row.hs}><span><b>{row.name}</b><small>HS {row.hs} · {row.product}</small></span><span>{usd(row.y2022)}</span><span>{usd(row.y2023)}</span><span>{usd(row.y2024)}</span><span>{row.weight ? `${row.weight.toLocaleString()} 吨` : "待补"}</span><span><em className={`quality ${row.quality === "已核验" ? "ok" : row.quality === "缺失" ? "missing" : "review"}`}>{row.quality}</em></span></div>)}</div></section>
+        <section className="intel-table-panel"><div className="intel-panel-head"><div><span>TRACEABLE RECORDS</span><h2>贸易数据明细</h2></div><small>数值保留原始美元口径</small></div><div className="intel-table"><div className="intel-row head"><span>市场 / 商品</span><span>2022</span><span>2023</span><span>2024</span><span>数量</span><span>质量</span></div>{rows.map(row => <div className="intel-row" key={row.country + row.hs}><span><b>{row.name}</b><small>HS {row.hs} · {row.product}</small></span><span>{usd(row.y2022)}</span><span>{usd(row.y2023)}</span><span>{usd(row.y2024)}</span><span>{row.weight ? `${row.weight.toLocaleString()} 吨` : "待补"}</span><span><em className={`quality ${row.quality === "已核验" || row.quality === "API实时" ? "ok" : row.quality === "缺失" ? "missing" : "review"}`}>{row.quality}</em></span></div>)}</div></section>
       </> : <>
         <section className="intel-hero asset-hero"><div><span>DATA ASSET MAP</span><h1>把公开数据变成独家商业资产</h1><p>公开数据解决“市场发生了什么”，持续采集的数据解决“客户应该联系谁、成本是多少、机会什么时候发生”。</p></div><div className="asset-summary"><strong>4</strong><span>可直接接入的权威数据源</span><strong>6</strong><span>优先建设的商业数据产品</span></div></section>
         <section className="asset-section"><div className="asset-title"><span>01 / AVAILABLE DATA</span><h2>已有数据与接入状态</h2></div><div className="ready-grid">{readyAssets.map(asset => <a href={asset.url} target="_blank" rel="noreferrer" key={asset.title}><div><strong>{asset.title}</strong><em>{asset.state}</em></div><p>{asset.coverage}</p><span>{asset.cadence}</span><b>商业用途：{asset.value}</b></a>)}</div></section>
