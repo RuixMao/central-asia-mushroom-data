@@ -11,11 +11,12 @@ const products=[
   ["咨询", "定制研究与咨询", "为特定国家、行业与投资议题提供数据梳理和专项研究。"],
 ];
 const solutions=[
-  ["金融机构", "建立区域研究底座，支持国别、行业与项目的前期判断。"],
-  ["跨境投资者", "发现市场结构变化，验证投资假设并识别潜在风险。"],
-  ["国际贸易企业", "研究目标市场、渠道、价格与合作伙伴，提高进入效率。"],
-  ["政府及研究机构", "获得口径清晰、来源可追溯的区域数据与专题研究。"],
-  ["专业服务机构", "为咨询、法律、审计和产业服务提供区域事实基础。"],
+  ["financial", "金融机构", "建立区域研究底座，支持国别、行业与项目的前期判断。"],
+  ["investors", "跨境投资者", "发现市场结构变化，验证投资假设并识别潜在风险。"],
+  ["trade", "国际贸易企业", "研究目标市场、渠道、价格与合作伙伴，提高进入效率。"],
+  ["government", "政府及研究机构", "获得口径清晰、来源可追溯的区域数据与专题研究。"],
+  ["professional", "专业服务机构", "为咨询、法律、审计和产业服务提供区域事实基础。"],
+  ["academic", "高校与学术研究", "支持课题研究、论文数据、区域比较与产学研合作。"],
 ];
 const insights=[
   ["市场观察", "中亚重点菌类贸易结构：增长与口径差异", "梳理五国进口基线，并说明镜像差异如何用于发现转口和统计口径问题。", "2026.08.10", "insight-a"],
@@ -39,7 +40,7 @@ export default function CorporateHome(){
 
       <section className="coverage-section" id="coverage"><div className="coverage-copy"><span>DATA COVERAGE</span><h2>聚焦中亚，建立可追溯的数据基础</h2><p>不以虚构规模强调能力，而以明确覆盖、来源分级和持续更新机制建立可信度。</p><div className="coverage-stats"><div><strong>5</strong><span>中亚国家</span></div><div><strong>4类</strong><span>核心数据来源</span></div><div><strong>3年</strong><span>现有贸易基线</span></div><div><strong>多频</strong><span>月 / 季 / 年更新</span></div></div></div><div className="coverage-map"><div className="map-hub">喀什<small>KASHGAR</small></div>{[["KZ","哈萨克斯坦"],["UZ","乌兹别克斯坦"],["KG","吉尔吉斯斯坦"],["TJ","塔吉克斯坦"],["TM","土库曼斯坦"]].map(([code,name],i)=><div className={`map-market market-${i+1}`} key={code}><b>{code}</b><span>{name}</span></div>)}<div className="map-note">官方统计 · 市场观察 · 行业资料 · 合作方信息</div></div></section>
 
-      <section className="solution-section" id="solutions"><div className="corp-section-head"><span>SOLUTIONS</span><h2>面向不同机构的区域研究支持</h2></div><div className="solution-list">{solutions.map(([title,copy],i)=><article key={title}><span>0{i+1}</span><h3>{title}</h3><p>{copy}</p><a href="#contact">了解方案 →</a></article>)}</div></section>
+      <section className="solution-section" id="solutions"><div className="corp-section-head"><span>SOLUTIONS</span><h2>面向不同机构的区域研究支持</h2></div><div className="solution-list">{solutions.map(([slug,title,copy],i)=><article key={slug}><span>0{i+1}</span><h3>{title}</h3><p>{copy}</p><a href={`/solutions/${slug}`}>了解方案 →</a></article>)}</div></section>
 
       <section className="insight-section" id="insights"><div className="corp-section-head"><span>MARKET INSIGHTS</span><h2>研究、观点与方法</h2><p>以少而精的专题内容，展示对中亚市场的持续观察和研究能力。</p></div><div className="insight-grid">{insights.map(([cat,title,copy,date,cls])=><article key={title}><div className={`insight-cover ${cls}`}><span>{cat}</span><b>YINHENG<br/>RESEARCH</b></div><div className="insight-body"><span>{cat} · {date}</span><h3>{title}</h3><p>{copy}</p><a href="#contact">获取样例报告 →</a></div></article>)}</div></section>
 
