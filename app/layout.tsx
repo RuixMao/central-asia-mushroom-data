@@ -7,13 +7,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const imageUrl = `${protocol}://${host}/og.png`;
-  const title = "因恒科技｜中亚农业数据平台";
-  const description = "以喀什为枢纽，整合中国与中亚五国贸易、价格、渠道、企业和项目资源，将零散信息沉淀为可查询、可验证、可订阅的数据资产。";
+  const title = "因恒科技｜中亚金融与商业情报平台";
+  const description = "汇集区域宏观经济、产业、企业与市场信息，为金融机构、投资者和企业提供可信、及时、可执行的中亚商业情报。";
 
   return {
     title,
     description,
-    openGraph: { title, description, type: "website", locale: "zh_CN", images: [{ url: imageUrl, width: 1536, height: 1024, alt: "因恒科技中亚农业数据平台" }] },
+    openGraph: { title, description, type: "website", locale: "zh_CN", images: [{ url: imageUrl, width: 1536, height: 1024, alt: "因恒科技中亚金融与商业情报平台" }] },
     twitter: { card: "summary_large_image", title, description, images: [imageUrl] },
   };
 }
