@@ -2,7 +2,7 @@ import hashlib,re
 from bs4 import BeautifulSoup
 from utils import safe_get
 
-PRICE=re.compile(r"(\d[\d\s]*(?:[.,]\d+)?)\s*(?:сомони|сом(?:/кг)?|с\b)",re.I)
+PRICE=re.compile(r"(\d[\d\s]*(?:[.,]\d+)?)\s*(?:сомони|сом(?:/кг)?|[cс]\b)",re.I)
 class ProductAdapter:
  def __init__(self,config):self.config=config
  def collect(self):
@@ -13,8 +13,11 @@ class ProductAdapter:
    pos=text.lower().find(marker.lower())
    if pos<0:return None,"product_marker_missing"
    text=text[pos:pos+600]
-  match=PRICE.search(text)
-  if not match:return None,"price_missing"
+  matches=list(PRICE.finditer(text))
+  if not matches:return None,"price_missing"
+  # Cart badges and crossed-out placeholders can contain "0 сом" before the
+  # actual public product price. Select the first positive observed amount.
+  match=next((item for item in matches if float(item.group(1).replace(" ","").replace(",","."))>0),None)
+  if not match:return None,"zero_price"
   price=float(match.group(1).replace(" ","").replace(",","."))
-  if price<=0:return None,"zero_price"
   return {**self.config,"original_title":self.config["title"],"current_price":price,"raw_price_text":match.group(0),"page_fingerprint":hashlib.sha256(response.content).hexdigest()},None
