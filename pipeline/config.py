@@ -3,8 +3,8 @@ from dotenv import load_dotenv
 
 load_dotenv(".env.local")
 load_dotenv()
-SITE_URL = os.environ["SITE_URL"].rstrip("/")
-CRON_SECRET = os.environ["CRON_SECRET"]
+SITE_URL = os.environ.get("SITE_URL", "http://localhost").rstrip("/")
+CRON_SECRET = os.environ.get("CRON_SECRET", "")
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "deepseek")
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
 AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://api.deepseek.com")
