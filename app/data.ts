@@ -1,4 +1,4 @@
-export type CountryCode = "ALL" | "KZ" | "UZ" | "KG" | "TJ" | "TM";
+﻿export type CountryCode = "ALL" | "KZ" | "UZ" | "KG" | "TJ" | "TM";
 
 export type TradeRecord = {
   countryCode: Exclude<CountryCode, "ALL">;
