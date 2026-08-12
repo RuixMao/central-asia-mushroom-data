@@ -98,3 +98,25 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 - [vinext Documentation](https://github.com/cloudflare/vinext)
 - [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+
+## 自动化数据管线
+
+`pipeline/` 每日采集 UN Comtrade 贸易数据与物流时效，每周一按“中亚五国 × 5 个菌种”采集当地商超、电商和分类信息价格。所有结果写入 D1；无价格时写入 `status: gap`，绝不写 0。随后由 AI 生成中文市场日报并写入报告表。
+
+核心入口：
+
+- `python pipeline/fetch_trade.py`：最近两年、五国、3 个 HS 编码。
+- `python pipeline/fetch_logistics.py`：中亚核心路线时效中位数。
+- `python pipeline/fetch_price.py`：16 个来源的周频价格与缺口采集。
+- `python pipeline/generate_report.py`：读取最新快照并生成日报。
+
+站点环境变量：`CRON_SECRET`、`UN_COMTRADE_API_KEY`，可选 `DEPLOY_HOOK_URL`。GitHub Actions Secrets：`SITE_URL`、`CRON_SECRET`、`UN_COMTRADE_API_KEY`、`AI_PROVIDER`、`AI_API_KEY`。
+
+首次启用：
+
+```bash
+npm run db:generate
+npm run build
+```
+
+Sites 部署会根据 `.openai/hosting.json` 的 `DB` 绑定创建/连接 D1，并应用 `drizzle/` 迁移。手动运行 GitHub Actions 的 **Daily Data Pipeline** 可立即测试；`include_prices` 控制是否同时执行周频价格采集。

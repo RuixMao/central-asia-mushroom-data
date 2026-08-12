@@ -1,0 +1,43 @@
+name: Daily Data Pipeline
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      include_prices:
+        description: Run the weekly price crawler
+        type: boolean
+        default: true
+jobs:
+  pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r pipeline/requirements.txt
+      - name: Fetch trade
+        run: python pipeline/fetch_trade.py
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          UN_COMTRADE_API_KEY: ${{ secrets.UN_COMTRADE_API_KEY }}
+      - name: Fetch logistics
+        run: python pipeline/fetch_logistics.py
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      - name: Weekly price collection
+        run: |
+          if [ "$(date -u +%u)" = "1" ] || { [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.include_prices }}" = "true" ]; }; then python pipeline/fetch_price.py; else echo "Price collection runs on Monday"; fi
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      - name: Generate AI report
+        run: python pipeline/generate_report.py
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}

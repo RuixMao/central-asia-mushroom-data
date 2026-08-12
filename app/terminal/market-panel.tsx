@@ -7,6 +7,7 @@ type Grain = "annual" | "monthly" | "daily";
 type Mode = "history" | "latest";
 type Species = "ALL" | "双孢菇" | "平菇" | "香菇" | "金针菇" | "木耳";
 type RecordRow = { period: string; year: number; reporterCode: number; hs: string; product: string | null; valueUsd: number | null; netWeightKg: number | null };
+type TradeSnapshot = {country:string;data:{year?:number;hs?:string;value_usd?:number|null;net_weight_kg?:number|null}};
 
 const countries: { code: Country; label: string }[] = [
   { code: "ALL", label: "全部市场" }, { code: "KZ", label: "哈萨克斯坦" }, { code: "UZ", label: "乌兹别克斯坦" },
@@ -53,8 +54,13 @@ export default function MarketPanel({ onState }: { onState: (state: "loading" | 
     const frequency = grain === "annual" ? "A" : "M";
     const start = mode === "history" ? 2022 : grain === "annual" ? 2024 : 2025;
     setState("loading"); onState("loading");
-    fetch(`/api/trade?frequency=${frequency}&start=${start}&end=2026`)
-      .then(response => response.ok ? response.json() : Promise.reject())
+    const stored = grain === "annual" ? fetch("/api/ingest/snapshot?metric=trade&latest=1&limit=500")
+      .then(response => response.ok ? response.json() as Promise<{records?:TradeSnapshot[]}> : Promise.reject())
+      .then(payload => {
+        if (!payload.records?.length) return Promise.reject();
+        return { records: payload.records.map((snapshot: TradeSnapshot) => ({ period:String(snapshot.data.year??""), year:Number(snapshot.data.year), reporterCode:codes[snapshot.country as Exclude<Country,"ALL">], hs:String(snapshot.data.hs??""), product:products[String(snapshot.data.hs??"")]??null, valueUsd:snapshot.data.value_usd??null, netWeightKg:snapshot.data.net_weight_kg??null })) };
+      }) : Promise.reject();
+    stored.catch(() => fetch(`/api/trade?frequency=${frequency}&start=${start}&end=2026`).then(response => response.ok ? response.json() as Promise<{records?:RecordRow[]}> : Promise.reject()))
       .then(payload => { setRecords(payload.records ?? []); setState("live"); onState("live"); })
       .catch(() => { setRecords([]); setState("fallback"); onState("fallback"); });
   }, [grain, mode, onState]);
