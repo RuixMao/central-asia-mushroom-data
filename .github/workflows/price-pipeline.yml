@@ -37,3 +37,9 @@ jobs:
           PLATFORM: ${{ inputs.platform }}
           COLLECTION_POINT: ${{ inputs.collection_point }}
           DRY_RUN: ${{ inputs.dry_run }}
+      - name: Build daily summaries
+        if: ${{ inputs.dry_run != true }}
+        run: curl --fail --silent --show-error -X POST "$SITE_URL/api/prices/summarize" -H "x-cron-secret:$CRON_SECRET" -H "content-type:application/json" -d '{}'
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
