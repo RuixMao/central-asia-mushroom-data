@@ -17,6 +17,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r pipeline/requirements.txt
+      - name: Install Chromium for rendered price sources
+        run: python -m playwright install --with-deps chromium
       - name: Fetch trade
         run: python pipeline/fetch_trade.py
         env:

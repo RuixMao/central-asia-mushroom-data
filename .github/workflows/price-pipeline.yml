@@ -25,6 +25,9 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r pipeline/requirements.txt
+      - name: Install Chromium for rendered sources
+        if: ${{ inputs.platform == 'kaspi-kz' || inputs.platform == '' }}
+        run: python -m playwright install --with-deps chromium
       - name: Run deterministic pipeline tests
         run: python -m unittest discover -s tests -p 'test_*.py'
       - name: Python syntax check

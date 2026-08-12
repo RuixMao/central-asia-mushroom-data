@@ -26,10 +26,14 @@ def post_to_site(endpoint, data, cron_secret=CRON_SECRET, retries=3):
         try:
             response = requests.post(url, json=data, headers={"x-cron-secret": cron_secret}, timeout=30)
             response.raise_for_status()
-            return response.json()
+            result=response.json()
+            if result.get("rejected"):
+                log(f"POST completed with rejected records: {result.get('errors',[])}")
+            return result
         except requests.RequestException as exc:
             if attempt == retries - 1:
-                raise RuntimeError(f"POST failed {url}: {exc}") from exc
+                detail=getattr(exc.response,"text","")[:1000] if getattr(exc,"response",None) is not None else ""
+                raise RuntimeError(f"POST failed {url}: {exc}; response={detail}") from exc
             time.sleep(2 ** attempt)
 
 def get_site(endpoint):
