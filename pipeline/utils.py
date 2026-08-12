@@ -25,9 +25,11 @@ def safe_get(url, retries=3, backoff=2, **kwargs):
     url, kwargs = _maybe_proxy(url, **kwargs)
     headers = {"User-Agent": "Mozilla/5.0 YinhengMarketResearch/1.0 (+data-source-audit)"}
     headers.update(kwargs.pop("headers", {}))
+    # 代理转发路径（CF Worker → 目标站）链路更长，给更大超时；直连保持 25s
+    timeout = kwargs.pop("timeout", 45 if os.getenv("PROXY_BASE", "").strip() and "?url=" in url else 25)
     for attempt in range(retries):
         try:
-            response = requests.get(url, timeout=25, headers=headers, **kwargs)
+            response = requests.get(url, timeout=timeout, headers=headers, **kwargs)
             response.raise_for_status()
             return response
         except requests.RequestException as exc:
