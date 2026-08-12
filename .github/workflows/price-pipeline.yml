@@ -1,6 +1,21 @@
 name: Price Pipeline
 on:
+  schedule:
+    - cron: '0 2 * * *'
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Optional platform id
+        required: false
+        type: string
+      collection_point:
+        description: Optional collection point id
+        required: false
+        type: string
+      dry_run:
+        description: Validate without writing
+        type: boolean
+        default: false
 jobs:
   prices:
     runs-on: ubuntu-latest
@@ -10,8 +25,15 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r pipeline/requirements.txt
+      - name: Run deterministic pipeline tests
+        run: python -m unittest discover -s tests -p 'test_*.py'
+      - name: Python syntax check
+        run: python -m compileall -q pipeline
       - name: Collect normalized prices
         run: python pipeline/fetch_price.py
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          PLATFORM: ${{ inputs.platform }}
+          COLLECTION_POINT: ${{ inputs.collection_point }}
+          DRY_RUN: ${{ inputs.dry_run }}

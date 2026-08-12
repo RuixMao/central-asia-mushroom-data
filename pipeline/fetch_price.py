@@ -1,4 +1,5 @@
 import datetime as dt
+import os
 from adapters.globus import GlobusAdapter
 from adapters.omarket import OMarketAdapter
 from adapters.zudbiyor import ZudbiyorAdapter
@@ -16,13 +17,15 @@ SOURCES=[
 def rates():
  r=safe_get("https://fxapi.app/api/usd.json",retries=2);return r.json()["rates"],r.json().get("timestamp")
 def run():
- fx,fx_time=rates();items=[];errors=[]
+ fx,fx_time=rates();items=[];errors=[];wanted_platform=os.getenv("PLATFORM","").strip();wanted_point=os.getenv("COLLECTION_POINT","").strip();dry_run=os.getenv("DRY_RUN","false").lower()=="true"
  for Adapter,config in SOURCES:
+  if wanted_platform and config["platform"]!=wanted_platform:continue
+  if wanted_point and config["collection_point_id"]!=wanted_point:continue
   row,error=Adapter(config).collect()
   if error:errors.append({"platform":config["platform"],"reason":error});continue
   category=classify(row["original_title"]);norm=normalize_price(row["current_price"],row["package"]);local_per_usd=float(fx[row["currency"]]);now=dt.datetime.now(dt.timezone.utc).isoformat()
   items.append({**row,"product_url":row.pop("url"),"original_language":row.pop("language"),"species_id":category["species_id"],"product_form":category["product_form"],"classification_status":category["status"],"classification_confidence":category["confidence"],"classification_evidence":category["evidence"],"observed_at":now,"observation_date":today_str(),"package_value":norm["value"],"package_unit":norm["unit"],"normalized_quantity_kg":norm["quantity_kg"],"normalized_price_per_kg":norm["price_per_kg"],"price_usd":round(row["current_price"]/local_per_usd,2),"usd_rate_local_per_usd":local_per_usd,"fx_source":"fxapi.app","fx_timestamp":fx_time,"in_stock":True,"source_type":"server_html","validation_status":"valid" if category["confidence"]>=.9 and norm["price_per_kg"] else "needs_review"})
- if items:post_to_site("/api/ingest/prices",{"items":items})
- log(f"平台适配器完成：有效 {len(items)} 条，失败 {len(errors)} 条；{errors}")
+ if items and not dry_run:post_to_site("/api/ingest/prices",{"items":items})
+ log(f"平台适配器完成：有效 {len(items)} 条，失败 {len(errors)} 条，dry_run={dry_run}；{errors}")
  if not items:raise RuntimeError("没有有效价格")
 if __name__=="__main__":run()

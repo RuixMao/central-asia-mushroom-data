@@ -1,29 +1,50 @@
 import re
 
-SPECIES=[
- ("agaricus_bisporus","双孢菇",["шампиньон","champignon","button mushroom"]),("pleurotus_ostreatus","平菇",["вешенк","oyster"]),("flammulina_velutipes","金针菇",["эноки","enoki"]),("lentinula_edodes","香菇",["шиитаке","shiitake"]),("pleurotus_eryngii","杏鲍菇",["эринги","королевская вешенка","king oyster"]),("auricularia","木耳",["муэр","wood ear"]),("morel","羊肚菌",["сморчок","morel"]),("maitake","舞茸",["маитаке","maitake"]),("porcini","牛肝菌",["белый гриб","боровик","porcini"]),("chanterelle","鸡油菌",["лисичка","chanterelle"]),("honey_fungus","蜜环菌",["опёнок","опенок","honey mushroom"]),("suillus","乳牛肝菌",["маслёнок","масленок"]),
-]
-EXCLUDED=["соус","mushroom sauce","суп","лапша","snack","экстракт","extract","мицелий","菌种"]
-FORM_RULES=[("frozen",["заморож","frozen"]),("dried",["сушен","dried"]),("pickled",["марин","pickled"]),("canned",["консерв","canned"]),("powder",["порош","powder"]),("prepared_food",["соус","суп","лапша","готовое блюдо"]),("fresh",["свеж","fresh"])]
+SPECIES={
+ "button_mushroom":["шампиньон","champignon","button mushroom"],"oyster_mushroom":["вешенк","oyster mushroom"],
+ "enoki":["эноки","enoki"],"shiitake":["шиитаке","shiitake"],"king_oyster_mushroom":["эринги","королевская вешенка","king oyster"],
+ "shimeji":["шимиджи","shimeji"],"wood_ear":["муэр","wood ear"],"snow_fungus":["серебряное ухо","snow fungus"],
+ "morel":["сморчок","morel"],"matsutake":["мацутакэ","matsutake"],"porcini":["белый гриб","боровик","porcini"],
+ "chanterelle":["лисичк","chanterelle"],"straw_mushroom":["вольвариелла","straw mushroom"],"honey_fungus":["опёнок","опенок","опята","honey mushroom"],
+ "suillus":["маслёнок","масленок","маслята","suillus"],"truffle":["трюфель","truffle"]}
+AMBIGUOUS=["грибы","mushrooms","qo‘ziqorin","qo'ziqorin","золотые нити","древесные грибы","лесные грибы"]
+EXCLUDE_ONLY=["грибной соус","mushroom sauce","mushroom flavour","蘑菇味"]
+FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","dried"]),("pickled",["марин","pickled"]),("canned",["консерв","canned"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]
 
-def classify(title,description="",category=""):
- text=" ".join([title,description,category]).lower()
- if any(term in text for term in EXCLUDED): return {"species_id":None,"product_form":"prepared_food" if any(x in text for x in ("соус","суп","лапша","готовое")) else "unknown","status":"excluded","confidence":1.0,"evidence":{"excluded_term":True}}
- hits=[(sid,name,term) for sid,name,terms in SPECIES for term in terms if term in text]
- form=next((value for value,terms in FORM_RULES if any(t in text for t in terms)),"fresh")
- if len({h[0] for h in hits})>1:return {"species_id":"mixed_species","product_form":"mixed","status":"mixed_species","confidence":.99,"evidence":{"terms":[h[2] for h in hits]}}
- if hits:return {"species_id":hits[0][0],"product_form":form,"status":"classified","confidence":.96,"evidence":{"term":hits[0][2],"field":"title_or_description"}}
- return {"species_id":"unknown_species","product_form":form,"status":"unknown","confidence":0.0,"evidence":{"reason":"no deterministic synonym match"}}
+def _hits(text):
+ return [(sid,term) for sid,terms in SPECIES.items() for term in terms if term in text]
+
+def classify(title,description="",category="",language="",image_metadata=None):
+ title_l=title.lower();description_l=description.lower();category_l=category.lower()
+ if any(x in " ".join((title_l,description_l,category_l)) for x in EXCLUDE_ONLY):
+  return {"species_id":None,"product_form":"prepared_food","classification_status":"excluded","status":"excluded","confidence":1.0,"evidence":[{"field":"title","rule":"excluded"}],"reasons":["non-mushroom retail product"]}
+ title_hits=_hits(title_l);desc_hits=_hits(description_l);cat_hits=_hits(category_l);all_ids={x[0] for x in title_hits+desc_hits+cat_hits}
+ form=next((f for f,terms in FORMS if any(t in " ".join((title_l,description_l,category_l)) for t in terms)),"fresh")
+ if len({x[0] for x in title_hits})>1 or (not title_hits and len(all_ids)>1):status,species,confidence="mixed_species","mixed_mushrooms",.99
+ elif title_hits and desc_hits and title_hits[0][0]!=desc_hits[0][0]:status,species,confidence="review_required",None,.45
+ elif all_ids:
+  status="classified";species=(title_hits or desc_hits or cat_hits)[0][0];confidence=.98 if title_hits else (.92 if desc_hits else .75)
+ else:status,species,confidence="unknown",None,0.0
+ evidence=[{"field":"title","term":t} for _,t in title_hits]+[{"field":"description","term":t} for _,t in desc_hits]+[{"field":"category","term":t} for _,t in cat_hits]
+ return {"species_id":species,"product_form":form,"classification_status":status,"status":status,"confidence":confidence,"evidence":evidence,"reasons":[] if evidence else ["no deterministic synonym match"]}
 
 def parse_package(text):
- normalized=text.lower().replace(",",".")
- match=re.search(r"(\d+(?:\.\d+)?)\s*(kg|кг|g|гр|г)\b",normalized)
- if not match:return {"value":None,"unit":None,"quantity_kg":None}
- value=float(match.group(1));unit=match.group(2);kg=value if unit in ("kg","кг") else value/1000
- multiplier=re.search(r"[x×]\s*(\d+)",normalized)
- if multiplier:kg*=int(multiplier.group(1))
- return {"value":value,"unit":unit,"quantity_kg":kg}
+ s=text.lower().replace(",",".");evidence=None;count=1
+ m=re.search(r"(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|кг|g|гр|г)\b",s)
+ if m:count=int(m.group(1));value=float(m.group(2));unit=m.group(3);evidence=m.group(0)
+ else:
+  m=re.search(r"(\d+(?:\.\d+)?)\s*(kg|кг|g|гр|г)\s*[x×]\s*(\d+)",s)
+  if m:value=float(m.group(1));unit=m.group(2);count=int(m.group(3));evidence=m.group(0)
+  else:
+   m=re.search(r"(\d+(?:\.\d+)?)\s*(kg|кг|g|гр|г)\b",s)
+   if m:value=float(m.group(1));unit=m.group(2);evidence=m.group(0)
+   elif re.search(r"(за|по|per)\s*(1\s*)?(kg|кг)",s):value,unit,evidence=1.0,"kg","per kg"
+   else:return {"package_value":None,"package_unit":None,"package_count":None,"normalized_quantity_kg":None,"parse_status":"uncertain" if re.search(r"шт|pack|упак|件",s) else "invalid","evidence":None,"value":None,"unit":None,"quantity_kg":None}
+ kg=(value if unit in ("kg","кг") else value/1000)*count
+ return {"package_value":value,"package_unit":"kg" if unit in ("kg","кг") else "g","package_count":count,"normalized_quantity_kg":kg,"parse_status":"valid","evidence":evidence,"value":value,"unit":"kg" if unit in ("kg","кг") else "g","quantity_kg":kg}
 
-def normalize_price(price,package_text):
- package=parse_package(package_text)
- return {**package,"price_per_kg":round(price/package["quantity_kg"],2) if price is not None and package["quantity_kg"] else None}
+def normalize_price(price,package_text,promotion_price=None):
+ if price is not None and price<=0:raise ValueError("price must be positive")
+ if promotion_price is not None and promotion_price<=0:raise ValueError("promotion price must be positive")
+ package=parse_package(package_text);effective=promotion_price if promotion_price is not None else price
+ return {**package,"price_per_kg":round(effective/package["normalized_quantity_kg"],2) if effective is not None and package["normalized_quantity_kg"] else None}
