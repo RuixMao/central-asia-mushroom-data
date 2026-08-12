@@ -1,65 +1,28 @@
-import json,re,datetime as dt
-from bs4 import BeautifulSoup
-from config import FX_TO_CNY
+import datetime as dt
+from adapters.globus import GlobusAdapter
+from adapters.omarket import OMarketAdapter
+from adapters.zudbiyor import ZudbiyorAdapter
+from adapters.magnit import MagnitAdapter
+from taxonomy import classify,normalize_price
 from utils import log,post_to_site,safe_get,today_str
 
 SOURCES=[
- {"country":"KG","source":"Globus Online","url":"https://globus-online.kg/ru-kg/good/9905ed980f9d469888dadc3efc68b6fe000200010000","variety":"双孢菇","form":"鲜品","spec":"1kg","channel":"商超","currency":"KGS"},
- {"country":"KG","source":"Globus Online","url":"https://globus-online.kg/ru-kg/catalog/grocery/category/f65c13b6fb5ffb8c5752ff03be5a71bd/a0e91ee087e645b98fb1698163a1c64f000200010000","variety":"平菇","form":"鲜品","spec":"1kg","channel":"商超","currency":"KGS","name_contains":"Вешен"},
- {"country":"KG","source":"O!Market","url":"https://market.o.kg/ru/bishkek/produkty-pitanija/ovoschi-frukty/product/4450008b-61fc-4fb7-839f-c4bdd5669c5c/griby-shampinony-1kg","variety":"双孢菇","form":"鲜品","spec":"300g","channel":"本地电商","currency":"KGS"},
- {"country":"TJ","source":"Zudbiyor","url":"https://zudbiyor.tj/product/141","variety":"双孢菇","form":"鲜品","spec":"1kg","channel":"即时零售","currency":"TJS"},
- {"country":"TJ","source":"Magnit.tj","url":"https://magnit.tj/product/show/18786","variety":"双孢菇","form":"鲜品","spec":"250g","channel":"商超电商","currency":"TJS"},
- {"country":"TJ","source":"Magnit.tj","url":"https://magnit.tj/product/show/16839","variety":"平菇","form":"鲜品","spec":"500g","channel":"商超电商","currency":"TJS"},
+(GlobusAdapter,{"platform":"globus","platform_name":"Globus Online","platform_product_id":"9905ed980f9d469888dadc3efc68b6fe000200010000","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://globus-online.kg/ru-kg/good/9905ed980f9d469888dadc3efc68b6fe000200010000","title":"Грибы Шампиньоны фасованные вес 1 кг","package":"1 kg","currency":"KGS","language":"ru"}),
+(GlobusAdapter,{"platform":"globus","platform_name":"Globus Online","platform_product_id":"fresh-oyster-category","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://globus-online.kg/ru-kg/catalog/grocery/category/f65c13b6fb5ffb8c5752ff03be5a71bd/a0e91ee087e645b98fb1698163a1c64f000200010000","title":"Грибы Вешенки фасованные вес 1 кг","marker":"Вешен","package":"1 kg","currency":"KGS","language":"ru"}),
+(OMarketAdapter,{"platform":"omarket","platform_name":"O!Market","platform_product_id":"4450008b-61fc-4fb7-839f-c4bdd5669c5c","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://market.o.kg/ru/bishkek/produkty-pitanija/ovoschi-frukty/product/4450008b-61fc-4fb7-839f-c4bdd5669c5c/griby-shampinony-1kg","title":"Грибы Шампиньоны 300 г","package":"300 g","currency":"KGS","language":"ru"}),
+(ZudbiyorAdapter,{"platform":"zudbiyor","platform_name":"Zudbiyor","platform_product_id":"141","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://zudbiyor.tj/product/141","title":"Шампиньоны целые 1 кг","package":"1 kg","currency":"TJS","language":"ru"}),
+(MagnitAdapter,{"platform":"magnit-tj","platform_name":"Magnit.tj","platform_product_id":"18786","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://magnit.tj/product/show/18786","title":"Шампиньоны цена за 250 г","package":"250 g","currency":"TJS","language":"ru"}),
 ]
-
-FX_API="https://fxapi.app/api/usd.json"
-
-def usd_rates():
- response=safe_get(FX_API,retries=2)
- if not response: raise RuntimeError("美元参考汇率接口不可用")
- payload=response.json(); rates=payload.get("rates",{})
- required={source["currency"] for source in SOURCES}
- if not required.issubset(rates): raise RuntimeError(f"汇率缺少币种：{sorted(required-set(rates))}")
- return rates,payload.get("timestamp") or dt.datetime.now(dt.timezone.utc).isoformat()
-
-PRICE_PATTERNS=[
- re.compile(r"(\d[\d\s]*(?:[.,]\d+)?)\s*(?:сомони|сом(?:/кг)?|с\b)",re.I),
- re.compile(r'"price"\s*:\s*"?(\d+(?:[.,]\d+)?)',re.I),
-]
-
-def clean_text(html):
- return " ".join(BeautifulSoup(html,"html.parser").get_text(" ",strip=True).split())
-
-def find_price(html,source):
- text=clean_text(html); marker=source.get("name_contains")
- if marker:
-  pos=text.lower().find(marker.lower())
-  if pos<0:return None
-  text=text[pos:pos+500]
- for pattern in PRICE_PATTERNS:
-  match=pattern.search(text)
-  if match:
-   value=float(match.group(1).replace(" ","").replace(",","."))
-   if value>0:return value
- return None
-
-def publish_gap(source,reason):
- post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":source["country"],"source":source["source"],"data":{"variety":source["variety"],"status":"gap","reason":reason,"observed_at":today_str(),"source_url":source["url"]}})
-
+def rates():
+ r=safe_get("https://fxapi.app/api/usd.json",retries=2);return r.json()["rates"],r.json().get("timestamp")
 def run():
- rates,rate_time=usd_rates();live=0;gaps=0
- for source in SOURCES:
-  response=safe_get(source["url"],retries=1)
-  if not response:
-   publish_gap(source,"商品页无法访问");gaps+=1;continue
-  price=find_price(response.text,source)
-  if price is None:
-   publish_gap(source,"商品页未发现可核验的正价格");gaps+=1;continue
-  row={key:source[key] for key in ("variety","form","spec","channel","currency")}
-  local_per_usd=float(rates[source["currency"]])
-  row.update({"price_local":price,"price_usd":round(price/local_per_usd,2),"usd_rate_local_per_usd":local_per_usd,"fx_base":"USD","fx_source":"fxapi.app (central bank and financial data providers)","fx_timestamp":rate_time,"price_cny":round(price*FX_TO_CNY[source["currency"]],2),"observed_at":today_str(),"source_url":source["url"],"status":"live"})
-  post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":source["country"],"source":source["source"],"data":row});live+=1
- log(f"今日价格采集完成：有效 {live} 条，缺口 {gaps} 条")
- if not live: raise RuntimeError("今日没有采集到任何有效价格")
-
+ fx,fx_time=rates();items=[];errors=[]
+ for Adapter,config in SOURCES:
+  row,error=Adapter(config).collect()
+  if error:errors.append({"platform":config["platform"],"reason":error});continue
+  category=classify(row["original_title"]);norm=normalize_price(row["current_price"],row["package"]);local_per_usd=float(fx[row["currency"]]);now=dt.datetime.now(dt.timezone.utc).isoformat()
+  items.append({**row,"product_url":row.pop("url"),"original_language":row.pop("language"),"species_id":category["species_id"],"product_form":category["product_form"],"classification_status":category["status"],"classification_confidence":category["confidence"],"classification_evidence":category["evidence"],"observed_at":now,"observation_date":today_str(),"package_value":norm["value"],"package_unit":norm["unit"],"normalized_quantity_kg":norm["quantity_kg"],"normalized_price_per_kg":norm["price_per_kg"],"price_usd":round(row["current_price"]/local_per_usd,2),"usd_rate_local_per_usd":local_per_usd,"fx_source":"fxapi.app","fx_timestamp":fx_time,"in_stock":True,"source_type":"server_html","validation_status":"valid" if category["confidence"]>=.9 and norm["price_per_kg"] else "needs_review"})
+ if items:post_to_site("/api/ingest/prices",{"items":items})
+ log(f"平台适配器完成：有效 {len(items)} 条，失败 {len(errors)} 条；{errors}")
+ if not items:raise RuntimeError("没有有效价格")
 if __name__=="__main__":run()
