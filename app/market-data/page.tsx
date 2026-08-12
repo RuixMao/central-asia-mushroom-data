@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import ProductShell from "../product-shell";
 import PriceLiveTable from "./price-live-table";
 
 const trade = [
@@ -28,12 +28,7 @@ const prices = [
 ];
 
 export default function MarketDataPage() {
-  return <div className="data-site">
-    <header className="data-nav">
-      <Link href="/" aria-label="返回因恒科技首页"><Image src="/inhen-tech-logo.png" alt="因恒科技 Inhen Tech" width={282} height={90} priority /></Link>
-      <nav aria-label="数据中心导航"><a href="#trade">贸易基线</a><a href="#mirror">交叉核验</a><a href="#price">市场价格</a><a href="#sources">数据来源</a></nav>
-      <Link className="data-contact" href="/#contact">申请演示</Link>
-    </header>
+  return <ProductShell><div className="data-site">
     <main>
       <section className="data-hero"><span>YINHENG MARKET DATA</span><h1>中亚菌类市场<br />公开数据样例</h1><p>将官方贸易、农业生产与市场挂牌信息按统一字段整理，并保留来源、时间、统计口径和缺失状态。</p><div><b>数据基线：2022–2024</b><b>页面更新：2026-08-10</b><b>覆盖：中亚五国</b></div></section>
       <section className="data-summary"><article><span>2024 已报告进口额</span><strong>$6.96M</strong><small>重点菌类 HS 样例合计</small></article><article><span>贸易记录</span><strong>9 组</strong><small>国家 × HS 编码</small></article><article><span>镜像差异提示</span><strong>2 项</strong><small>差异率超过 70%</small></article><article><span>市场价格样例</span><strong>4 条</strong><small>哈萨克斯坦、乌兹别克斯坦</small></article></section>
@@ -43,6 +38,5 @@ export default function MarketDataPage() {
       <section className="data-sources" id="sources"><div><span>04 · SOURCES & METHODOLOGY</span><h2>数据来源与可信度</h2><p>每条记录保留来源、采集日期与口径说明。官方统计优先作为基线，行业资料和市场挂牌用于补充验证。</p></div><div><a href="https://comtradeapi.un.org" target="_blank" rel="noreferrer"><b>A</b><span>UN Comtrade<small>官方贸易统计与镜像口径</small></span></a><a href="https://www.fao.org/faostat" target="_blank" rel="noreferrer"><b>A−</b><span>FAOSTAT<small>农业生产统计；估计值另行标注</small></span></a><a href="https://umdis.org" target="_blank" rel="noreferrer"><b>B</b><span>行业与市场资料<small>用于供给结构和渠道佐证</small></span></a><Link href="/#contact"><b>B+</b><span>市场挂牌采集<small>多来源比对，不等同成交价</small></span></Link></div></section>
       <section className="data-cta"><div><span>NEXT STEP</span><h2>需要完整数据、字段字典或专项研究？</h2></div><Link href="/#contact">申请数据样例 →</Link></section>
     </main>
-    <footer className="data-footer"><span>© 2026 因恒科技</span><Link href="/">返回官网</Link><span>公开数据仅供研究参考，不构成投资或交易建议。</span></footer>
-  </div>;
+  </div></ProductShell>;
 }
