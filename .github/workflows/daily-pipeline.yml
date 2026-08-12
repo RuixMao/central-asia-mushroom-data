@@ -29,8 +29,7 @@ jobs:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
       - name: Weekly price collection
-        run: |
-          if [ "$(date -u +%u)" = "1" ] || { [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.include_prices }}" = "true" ]; }; then python pipeline/fetch_price.py; else echo "Price collection runs on Monday"; fi
+        run: python pipeline/fetch_price.py
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
@@ -41,3 +40,5 @@ jobs:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          AI_MODEL: ${{ secrets.AI_MODEL }}
