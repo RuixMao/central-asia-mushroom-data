@@ -28,7 +28,7 @@ jobs:
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
-      - name: Weekly price collection
+      - name: Daily price collection
         run: python pipeline/fetch_price.py
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
