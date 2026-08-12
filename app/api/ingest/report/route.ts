@@ -9,10 +9,10 @@ const slugify = (title: string) => `${new Date().toISOString().slice(0,10)}-${ti
 
 export async function POST(request: Request) {
   if (!authorized(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await request.json() as { title?: string; type?: string; summary?: string; body?: string; country?: string };
+  const body = await request.json() as { title?: string; type?: string; summary?: string; body?: string; country?: string; aiGenerated?: boolean };
   if (!body.title || !body.summary || !body.body || !types.has(body.type ?? "") || !countries.has(body.country ?? "")) return Response.json({ error: "Invalid report" }, { status: 400 });
   const id = crypto.randomUUID(), slug = slugify(body.title), now = new Date();
-  await getDb().insert(reports).values({ id, slug, title: body.title, type: body.type as "daily", summary: body.summary, body: body.body, country: body.country as "KZ", aiGenerated: true, publishedAt: now, createdAt: now });
+  await getDb().insert(reports).values({ id, slug, title: body.title, type: body.type as "daily", summary: body.summary, body: body.body, country: body.country as "KZ", aiGenerated: body.aiGenerated !== false, publishedAt: now, createdAt: now });
   return Response.json({ ok: true, slug });
 }
 

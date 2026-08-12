@@ -6,6 +6,8 @@ SITE_URL = os.environ["SITE_URL"].rstrip("/")
 CRON_SECRET = os.environ["CRON_SECRET"]
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "openai")
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
+AI_BASE_URL = os.environ.get("AI_BASE_URL", "")
+AI_MODEL = os.environ.get("AI_MODEL", "")
 UN_COMTRADE_API_KEY = os.environ.get("UN_COMTRADE_API_KEY", "")
 
 COUNTRIES = {
