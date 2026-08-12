@@ -12,7 +12,7 @@ def run():
   raise RuntimeError(f"{today} 没有可用价格；采集缺口 {len(gaps)} 条，拒绝生成虚假日报")
  if not AI_API_KEY: raise RuntimeError("AI_API_KEY is not configured")
  context=[{"country":r["country"],"source":r["source"],**r["data"]} for r in prices]
- prompt=f"""你是中亚食用菌市场分析师。仅依据以下 {len(context)} 条今日价格记录生成中文日报，不得加入贸易数据，不得虚构成交价、涨跌幅或缺失价格。
+ prompt=f"""你是中亚食用菌市场分析师。仅依据以下 {len(context)} 条今日价格记录生成中文日报，不得加入贸易数据，不得虚构成交价、涨跌幅或缺失价格。价格同时展示原币和美元；美元值使用记录内 price_usd，注明参考汇率的来源与时间，不得自行换算。
 日期：{today}
 数据：{json.dumps(context,ensure_ascii=False)}
 标题：中亚菌类价格日报｜{today}

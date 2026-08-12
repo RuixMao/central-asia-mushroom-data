@@ -1,4 +1,4 @@
-import json,re
+import json,re,datetime as dt
 from bs4 import BeautifulSoup
 from config import FX_TO_CNY
 from utils import log,post_to_site,safe_get,today_str
@@ -11,6 +11,16 @@ SOURCES=[
  {"country":"TJ","source":"Magnit.tj","url":"https://magnit.tj/product/show/18786","variety":"双孢菇","form":"鲜品","spec":"250g","channel":"商超电商","currency":"TJS"},
  {"country":"TJ","source":"Magnit.tj","url":"https://magnit.tj/product/show/16839","variety":"平菇","form":"鲜品","spec":"500g","channel":"商超电商","currency":"TJS"},
 ]
+
+FX_API="https://fxapi.app/api/usd.json"
+
+def usd_rates():
+ response=safe_get(FX_API,retries=2)
+ if not response: raise RuntimeError("美元参考汇率接口不可用")
+ payload=response.json(); rates=payload.get("rates",{})
+ required={source["currency"] for source in SOURCES}
+ if not required.issubset(rates): raise RuntimeError(f"汇率缺少币种：{sorted(required-set(rates))}")
+ return rates,payload.get("timestamp") or dt.datetime.now(dt.timezone.utc).isoformat()
 
 PRICE_PATTERNS=[
  re.compile(r"(\d[\d\s]*(?:[.,]\d+)?)\s*(?:сомони|сом(?:/кг)?|с\b)",re.I),
@@ -37,7 +47,7 @@ def publish_gap(source,reason):
  post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":source["country"],"source":source["source"],"data":{"variety":source["variety"],"status":"gap","reason":reason,"observed_at":today_str(),"source_url":source["url"]}})
 
 def run():
- live=0; gaps=0
+ rates,rate_time=usd_rates();live=0;gaps=0
  for source in SOURCES:
   response=safe_get(source["url"],retries=1)
   if not response:
@@ -46,7 +56,8 @@ def run():
   if price is None:
    publish_gap(source,"商品页未发现可核验的正价格");gaps+=1;continue
   row={key:source[key] for key in ("variety","form","spec","channel","currency")}
-  row.update({"price_local":price,"price_cny":round(price*FX_TO_CNY[source["currency"]],2),"observed_at":today_str(),"source_url":source["url"],"status":"live"})
+  local_per_usd=float(rates[source["currency"]])
+  row.update({"price_local":price,"price_usd":round(price/local_per_usd,2),"usd_rate_local_per_usd":local_per_usd,"fx_base":"USD","fx_source":"fxapi.app (central bank and financial data providers)","fx_timestamp":rate_time,"price_cny":round(price*FX_TO_CNY[source["currency"]],2),"observed_at":today_str(),"source_url":source["url"],"status":"live"})
   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":source["country"],"source":source["source"],"data":row});live+=1
  log(f"今日价格采集完成：有效 {live} 条，缺口 {gaps} 条")
  if not live: raise RuntimeError("今日没有采集到任何有效价格")
