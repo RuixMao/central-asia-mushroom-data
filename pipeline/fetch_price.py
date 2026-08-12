@@ -4,6 +4,9 @@ from adapters.globus import GlobusAdapter
 from adapters.omarket import OMarketAdapter
 from adapters.zudbiyor import ZudbiyorAdapter
 from adapters.magnit import MagnitAdapter
+from adapters.olx import OlxAdapter
+from adapters.somon import SomonAdapter
+from adapters.kaspi import KaspiAdapter
 from taxonomy import classify,normalize_price
 from utils import log,post_to_site,safe_get,today_str
 
@@ -13,6 +16,9 @@ SOURCES=[
 (OMarketAdapter,{"platform":"omarket","platform_name":"O!Market","platform_product_id":"4450008b-61fc-4fb7-839f-c4bdd5669c5c","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://market.o.kg/ru/bishkek/produkty-pitanija/ovoschi-frukty/product/4450008b-61fc-4fb7-839f-c4bdd5669c5c/griby-shampinony-1kg","title":"Грибы Шампиньоны 300 г","package":"300 g","currency":"KGS","language":"ru"}),
 (ZudbiyorAdapter,{"platform":"zudbiyor","platform_name":"Zudbiyor","platform_product_id":"141","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://zudbiyor.tj/product/141","title":"Шампиньоны целые 1 кг","package":"1 kg","currency":"TJS","language":"ru"}),
 (MagnitAdapter,{"platform":"magnit-tj","platform_name":"Magnit.tj","platform_product_id":"18786","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://magnit.tj/product/show/18786","title":"Шампиньоны цена за 250 г","package":"250 g","currency":"TJS","language":"ru"}),
+(OlxAdapter,{"platform":"olx-uz","platform_name":"OLX.uz","platform_product_id":"shampinony-yaschikah-ID488Lu","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://www.olx.uz/d/obyavlenie/shampinony-v-yaschikah-otbornye-svezhie-rossiya-ID488Lu.html","title":"Шампиньоны в ящиках отборные свежие","package":"1 box","currency":"UZS","language":"ru"}),
+(SomonAdapter,{"platform":"somon","platform_name":"Somon.tj","platform_product_id":"15687107","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://somon.tj/adv/15687107_griby-shampinon/","title":"Грибы шампиньоны","package":"1 kg","currency":"TJS","language":"ru"}),
+(KaspiAdapter,{"platform":"kaspi-kz","platform_name":"Kaspi Магазин","platform_product_id":"search-shampinon","country":"KZ","city":"Almaty","collection_point_id":"ALMATY_POINT_01","url":"https://kaspi.kz/shop/search/?text=шампиньон","title":"Шампиньоны свежие 500 г","package":"500 g","currency":"KZT","language":"ru"}),
 ]
 def rates():
  r=safe_get("https://fxapi.app/api/usd.json",retries=2);return r.json()["rates"],r.json().get("timestamp")
