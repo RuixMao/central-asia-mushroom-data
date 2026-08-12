@@ -1,6 +1,8 @@
 import datetime as dt
+import os
 import statistics
 import time
+import urllib.parse
 import requests
 from config import SITE_URL, CRON_SECRET
 
@@ -8,7 +10,19 @@ def log(message): print(f"[{dt.datetime.now().isoformat(timespec='seconds')}] {m
 def today_str(): return dt.date.today().isoformat()
 def median(nums): return statistics.median(nums) if nums else None
 
+# TM 电商源在 GitHub Actions（美国数据中心 IP）被目标站防火墙拒绝。
+# 设置环境变量 PROXY_BASE（如 https://tm-proxy.xxx.workers.dev）后，
+# 这些域名的请求改经 CF Worker 中转出口；不设置则保持直连（本地正常）。
+PROXY_DOMAINS = ("gipertm.com", "asmanexpress.com")
+
+def _maybe_proxy(url, **kwargs):
+    base = os.getenv("PROXY_BASE", "").strip().rstrip("/")
+    if not base or not any(d in url for d in PROXY_DOMAINS):
+        return url, kwargs
+    return f"{base}/?url={urllib.parse.quote(url, safe='')}", {}
+
 def safe_get(url, retries=3, backoff=2, **kwargs):
+    url, kwargs = _maybe_proxy(url, **kwargs)
     headers = {"User-Agent": "Mozilla/5.0 YinhengMarketResearch/1.0 (+data-source-audit)"}
     headers.update(kwargs.pop("headers", {}))
     for attempt in range(retries):
