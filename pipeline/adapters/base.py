@@ -25,3 +25,8 @@ class ProductAdapter:
   else:row,error=parsed,None
   if error:return None,error
   return {**row,"page_fingerprint":hashlib.sha256(response.content).hexdigest()},None
+ def collect_many(self):
+  """多商品采集：默认实现为单条。渲染型适配器可覆写返回多条。"""
+  row,error=self.collect()
+  if error:return [],error
+  return [row],None

@@ -19,4 +19,21 @@ class RenderedProductAdapter:
   if error:return None,error
   html,body=rendered;row,error=self.parse_rendered(html,body)
   if error:return None,error
-  return {**row,"page_fingerprint":hashlib.sha256(html.encode()).hexdigest()},None
+  return {**row,"source_type":"rendered","page_fingerprint":hashlib.sha256(html.encode()).hexdigest()},None
+ def collect_many(self):
+  """多商品采集：默认单条；子类覆写 parse_rendered_many 后自动返回多条。"""
+  if self.__class__.parse_rendered_many is RenderedProductAdapter.parse_rendered_many:
+   row,error=self.collect()
+   if error:return [],error
+   return [row],None
+  rendered,error=self.render(self.config["url"])
+  if error:return [],error
+  html,body=rendered;rows=self.parse_rendered_many(html,body)
+  if not rows:return [],"price_missing"
+  fp=hashlib.sha256(html.encode()).hexdigest()
+  return [{**row,"source_type":"rendered","page_fingerprint":fp} for row in rows],None
+ def parse_rendered_many(self,html,body=""):
+  """子类可覆写为返回多条商品；基类默认只解析第一条。"""
+  row,error=self.parse_rendered(html,body)
+  if error:return []
+  return [row]

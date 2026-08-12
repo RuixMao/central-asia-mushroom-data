@@ -1,15 +1,15 @@
 import re
 
 SPECIES={
- "button_mushroom":["шампиньон","champignon","button mushroom"],"oyster_mushroom":["вешенк","oyster mushroom"],
+ "button_mushroom":["шампиньон","champignon","button mushroom","şampinýon","şampinon","şampinjon","şampion","champinjon"],"oyster_mushroom":["вешенк","oyster mushroom"],
  "enoki":["эноки","enoki"],"shiitake":["шиитаке","shiitake"],"king_oyster_mushroom":["эринги","королевская вешенка","king oyster"],
  "shimeji":["шимиджи","shimeji"],"wood_ear":["муэр","wood ear"],"snow_fungus":["серебряное ухо","snow fungus"],
  "morel":["сморчок","morel"],"matsutake":["мацутакэ","matsutake"],"porcini":["белый гриб","боровик","porcini"],
  "chanterelle":["лисичк","chanterelle"],"straw_mushroom":["вольвариелла","straw mushroom"],"honey_fungus":["опёнок","опенок","опята","honey mushroom"],
  "suillus":["маслёнок","масленок","маслята","suillus"],"truffle":["трюфель","truffle"]}
-AMBIGUOUS=["грибы","mushrooms","qo‘ziqorin","qo'ziqorin","золотые нити","древесные грибы","лесные грибы"]
+AMBIGUOUS=["грибы","mushrooms","qo‘ziqorin","qo'ziqorin","золотые нити","древесные грибы","лесные грибы","kömelek","gömelek","komelek"]
 EXCLUDE_ONLY=["грибной соус","mushroom sauce","mushroom flavour","蘑菇味"]
-FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","dried"]),("pickled",["марин","pickled"]),("canned",["консерв","canned"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]
+FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","dried"]),("pickled",["марин","pickled","marinadlanan"]),("canned",["консерв","canned","konserw"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]
 
 def _hits(text):
  return [(sid,term) for sid,terms in SPECIES.items() for term in terms if term in text]
@@ -30,13 +30,13 @@ def classify(title,description="",category="",language="",image_metadata=None):
 
 def parse_package(text):
  s=text.lower().replace(",",".");evidence=None;count=1
- m=re.search(r"(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|кг|g|гр|г)\b",s)
+ m=re.search(r"(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|кг|gr|g|гр|г)\b",s)
  if m:count=int(m.group(1));value=float(m.group(2));unit=m.group(3);evidence=m.group(0)
  else:
-  m=re.search(r"(\d+(?:\.\d+)?)\s*(kg|кг|g|гр|г)\s*[x×]\s*(\d+)",s)
+  m=re.search(r"(\d+(?:\.\d+)?)\s*(kg|кг|gr|g|гр|г)\s*[x×]\s*(\d+)",s)
   if m:value=float(m.group(1));unit=m.group(2);count=int(m.group(3));evidence=m.group(0)
   else:
-   m=re.search(r"(\d+(?:\.\d+)?)\s*(kg|кг|g|гр|г)\b",s)
+   m=re.search(r"(\d+(?:\.\d+)?)\s*(kg|кг|gr|g|гр|г)\b",s)
    if m:value=float(m.group(1));unit=m.group(2);evidence=m.group(0)
    elif re.search(r"(за|по|per)\s*(1\s*)?(kg|кг)",s):value,unit,evidence=1.0,"kg","per kg"
    else:return {"package_value":None,"package_unit":None,"package_count":None,"normalized_quantity_kg":None,"parse_status":"uncertain" if re.search(r"шт|pack|упак|件",s) else "invalid","evidence":None,"value":None,"unit":None,"quantity_kg":None}
