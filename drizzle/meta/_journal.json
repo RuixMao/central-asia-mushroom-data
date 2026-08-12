@@ -15,6 +15,13 @@
       "when": 1786502288799,
       "tag": "0001_odd_lily_hollister",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1786505900000,
+      "tag": "0002_price_quality_fields",
+      "breakpoints": true
     }
   ]
 }
