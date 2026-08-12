@@ -8,6 +8,13 @@
       "when": 1786494798025,
       "tag": "0000_large_genesis",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1786502288799,
+      "tag": "0001_odd_lily_hollister",
+      "breakpoints": true
     }
   ]
 }
