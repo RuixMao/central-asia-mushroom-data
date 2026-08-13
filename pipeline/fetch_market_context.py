@@ -70,7 +70,8 @@ def _documents():
    except (TypeError,ValueError):continue
    publisher=(item.findtext('source') or COUNTRIES[country]['publisher']).strip()
    digest=hashlib.sha256(f'{country}|{title}|{url}'.encode('utf-8')).hexdigest()
-   documents.append({"id":digest[:32],"country":country,"kind":"policy" if POLICY.search(title) else "news","title":title[:500],"publisher":publisher[:200],"source_url":url,"language":"en","published_at":published.isoformat(),"retrieved_at":now.isoformat(),"excerpt":title[:1000],"primary_source":True,"verification_status":"verified","relevance_score":1.0,"content_hash":digest});seen.add(url)
+   primary=any(_host_matches(source_host,domain) for domain in TRUSTED_DOMAINS)
+   documents.append({"id":digest[:32],"country":country,"kind":"policy" if POLICY.search(title) else "news","title":title[:500],"publisher":publisher[:200],"source_url":url,"language":"en","published_at":published.isoformat(),"retrieved_at":now.isoformat(),"excerpt":title[:1000],"primary_source":primary,"verification_status":"verified","relevance_score":1.0,"content_hash":digest});seen.add(url)
    if len([d for d in documents if d['country']==country])>=5:break
  # 世界银行年度通胀仅作为宏观背景，不冒充当日变化。
  wb='https://api.worldbank.org/v2/country/KAZ;UZB;KGZ;TJK;TKM/indicator/FP.CPI.TOTL.ZG?format=json&date=2023:2026&per_page=100'

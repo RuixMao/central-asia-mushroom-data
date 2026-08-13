@@ -1,4 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
+import { env } from "cloudflare:workers";
 import { getDb } from "../../../../db";
 import { reportSources, reports } from "../../../../db/schema";
 
@@ -13,15 +14,15 @@ export async function POST(request: Request) {
   const body = await request.json() as { title?: string; type?: string; summary?: string; body?: string; country?: string; aiGenerated?: boolean; sources?:Source[] };
   if (!body.title || !body.summary || !body.body || !types.has(body.type ?? "") || !countries.has(body.country ?? "")) return Response.json({ error: "Invalid report" }, { status: 400 });
   const id = crypto.randomUUID(), slug = slugify(body.title), now = new Date();
-  await getDb().insert(reports).values({ id, slug, title: body.title, type: body.type as "daily", summary: body.summary, body: body.body, country: body.country as "KZ", aiGenerated: body.aiGenerated !== false, publishedAt: now, createdAt: now });
-  if(body.sources?.length){
-    const sourceRows=body.sources.flatMap(source=>{
-      const publishedAt=new Date(source.published_at??""),retrievedAt=new Date(source.retrieved_at??"");
-      if(!source.evidence_id||!source.source_type||!source.title||!source.url||!source.publisher||Number.isNaN(publishedAt.getTime())||Number.isNaN(retrievedAt.getTime()))return [];
-      return [{id:crypto.randomUUID(),reportId:id,evidenceId:source.evidence_id,documentId:source.document_id||null,sourceType:source.source_type,title:source.title,url:source.url,publisher:source.publisher,publishedAt,retrievedAt}];
-    });
-    if(sourceRows.length)await getDb().insert(reportSources).values(sourceRows);
+  const seen=new Set<string>(),sources=[];
+  for(const source of body.sources??[]){
+    const publishedAt=Date.parse(source.published_at??""),retrievedAt=Date.parse(source.retrieved_at??"");
+    if(!source.evidence_id||seen.has(source.evidence_id)||!source.source_type||!source.title||!source.url||!source.publisher||!Number.isFinite(publishedAt)||!Number.isFinite(retrievedAt))return Response.json({error:"Invalid report source"},{status:400});
+    seen.add(source.evidence_id);sources.push({...source,publishedAt,retrievedAt});
   }
+  const db=(env as unknown as {DB:D1Database}).DB,statements=[db.prepare(`INSERT INTO reports(id,slug,title,type,summary,body,country,ai_generated,published_at,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)`).bind(id,slug,body.title,body.type,body.summary,body.body,body.country,Number(body.aiGenerated!==false),now.getTime(),now.getTime())];
+  for(const source of sources)statements.push(db.prepare(`INSERT INTO report_sources(id,report_id,evidence_id,document_id,source_type,title,url,publisher,published_at,retrieved_at) VALUES(?,?,?,?,?,?,?,?,?,?)`).bind(crypto.randomUUID(),id,source.evidence_id,source.document_id||null,source.source_type,source.title,source.url,source.publisher,source.publishedAt,source.retrievedAt));
+  await db.batch(statements);
   return Response.json({ ok: true, slug });
 }
 
