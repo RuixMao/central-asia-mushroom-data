@@ -27,7 +27,7 @@ class KaspiAdapter(RenderedProductAdapter):
   if url.startswith("/"):url="https://kaspi.kz"+url
   pid=self.config["platform_product_id"]
   m=ID_IN_URL.search(url)
-  if m:pid=f"{pid}-{m.group(1)}"
+  if m:pid=f"kaspi-{m.group(1)}"
   return {**self.config,"platform_product_id":pid,"url":url,"original_title":text[:240],"current_price":price,"raw_price_text":match.group(0)}
  def parse_rendered_many(self,html,body=""):
   """返回搜索页上所有含菌词+价格的商品卡片（每条独立 platform_product_id，避免入库互相覆盖）。"""

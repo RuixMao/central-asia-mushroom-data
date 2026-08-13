@@ -25,5 +25,12 @@ VARIETIES={
  "金针菇":{"ru":"эноки","uz":"enoki","en":"enoki"},
  "木耳":{"ru":"древесный гриб","uz":"yog'och qo'ziqorini","en":"wood ear"},
 }
+TARGET_SPECIES={
+ "button_mushroom":{"zh":"双孢菇","ru":"шампиньоны","en":"button mushroom"},
+ "oyster_mushroom":{"zh":"平菇","ru":"вешенки","en":"oyster mushroom"},
+ "shiitake":{"zh":"香菇","ru":"шиитаке","en":"shiitake"},
+ "enoki":{"zh":"金针菇","ru":"эноки","en":"enoki"},
+ "king_oyster_mushroom":{"zh":"杏鲍菇","ru":"эринги","en":"king oyster mushroom"},
+}
 HS_CODES=("070951","070959","200310")
 FX_TO_CNY={"KZT":0.014,"UZS":0.00058,"KGS":0.083,"TJS":0.66,"TMT":2.04}

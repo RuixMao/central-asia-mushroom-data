@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../../../../db";
-import { reports } from "../../../../db/schema";
+import { reportSources, reports } from "../../../../db/schema";
 
 const countries = new Set(["KZ", "UZ", "KG", "TJ", "TM"]);
 const types = new Set(["daily", "weekly", "monthly"]);
@@ -24,6 +24,7 @@ export async function GET(request: Request) {
   if (slug) filters.push(eq(reports.slug, slug));
   try {
     const rows = await getDb().select().from(reports).where(filters.length ? and(...filters) : undefined).orderBy(desc(reports.publishedAt)).limit(slug ? 1 : 100);
-    return Response.json({ records: rows, count: rows.length });
+    const sources=slug&&rows[0]?await getDb().select().from(reportSources).where(eq(reportSources.reportId,rows[0].id)).orderBy(reportSources.evidenceId):[];
+    return Response.json({ records: rows, count: rows.length, sources });
   } catch { return Response.json({ records: [], count: 0, fallback: true }); }
 }

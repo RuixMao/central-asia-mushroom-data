@@ -22,6 +22,13 @@
       "when": 1786505900000,
       "tag": "0002_price_quality_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1786588600000,
+      "tag": "0003_market_research_evidence",
+      "breakpoints": true
     }
   ]
 }

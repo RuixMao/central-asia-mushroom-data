@@ -3,7 +3,7 @@ sys.path.insert(0,"pipeline")
 from taxonomy import classify,normalize_price,parse_package
 class TaxonomyTest(unittest.TestCase):
  def test_species(self):
-  cases={"Грибы Эноки 300 г":"enoki","Грибы Вешенки":"oyster_mushroom","Грибы шиитаке":"shiitake","Шампиньоны":"button_mushroom"}
+  cases={"Грибы Эноки 300 г":"enoki","Грибы Вешенки":"oyster_mushroom","Грибы shiitake":"shiitake","Шампиньоны":"button_mushroom","королевская вешенка":"king_oyster_mushroom","杏鲍菇 300g":"king_oyster_mushroom","veshenki fresh":"oyster_mushroom"}
   for title,want in cases.items():self.assertEqual(classify(title)["species_id"],want)
  def test_uncertain(self):
   self.assertEqual(classify("Грибы")["status"],"unknown")
@@ -14,6 +14,8 @@ class TaxonomyTest(unittest.TestCase):
   self.assertEqual(classify("Грибы сушеные Шиитаке")["product_form"],"dried")
   self.assertEqual(classify("Шампиньоны маринованные")["product_form"],"pickled")
   self.assertEqual(classify("Грибной соус")["status"],"excluded")
+  self.assertEqual(classify("Мицелий вешенки для выращивания")["status"],"excluded")
+  self.assertEqual(classify("Набор для выращивания шампиньонов")["status"],"excluded")
  def test_packages(self):
   self.assertEqual(parse_package("300 г")["normalized_quantity_kg"],.3)
   self.assertEqual(parse_package("250 g × 2")["normalized_quantity_kg"],.5)

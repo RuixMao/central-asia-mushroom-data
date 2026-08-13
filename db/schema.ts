@@ -29,6 +29,43 @@ export const reports = sqliteTable("reports", {
   publishedIdx: index("idx_reports_published").on(table.publishedAt),
 }));
 
+export const marketDocuments = sqliteTable("market_documents", {
+  id: text("id").primaryKey(),
+  country: text("country", { enum: ["KZ", "UZ", "KG", "TJ", "TM"] }).notNull(),
+  kind: text("kind", { enum: ["news", "policy", "macro"] }).notNull(),
+  title: text("title").notNull(),
+  publisher: text("publisher").notNull(),
+  sourceUrl: text("source_url").notNull().unique(),
+  language: text("language").notNull(),
+  publishedAt: integer("published_at", { mode: "timestamp_ms" }).notNull(),
+  retrievedAt: integer("retrieved_at", { mode: "timestamp_ms" }).notNull(),
+  excerpt: text("excerpt").notNull(),
+  primarySource: integer("primary_source", { mode: "boolean" }).notNull().default(false),
+  verificationStatus: text("verification_status").notNull(),
+  relevanceScore: real("relevance_score").notNull().default(0),
+  contentHash: text("content_hash").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+}, table => ({
+  countryPublishedIdx: index("idx_market_documents_country_published").on(table.country, table.publishedAt),
+  verifiedPublishedIdx: index("idx_market_documents_verified_published").on(table.verificationStatus, table.publishedAt),
+}));
+
+export const reportSources = sqliteTable("report_sources", {
+  id: text("id").primaryKey(),
+  reportId: text("report_id").notNull().references(() => reports.id),
+  evidenceId: text("evidence_id").notNull(),
+  documentId: text("document_id").references(() => marketDocuments.id),
+  sourceType: text("source_type").notNull(),
+  title: text("title").notNull(),
+  url: text("url").notNull(),
+  publisher: text("publisher").notNull(),
+  publishedAt: integer("published_at", { mode: "timestamp_ms" }).notNull(),
+  retrievedAt: integer("retrieved_at", { mode: "timestamp_ms" }).notNull(),
+}, table => ({
+  reportEvidenceIdx: uniqueIndex("idx_report_sources_report_evidence").on(table.reportId, table.evidenceId),
+  reportIdx: index("idx_report_sources_report").on(table.reportId),
+}));
+
 export const species = sqliteTable("species",{id:text("id").primaryKey(),nameZh:text("name_zh").notNull(),nameEn:text("name_en").notNull(),scientificName:text("scientific_name"),dictionaryVersion:text("dictionary_version").notNull(),reviewStatus:text("review_status").notNull()});
 export const speciesSynonyms=sqliteTable("species_synonyms",{id:text("id").primaryKey(),speciesId:text("species_id").notNull().references(()=>species.id),language:text("language").notNull(),term:text("term").notNull(),isExclusion:integer("is_exclusion",{mode:"boolean"}).notNull().default(false)},t=>({termIdx:uniqueIndex("idx_species_synonym_term").on(t.language,t.term)}));
 export const platforms=sqliteTable("platforms",{id:text("id").primaryKey(),name:text("name").notNull(),country:text("country").notNull(),collectionMethod:text("collection_method").notNull(),status:text("status").notNull(),statusReason:text("status_reason"),updatedAt:integer("updated_at",{mode:"timestamp_ms"}).notNull()});

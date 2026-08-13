@@ -10,6 +10,7 @@ from adapters.kaspi import KaspiAdapter
 from adapters.yandex import YandexMarketAdapter
 from adapters.gipertm import GiperAdapter
 from adapters.asmanexpress import AsmanAdapter
+from config import TARGET_SPECIES
 from taxonomy import classify,normalize_price,parse_package
 from utils import log,post_to_site,safe_get,today_str
 
@@ -34,6 +35,19 @@ SOURCES=[
 (AsmanAdapter,{"platform":"asmanexpress","platform_name":"Asman Express","platform_product_id":"1308","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://asmanexpress.com/mini/product/1308","title":"Rita bitin Gelin kömelekli 400 gr","package":"400 g","currency":"TMT","language":"tk"}),
 (AsmanAdapter,{"platform":"asmanexpress","platform_name":"Asman Express","platform_product_id":"12389","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://asmanexpress.com/mini/product/12389","title":"Rita Kesilen şampinýonlar 200 gr","package":"200 g","currency":"TMT","language":"tk"}),
 ]
+
+# Kaspi 与 Yandex 的搜索页可发现多个商品。为五个目标品类分别发起搜索，
+# 固定商品页仍保留在上面的经核验清单中，避免为不支持搜索的平台猜造 URL。
+for species_id,labels in TARGET_SPECIES.items():
+ query=labels["ru"]
+ SOURCES.extend([
+  (KaspiAdapter,{"platform":"kaspi-kz","platform_name":"Kaspi Магазин","platform_product_id":f"search-{species_id}","country":"KZ","city":"Almaty","collection_point_id":"ALMATY_POINT_01","url":f"https://kaspi.kz/shop/search/?text={query}","title":query,"package":"","currency":"KZT","language":"ru"}),
+  (YandexMarketAdapter,{"platform":"yandex-uz","platform_name":"Yandex Market UZ","platform_product_id":f"search-{species_id}","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":f"https://market.yandex.uz/search?text={query}","title":query,"package":"","currency":"UZS","language":"ru"}),
+ ])
+
+# 旧的单品种搜索配置已由上面的多品种任务覆盖，防止重复访问与重复 SKU。
+SOURCES=[entry for entry in SOURCES if entry[1].get("platform_product_id") not in {"search-shampinon"}]
+
 def rates():
  r=safe_get("https://fxapi.app/api/usd.json",retries=2);return r.json()["rates"],r.json().get("timestamp")
 def run():
@@ -49,8 +63,11 @@ def run():
    pkg_from_title=parse_package(row.get("original_title") or "")
    if pkg_from_title["parse_status"]=="valid" and pkg_from_title["quantity_kg"]:
     package_text=row["original_title"]
-   category=classify(row["original_title"]);norm=normalize_price(row["current_price"],package_text);local_per_usd=float(fx[row["currency"]]);now=dt.datetime.now(dt.timezone.utc).isoformat()
-   items.append({**row,"product_url":row.pop("url"),"original_language":row.pop("language"),"species_id":category["species_id"],"product_form":category["product_form"],"classification_status":category["status"],"classification_confidence":category["confidence"],"classification_evidence":category["evidence"],"observed_at":now,"observation_date":today_str(),"package_value":norm["value"],"package_unit":norm["unit"],"normalized_quantity_kg":norm["quantity_kg"],"normalized_price_per_kg":norm["price_per_kg"],"price_usd":round(row["current_price"]/local_per_usd,2),"usd_rate_local_per_usd":local_per_usd,"fx_source":"fxapi.app","fx_timestamp":fx_time,"in_stock":True,"source_type":row.pop("source_type","server_html"),"validation_status":"valid" if category["confidence"]>=.9 and norm["price_per_kg"] else "needs_review"})
+   category=classify(row["original_title"])
+   if category["status"]=="excluded":continue
+   norm=normalize_price(row["current_price"],package_text);local_per_usd=float(fx[row["currency"]]);now=dt.datetime.now(dt.timezone.utc).isoformat()
+   is_valid=category["status"]=="classified" and category["confidence"]>=.9 and norm["price_per_kg"] is not None
+   items.append({**row,"product_url":row.pop("url"),"original_language":row.pop("language"),"species_id":category["species_id"],"product_form":category["product_form"],"classification_status":category["status"],"classification_confidence":category["confidence"],"classification_evidence":category["evidence"],"observed_at":now,"observation_date":today_str(),"package_value":norm["value"],"package_unit":norm["unit"],"normalized_quantity_kg":norm["quantity_kg"],"normalized_price_per_kg":norm["price_per_kg"],"price_usd":round(row["current_price"]/local_per_usd,2),"usd_rate_local_per_usd":local_per_usd,"fx_source":"fxapi.app","fx_timestamp":fx_time,"in_stock":True,"source_type":row.pop("source_type","server_html"),"validation_status":"valid" if is_valid else "needs_review"})
  if items and not dry_run:post_to_site("/api/ingest/prices",{"items":items})
  # 写 price_retail 快照（AI 日报与网页端价格表的数据源）。
  # 注意：快照接口的 data.observed_at 必须是 YYYY-MM-DD（日报按 ==today 过滤），
@@ -58,7 +75,11 @@ def run():
  if not dry_run:
   today=today_str()
   for it in items:
-   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":it["country"],"source":it["platform"],"data":{"variety":it.get("species_id") or it["original_title"][:40],"status":"live","price_local":it["current_price"],"price_usd":it["price_usd"],"currency":it["currency"],"observed_at":today}})
+   if it["validation_status"]!="valid":continue
+   labels=TARGET_SPECIES.get(it["species_id"],{})
+   normalized_usd_per_kg=round(it["normalized_price_per_kg"]/it["usd_rate_local_per_usd"],2)
+   package_display=f'{it["package_value"]:g} {it["package_unit"]}' if it.get("package_value") and it.get("package_unit") else ""
+   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":it["country"],"source":it["platform"],"data":{"product_key":f'{it["platform"]}:{it["collection_point_id"]}:{it["platform_product_id"]}',"species_id":it["species_id"],"species_zh":labels.get("zh",it["species_id"]),"species_foreign":labels.get("ru") or labels.get("en"),"original_title":it["original_title"],"product_form":it["product_form"],"package_display":package_display,"platform_id":it["platform"],"platform_name":it["platform_name"],"status":"live","price_local":it["current_price"],"price_usd":it["price_usd"],"normalized_price_usd_per_kg":normalized_usd_per_kg,"currency":it["currency"],"observed_at":today,"retrieved_at":it["observed_at"],"source_url":it["product_url"]}})
   for e in errors:
    country=next((c["country"] for _,c in SOURCES if c["platform"]==e["platform"]),"")
    post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":country,"source":e["platform"],"data":{"status":"gap","reason":e["reason"],"observed_at":today}})

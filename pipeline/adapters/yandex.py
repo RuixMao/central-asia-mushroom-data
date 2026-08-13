@@ -1,3 +1,4 @@
+import hashlib
 import re
 from bs4 import BeautifulSoup
 from .render import RenderedProductAdapter
@@ -49,9 +50,8 @@ class YandexMarketAdapter(RenderedProductAdapter):
             price = float(match.group(1).replace(" ", ""))
             if price <= 0:
                 continue
-            pid = self.config["platform_product_id"]
-            if len(rows) > 0:
-                pid = f"{pid}#{len(rows) + 1}"
+            stable_title = re.sub(r"\W+", " ", title.lower(), flags=re.UNICODE).strip()
+            pid = f"yandex-uz-{hashlib.sha256(stable_title.encode('utf-8')).hexdigest()[:16]}"
             rows.append({**self.config, "platform_product_id": pid, "url": self.config["url"],
                          "original_title": title[:240], "current_price": price,
                          "raw_price_text": match.group(0)})

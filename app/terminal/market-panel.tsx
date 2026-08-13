@@ -3,7 +3,7 @@ import { useEffect,useMemo,useState } from "react";
 
 type PriceRecord={price:{observationDate:string;currentPrice:number|null;regularPrice:number|null;promotionPrice:number|null;currency:string;packageValue:number|null;packageUnit:string|null;normalizedPricePerKg:number|null;priceUsd:number|null;inStock:boolean|null;observedAt:string|number;validationStatus:string;sourceUrl:string};product:{id:string;country:string;city:string;originalTitle:string;speciesId:string|null;productForm:string;classificationConfidence:number;classificationStatus:string};platform:{id:string;name:string}};
 const countryNames:Record<string,string>={KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦"};
-const speciesNames:Record<string,string>={agaricus_bisporus:"双孢菇",pleurotus_ostreatus:"平菇",flammulina_velutipes:"金针菇",lentinula_edodes:"香菇",pleurotus_eryngii:"杏鲍菇",mixed_species:"混合菌菇",unknown_species:"未识别"};
+const speciesNames:Record<string,string>={agaricus_bisporus:"双孢菇",pleurotus_ostreatus:"平菇",flammulina_velutipes:"金针菇",lentinula_edodes:"香菇",pleurotus_eryngii:"杏鲍菇",button_mushroom:"双孢菇",oyster_mushroom:"平菇",enoki:"金针菇",shiitake:"香菇",king_oyster_mushroom:"杏鲍菇",wood_ear:"木耳",mixed_species:"混合菌菇",unknown_species:"未识别"};
 const formNames:Record<string,string>={fresh:"鲜品",chilled:"冷藏",frozen:"冷冻",dried:"干制",pickled:"腌制",canned:"罐藏",powder:"菌粉",mixed:"混合",unknown:"未知"};
 const fmt=(n:number|null,d=2)=>n==null?"—":n.toLocaleString("zh-CN",{maximumFractionDigits:d});
 export default function MarketPanel({onState}:{onState:(state:"loading"|"live"|"fallback")=>void}){

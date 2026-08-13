@@ -51,9 +51,8 @@ class YandexMarketAdapterTest(unittest.TestCase):
         rows = YandexMarketAdapter(BASE).parse_rendered_many("<html></html>", rendered_body())
         self.assertEqual(len(rows), 3)
         self.assertEqual(rows[0]["current_price"], 50000.0)
-        self.assertEqual(rows[0]["platform_product_id"], "search-shampinon")
-        self.assertEqual(rows[1]["platform_product_id"], "search-shampinon#2")
-        self.assertEqual(rows[2]["platform_product_id"], "search-shampinon#3")
+        self.assertTrue(all(row["platform_product_id"].startswith("yandex-uz-") for row in rows))
+        self.assertEqual(len({row["platform_product_id"] for row in rows}),3)
         titles = {r["original_title"] for r in rows}
         self.assertTrue(any("Вешенки" in t for t in titles))
 

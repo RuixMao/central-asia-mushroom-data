@@ -1,18 +1,30 @@
 import re
 
 SPECIES={
- "button_mushroom":["шампиньон","champignon","button mushroom","şampinýon","şampinon","şampinjon","şampion","champinjon"],"oyster_mushroom":["вешенк","oyster mushroom"],
- "enoki":["эноки","enoki"],"shiitake":["шиитаке","shiitake"],"king_oyster_mushroom":["эринги","королевская вешенка","king oyster"],
+ "button_mushroom":["шампиньон","champignon","button mushroom","şampinýon","şampinon","şampinjon","şampion","champinjon","shampinyon","shampinion","双孢菇"],"oyster_mushroom":["вешенк","veshenka","veshenki","устричный гриб","oyster mushroom","平菇"],
+ "enoki":["эноки","enoki","enokitake","金针菇"],"shiitake":["шиитаке","shiitake","siitake","sitake","香菇"],"king_oyster_mushroom":["королевская вешенка","king oyster mushroom","king trumpet mushroom","эринги","eringi","杏鲍菇"],
  "shimeji":["шимиджи","shimeji"],"wood_ear":["муэр","wood ear"],"snow_fungus":["серебряное ухо","snow fungus"],
  "morel":["сморчок","morel"],"matsutake":["мацутакэ","matsutake"],"porcini":["белый гриб","боровик","porcini"],
  "chanterelle":["лисичк","chanterelle"],"straw_mushroom":["вольвариелла","straw mushroom"],"honey_fungus":["опёнок","опенок","опята","honey mushroom"],
  "suillus":["маслёнок","масленок","маслята","suillus"],"truffle":["трюфель","truffle"]}
 AMBIGUOUS=["грибы","mushrooms","qo‘ziqorin","qo'ziqorin","золотые нити","древесные грибы","лесные грибы","kömelek","gömelek","komelek"]
-EXCLUDE_ONLY=["грибной соус","mushroom sauce","mushroom flavour","蘑菇味"]
+EXCLUDE_ONLY=["грибной соус","mushroom sauce","mushroom flavour","蘑菇味","мицелий","грибница","семена гриб","споры гриб","ящик для грибов","увлажнитель","оборудование для гриб","субстрат","компост для гриб","набор для выращивания"]
 FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","dried"]),("pickled",["марин","pickled","marinadlanan"]),("canned",["консерв","canned","konserw"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]
 
 def _hits(text):
- return [(sid,term) for sid,terms in SPECIES.items() for term in terms if term in text]
+ matches=[]
+ for sid,terms in SPECIES.items():
+  for term in sorted(terms,key=len,reverse=True):
+   start=text.find(term)
+   while start>=0:
+    matches.append((sid,term,start,start+len(term)))
+    start=text.find(term,start+1)
+ matches.sort(key=lambda item:len(item[1]),reverse=True)
+ kept=[]
+ for match in matches:
+  if any(match[2]>=longer[2] and match[3]<=longer[3] for longer in kept):continue
+  kept.append(match)
+ return [(sid,term) for sid,term,_,_ in kept]
 
 def classify(title,description="",category="",language="",image_metadata=None):
  title_l=title.lower();description_l=description.lower();category_l=category.lower()

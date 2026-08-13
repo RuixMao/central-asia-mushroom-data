@@ -27,7 +27,7 @@ class KaspiTest(unittest.TestCase):
         self.assertTrue(any("1 кг" in t for t in titles))
         ids = {r["platform_product_id"] for r in rows}
         self.assertEqual(len(ids), 3)  # search-shampinon-10001/10002/10003 各不相同
-        self.assertIn("search-shampinon-10001", ids)
+        self.assertIn("kaspi-10001", ids)
         self.assertTrue(all(r["current_price"] > 0 for r in rows))
 
     def test_collect_many_wraps_render_error(self):
