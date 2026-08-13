@@ -18,11 +18,12 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams, filters = [];
-  const type = params.get("type"), country = params.get("country");
+  const type = params.get("type"), country = params.get("country"), slug = params.get("slug");
   if (type && types.has(type)) filters.push(eq(reports.type, type as "daily"));
   if (country && countries.has(country)) filters.push(eq(reports.country, country as "KZ"));
+  if (slug) filters.push(eq(reports.slug, slug));
   try {
-    const rows = await getDb().select().from(reports).where(filters.length ? and(...filters) : undefined).orderBy(desc(reports.publishedAt)).limit(100);
+    const rows = await getDb().select().from(reports).where(filters.length ? and(...filters) : undefined).orderBy(desc(reports.publishedAt)).limit(slug ? 1 : 100);
     return Response.json({ records: rows, count: rows.length });
   } catch { return Response.json({ records: [], count: 0, fallback: true }); }
 }

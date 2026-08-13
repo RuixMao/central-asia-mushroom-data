@@ -48,4 +48,15 @@ test("server-renders the corporate website and public data center", async () => 
   assert.match(marketHtml, /UN Comtrade/);
   assert.match(marketHtml, /72\.1%/);
   assert.match(marketHtml, /未报告/);
+
+  const reports = await render("/reports");
+  assert.equal(reports.status, 200);
+  const reportsHtml = await reports.text();
+  assert.match(reportsHtml, /YINHENG RESEARCH/);
+  assert.match(reportsHtml, /数据来源：因恒科技/);
+  assert.doesNotMatch(reportsHtml, /AI 生成/);
+
+  const reportDetail = await render("/reports/example-report");
+  assert.equal(reportDetail.status, 200);
+  assert.match(await reportDetail.text(), /正在读取报告/);
 });
