@@ -5,6 +5,7 @@ import { reportSources, reports } from "../../../../db/schema";
 
 const countries = new Set(["KZ", "UZ", "KG", "TJ", "TM"]);
 const types = new Set(["daily", "weekly", "monthly"]);
+const supersededSlugs = new Set(["2026-08-13-中亚菌类市场研究日报-2026-08-13-dc3459"]);
 const authorized = (request: Request) => Boolean(process.env.CRON_SECRET) && request.headers.get("x-cron-secret") === process.env.CRON_SECRET;
 const slugify = (title: string) => `${new Date().toISOString().slice(0,10)}-${title.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g,"-").replace(/^-|-$/g,"").slice(0,48)}-${crypto.randomUUID().slice(0,6)}`;
 type Source={evidence_id?:string;document_id?:string;source_type?:string;title?:string;url?:string;publisher?:string;published_at?:string;retrieved_at?:string};
@@ -33,7 +34,8 @@ export async function GET(request: Request) {
   if (country && countries.has(country)) filters.push(eq(reports.country, country as "KZ"));
   if (slug) filters.push(eq(reports.slug, slug));
   try {
-    const rows = await getDb().select().from(reports).where(filters.length ? and(...filters) : undefined).orderBy(desc(reports.publishedAt)).limit(slug ? 1 : 100);
+    const selected = await getDb().select().from(reports).where(filters.length ? and(...filters) : undefined).orderBy(desc(reports.publishedAt)).limit(slug ? 1 : 100);
+    const rows = selected.filter(report => !supersededSlugs.has(report.slug));
     const sources=slug&&rows[0]?await getDb().select().from(reportSources).where(eq(reportSources.reportId,rows[0].id)).orderBy(reportSources.evidenceId):[];
     return Response.json({ records: rows, count: rows.length, sources });
   } catch { return Response.json({ records: [], count: 0, fallback: true }); }
