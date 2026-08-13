@@ -30,7 +30,11 @@ def run():
  prices=[r for r in live if r["data"].get("observed_at")==today]
  if not prices:raise RuntimeError(f"{today} 没有标准化可比价格，拒绝生成误导性日报")
  # 同一商品同日去重，避免重复运行把样本量放大。
- prices=list({(r["data"].get("product_key") or f'{r.get("country")}:{r.get("source")}:{r["data"].get("original_title")}',today):r for r in prices}.values())
+ latest_prices={}
+ for row in prices:
+  key=(row["data"].get("product_key") or f'{row.get("country")}:{row.get("source")}:{row["data"].get("original_title")}',today)
+  latest_prices.setdefault(key,row)
+ prices=list(latest_prices.values())
  table=["| 国家 | 品类（中文/原文） | 渠道（中文/原名） | 形态与规格 | 当地挂牌价 | 折合美元/公斤 | 观察日期 |","|---|---|---|---|---:|---:|---|"]
  for row in prices:
   d=row["data"];table.append(f'| {COUNTRIES.get(row["country"],row["country"])} | {cell(d.get("species_zh"))}（{cell(d.get("original_title"))}） | 当地零售渠道（{cell(d.get("platform_name") or row.get("source"))}） | {FORMS.get(d.get("product_form"),d.get("product_form") or "形态待核验")}；{cell(d.get("package_display"))} | {cell(d.get("price_local"))} {cell(d.get("currency"))} | {float(d["normalized_price_usd_per_kg"]):.2f} | {today} |')
@@ -49,7 +53,7 @@ def run():
   trends.append({"国家":COUNTRIES.get(country,country),"品类":TARGET_SPECIES.get(species_id,{}).get("zh",species_id),"有效日期数":len(days),"最新美元每公斤":round(latest,2),"较前次可比变化":f'{(latest/previous-1)*100:.1f}%' if len(days)>=3 and previous else "历史序列不足，暂不判断涨跌"})
  documents=get_site("/api/market-context?days=90").get("records",[])[:25]
  evidence=[]
- for index,doc in enumerate(documents):evidence.append({"id":f"S{index+1}","国家":COUNTRIES.get(doc["country"],doc["country"]),"类型":doc["kind"],"标题":doc["title"],"发布机构":doc["publisher"],"发布日期":str(doc["publishedAt"])[:10],"事实摘要":doc["excerpt"],"url":doc["sourceUrl"],"retrieved":str(doc["retrievedAt"])[:10]})
+ for index,doc in enumerate(documents):evidence.append({"id":f"S{index+1}","document_id":doc["id"],"source_type":doc["kind"],"国家":COUNTRIES.get(doc["country"],doc["country"]),"类型":doc["kind"],"标题":doc["title"],"发布机构":doc["publisher"],"发布日期":str(doc["publishedAt"])[:10],"事实摘要":doc["excerpt"],"url":doc["sourceUrl"],"retrieved":str(doc["retrievedAt"])[:10]})
  allowed={item["id"] for item in evidence}
  prompt=f"""你是因恒科技的中亚食用菌首席市场研究员。请写一份面向进口商、渠道商、投资人与经营管理层的中文市场日报。必须像严谨的机构研究简报：先给结论，再解释驱动因素、证据强弱、风险和可执行动作。只可使用下方价格、历史序列和证据包，不得自行补充新闻、政策、数字、来源、因果或预测。
 日期：{today}
@@ -72,9 +76,10 @@ def run():
   result=client.chat.completions.create(model=AI_MODEL or "deepseek-chat",messages=[{"role":"user","content":request}],temperature=.15);analysis=(result.choices[0].message.content or "").strip()
   if customer_safe(analysis,allowed):break
  if not customer_safe(analysis,allowed):raise RuntimeError("日报未通过研究成稿检查，拒绝发布")
- sources="\n".join(f'- [{item["id"]}] [{cell(item["发布机构"])}：{cell(item["标题"])}]({item["url"]})（{item["发布日期"]}，检索于 {item["retrieved"]}）' for item in evidence) or "- 本期未纳入可核验的新增政策与新闻材料，相关部分不作外推。"
+ used_ids=set(re.findall(r"\[(S\d+)\]",analysis));used_evidence=[(index,item) for index,item in enumerate(evidence) if item["id"] in used_ids]
+ sources="\n".join(f'- [{item["id"]}] [{cell(item["发布机构"])}：{cell(item["标题"])}]({item["url"]})（{item["发布日期"]}，检索于 {item["retrieved"]}）' for _,item in used_evidence) or "- 本期未纳入可核验的新增政策与新闻材料，相关部分不作外推。"
  body=f"{analysis}\n\n## 今日价格全景\n{table_text}\n\n## 来源与资料日期\n{sources}"
- result=post_to_site("/api/ingest/report",{"title":f"中亚菌类市场研究日报｜{today}","type":"daily","summary":summary_from(body),"body":body,"country":"KZ","aiGenerated":True})
+ result=post_to_site("/api/ingest/report",{"title":f"中亚菌类市场研究日报｜{today}","type":"daily","summary":summary_from(body),"body":body,"country":"KZ","aiGenerated":True,"sources":[{"evidence_id":item["id"],"document_id":item["document_id"],"source_type":item["source_type"],"title":item["标题"],"url":item["url"],"publisher":item["发布机构"],"published_at":item["发布日期"],"retrieved_at":item["retrieved"]} for _,item in used_evidence]})
  post_to_site("/api/ingest/revalidate",{})
  print(f'市场研究日报完成：{len(prices)} 条标准化价格，{len(evidence)} 条已核验证据，slug={result.get("slug")}')
 

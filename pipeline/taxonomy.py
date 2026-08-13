@@ -9,7 +9,7 @@ SPECIES={
  "suillus":["маслёнок","масленок","маслята","suillus"],"truffle":["трюфель","truffle"]}
 AMBIGUOUS=["грибы","mushrooms","qo‘ziqorin","qo'ziqorin","золотые нити","древесные грибы","лесные грибы","kömelek","gömelek","komelek"]
 EXCLUDE_ONLY=["грибной соус","mushroom sauce","mushroom flavour","蘑菇味","мицелий","грибница","семена гриб","споры гриб","ящик для грибов","увлажнитель","оборудование для гриб","субстрат","компост для гриб","набор для выращивания"]
-FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","dried"]),("pickled",["марин","pickled","marinadlanan"]),("canned",["консерв","canned","konserw"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]
+FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","сушён","сухие","сухой","сухая","dried"]),("pickled",["марин","pickled","marinadlanan"]),("canned",["консерв","canned","konserw"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]
 
 def _hits(text):
  matches=[]
@@ -27,7 +27,7 @@ def _hits(text):
  return [(sid,term) for sid,term,_,_ in kept]
 
 def classify(title,description="",category="",language="",image_metadata=None):
- title_l=title.lower();description_l=description.lower();category_l=category.lower()
+ title_l=title.lower().replace("ё","е");description_l=description.lower().replace("ё","е");category_l=category.lower().replace("ё","е")
  if any(x in " ".join((title_l,description_l,category_l)) for x in EXCLUDE_ONLY):
   return {"species_id":None,"product_form":"prepared_food","classification_status":"excluded","status":"excluded","confidence":1.0,"evidence":[{"field":"title","rule":"excluded"}],"reasons":["non-mushroom retail product"]}
  title_hits=_hits(title_l);desc_hits=_hits(description_l);cat_hits=_hits(category_l);all_ids={x[0] for x in title_hits+desc_hits+cat_hits}

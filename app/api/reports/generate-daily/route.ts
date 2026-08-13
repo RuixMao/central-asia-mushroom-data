@@ -40,9 +40,10 @@ export async function POST(){
   const result=await response.json() as {choices?:Array<{message?:{content?:string}}>};analysis=result.choices?.[0]?.message?.content?.trim()??"";if(customerSafe(analysis,allowed))break;
  }
  if(!customerSafe(analysis,allowed))return Response.json({error:"日报未通过研究成稿检查，请重新生成"},{status:502});
- const sourceList=evidence.length?`\n\n## 来源与资料日期\n${evidence.map(item=>`- [${item.id}] [${escapeCell(item.document.publisher)}：${escapeCell(item.document.title)}](${item.document.sourceUrl})（${item.document.publishedAt.toISOString().slice(0,10)}，检索于 ${item.document.retrievedAt.toISOString().slice(0,10)}）`).join("\n")}`:"\n\n## 来源与资料日期\n- 本期未纳入可核验的新增政策与新闻材料，相关部分不作外推。";
+ const usedIds=new Set([...analysis.matchAll(/\[(S\d+)\]/g)].map(match=>match[1])),usedEvidence=evidence.filter(item=>usedIds.has(item.id));
+ const sourceList=usedEvidence.length?`\n\n## 来源与资料日期\n${usedEvidence.map(item=>`- [${item.id}] [${escapeCell(item.document.publisher)}：${escapeCell(item.document.title)}](${item.document.sourceUrl})（${item.document.publishedAt.toISOString().slice(0,10)}，检索于 ${item.document.retrievedAt.toISOString().slice(0,10)}）`).join("\n")}`:"\n\n## 来源与资料日期\n- 本期未纳入可核验的新增政策与新闻材料，相关部分不作外推。";
  const body=`${analysis}\n\n## 今日价格全景\n${table}${sourceList}`,title=`中亚菌类市场研究日报｜${date}`,id=crypto.randomUUID(),slug=`${date}-central-asia-mushroom-research-${id.slice(0,6)}`,now=new Date();
  await getDb().insert(reports).values({id,slug,title,type:"daily",summary:summaryFrom(body),body,country:"KZ",aiGenerated:true,publishedAt:now,createdAt:now});
- if(evidence.length)await getDb().insert(reportSources).values(evidence.map(item=>({id:crypto.randomUUID(),reportId:id,evidenceId:item.id,documentId:item.document.id,sourceType:item.document.kind,title:item.document.title,url:item.document.sourceUrl,publisher:item.document.publisher,publishedAt:item.document.publishedAt,retrievedAt:item.document.retrievedAt})));
- return Response.json({ok:true,id,slug,title,body,priceCount:current.length,evidenceCount:evidence.length,trendGroups:trends.length});
+ if(usedEvidence.length)await getDb().insert(reportSources).values(usedEvidence.map(item=>({id:crypto.randomUUID(),reportId:id,evidenceId:item.id,documentId:item.document.id,sourceType:item.document.kind,title:item.document.title,url:item.document.sourceUrl,publisher:item.document.publisher,publishedAt:item.document.publishedAt,retrievedAt:item.document.retrievedAt})));
+ return Response.json({ok:true,id,slug,title,body,priceCount:current.length,evidenceCount:usedEvidence.length,trendGroups:trends.length});
 }

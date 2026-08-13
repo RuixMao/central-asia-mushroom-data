@@ -12,6 +12,8 @@ class TaxonomyTest(unittest.TestCase):
  def test_forms(self):
   self.assertEqual(classify("Шампиньоны замороженные")["product_form"],"frozen")
   self.assertEqual(classify("Грибы сушеные Шиитаке")["product_form"],"dried")
+  self.assertEqual(classify("Грибы шиитаке сухие 100 г")["product_form"],"dried")
+  self.assertEqual(classify("Шиитаке сушёные 100 г")["product_form"],"dried")
   self.assertEqual(classify("Шампиньоны маринованные")["product_form"],"pickled")
   self.assertEqual(classify("Грибной соус")["status"],"excluded")
   self.assertEqual(classify("Мицелий вешенки для выращивания")["status"],"excluded")
