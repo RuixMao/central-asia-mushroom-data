@@ -12,7 +12,9 @@ from utils import get_site,post_to_site,today_str
 COUNTRIES={"KZ":"哈萨克斯坦","UZ":"乌兹别克斯坦","KG":"吉尔吉斯斯坦","TJ":"塔吉克斯坦","TM":"土库曼斯坦"}
 FORMS={"fresh":"鲜品","chilled":"冷藏","frozen":"冷冻","dried":"干制","pickled":"腌渍","canned":"罐装","powder":"粉剂"}
 SECTIONS=("执行摘要","市场趋势与渠道观察","国别政策与新闻信号","情景研判与商机提示","研究口径与风险提示")
-FORBIDDEN=re.compile(r"https?://|(?:price|observed|source)\s*[_-]\s*(?:usd|local|cny|at|url)|\b(?:AI|API|JSON|LLM|GPT|ChatGPT|DeepSeek|SQL|D1|null|live|gap|prompt|price_retail)\b|人工智能|大模型|语言模型|模型生成|智能生成|自动生成|机器生成|算法生成|数据库|字段|代码|键值|请求|响应|自动采集|采集管线|采集|抓取|爬虫|入库|接口|算法",re.I)
+FORBIDDEN=re.compile(r"https?://|(?:price|observed|source)\s*[_-]\s*(?:usd|local|cny|at|url)|\b(?:AI|API|JSON|LLM|GPT|ChatGPT|DeepSeek|SQL|D1|null|live|gap|prompt|price_retail)\b|人工智能|大模型|语言模型|模型生成|智能生成|自动生成|机器生成|算法生成|数据库|字段|代码|键值|请求|响应|自动采集|采集管线|采集|抓取|爬虫|入库|接口|算法|历史序列不足|暂不判断|暂不提供|暂未直接|数据不足|无足够数据|样本不足|样本量|判断不了|无法判断|不判断涨跌",re.I)
+# 品类 → HS 编码（用于把 UN Comtrade 年度进口单价映射到报告品类）
+SPECIES_HS={"button_mushroom":"070951","oyster_mushroom":"070959","shiitake":"070959","king_oyster_mushroom":"070959","enoki":"070959","wood_ear":"070959","snow_fungus":"070959","morel":"070959","matsutake":"070959","porcini":"070959","chanterelle":"070959","straw_mushroom":"070959","honey_fungus":"070959","suillus":"070959","truffle":"070959","mixed_mushrooms":"070959","unknown":"070959"}
 
 def customer_safe(body,allowed):
  normalized=unicodedata.normalize("NFKC",body);refs=set(re.findall(r"\[(S\d+)\]",normalized))
@@ -50,7 +52,24 @@ def run():
  trends=[]
  for (country,species_id,_),days in history.items():
   ordered=sorted(days.items(),reverse=True);latest=statistics.median(ordered[0][1]);previous=statistics.median(ordered[1][1]) if len(ordered)>1 else None
-  trends.append({"国家":COUNTRIES.get(country,country),"品类":TARGET_SPECIES.get(species_id,{}).get("zh",species_id),"有效日期数":len(days),"最新美元每公斤":round(latest,2),"较前次可比变化":f'{(latest/previous-1)*100:.1f}%' if len(days)>=3 and previous else "历史序列不足，暂不判断涨跌"})
+  trends.append({"国家":COUNTRIES.get(country,country),"品类":TARGET_SPECIES.get(species_id,{}).get("zh",species_id),"有效日期数":len(days),"最新美元每公斤":round(latest,2),"较前次可比变化":f'{(latest/previous-1)*100:.1f}%' if len(days)>=3 and previous else None})
+ # 年度进口单价（贸易口径，UN Comtrade）历史序列：供零售序列不足的品类做年度趋势参考
+ trade_rows=get_site("/api/ingest/snapshot?metric=trade&limit=500").get("records",[])
+ annual_by_country_hs=defaultdict(dict)
+ for r in trade_rows:
+  d=r.get("data",{})
+  if d.get("status")!="live" or d.get("period_type")=="monthly":continue
+  year=d.get("year");unit=d.get("unit_price_usd_kg");hs=d.get("hs")
+  if year and unit is not None and hs:
+   annual_by_country_hs[(r.get("country"),hs)][str(year)]=float(unit)
+ annual_ref=[]
+ for (country,species_id,form),days in history.items():
+  hs=SPECIES_HS.get(species_id or "unknown")
+  seq=annual_by_country_hs.get((country,hs)) if hs else {}
+  if len(seq)>=2:
+   years=sorted(seq);first=seq[years[0]];last=seq[years[-1]]
+   change=f"{(last/first-1)*100:.1f}%" if first else None
+   annual_ref.append({"国家":COUNTRIES.get(country,country),"品类":TARGET_SPECIES.get(species_id,{}).get("zh",species_id),"贸易口径年度进口单价USD/kg":{y:seq[y] for y in years},"多年变化":change})
  documents=get_site("/api/market-context?days=90").get("records",[])[:25]
  evidence=[]
  for index,doc in enumerate(documents):evidence.append({"id":f"S{index+1}","document_id":doc["id"],"source_type":doc["kind"],"国家":COUNTRIES.get(doc["country"],doc["country"]),"类型":doc["kind"],"标题":doc["title"],"发布机构":doc["publisher"],"发布日期":str(doc["publishedAt"])[:10],"事实摘要":doc["excerpt"],"url":doc["sourceUrl"],"retrieved":str(doc["retrievedAt"])[:10]})
@@ -59,16 +78,17 @@ def run():
 日期：{today}
 价格表由系统确定性生成，正文不要抄写全部数字：
 {table_text}
-同口径历史序列：{json.dumps(trends,ensure_ascii=False)}
+同口径零售历史序列：{json.dumps(trends,ensure_ascii=False)}
+年度进口单价参考（贸易口径，UN Comtrade）：{json.dumps(annual_ref,ensure_ascii=False)}
 已核验政策/新闻/宏观证据包：{json.dumps([{k:v for k,v in item.items() if k not in ('url','retrieved')} for item in evidence],ensure_ascii=False)}
 
 成稿要求：
 1. 页面标题另行显示。先写40至80字导读；随后恰好使用“执行摘要”“市场趋势与渠道观察”“国别政策与新闻信号”“情景研判与商机提示”“研究口径与风险提示”五个二级标题。
 2. 每个关键句用【事实】【研判】或【情景】标识。事实只复述材料；研判说明推理链；情景必须使用“若…则…”，不能写成确定预测。
 3. 政策或新闻事实句必须引用 [S1] 形式的证据编号，且只能使用证据包存在的编号。没有材料的国家写“本期未纳入可核验的新材料”。
-4. 趋势只使用有效日期数不少于3的同口径序列；否则写“历史序列不足，暂不判断涨跌”。横向价差只能称“当日价格结构”。
+4. 零售趋势只使用有效日期数不少于3的同口径序列；不足3期的品类可用“年度进口单价参考（贸易口径）”描述年度走势，并注明该口径为进口单价而非零售价；两种依据均不足的品类不写任何趋势表述。禁止出现“历史序列不足”“暂不判断”“数据不足”“无法判断”等表述。
 5. 外文专名首次出现用中文名（原文）。给出3至5条含适用对象、触发条件和风险的建议。
-6. 不得出现任何生成方式、内部系统、技术字段或流程词。输出900至1800字 Markdown 正文，不附来源清单或网址。"""
+6. 政策信号只陈述可核验事实；除非材料中明确存在与食用菌贸易的关联，否则不写“暂未直接作用于”“不改变当期价格结构”之类的推测。不得出现任何生成方式、内部系统、技术字段或流程词。输出900至1800字 Markdown 正文，不附来源清单或网址。"""
  if not AI_API_KEY:raise RuntimeError("AI_API_KEY is not configured")
  client=OpenAI(api_key=AI_API_KEY,base_url=AI_BASE_URL or "https://api.deepseek.com");analysis=""
  for attempt in range(2):
