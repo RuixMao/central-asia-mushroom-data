@@ -1,0 +1,20 @@
+// 建议创建独立空表“指标”，并将以下度量值全部放入该表。
+
+五国中位价 = MEDIAN('价格明细'[normalized_usd_per_kg])
+五国平均价 = AVERAGE('价格明细'[normalized_usd_per_kg])
+有效SKU数 = DISTINCTCOUNT('价格明细'[product_id])
+缺货率 = DIVIDE(CALCULATE(COUNTROWS('价格明细'), '价格明细'[in_stock] = FALSE()), COUNTROWS('价格明细'))
+促销占比 = DIVIDE(CALCULATE(COUNTROWS('价格明细'), NOT ISBLANK('价格明细'[promotion_price])), COUNTROWS('价格明细'))
+七日涨跌 = AVERAGE('每日汇总'[sevenDayChange])
+一日涨跌 = AVERAGE('每日汇总'[dayChange])
+采集成功率 = DIVIDE(SUM('采集运行'[validRecords]), SUM('采集运行'[skusFound]))
+采集失败数 = SUM('采集运行'[failedRecords])
+平均运行时长秒 = AVERAGE('采集运行'[duration_seconds])
+
+最新日期 = MAX('价格明细'[observation_date])
+最新五国中位价 = VAR D=[最新日期] RETURN CALCULATE([五国中位价], '价格明细'[observation_date]=D)
+前一日中位价 = VAR D=[最新日期] RETURN CALCULATE([五国中位价], DATEADD('日期'[日期],-1,DAY))
+一日价格变化 = DIVIDE([最新五国中位价]-[前一日中位价],[前一日中位价])
+
+价格颜色 = IF([七日涨跌]>0,"#22C55E",IF([七日涨跌]<0,"#EF4444","#8A94A6"))
+运行状态颜色 = SWITCH(SELECTEDVALUE('采集运行'[status]),"success","#22C55E","partial","#8A94A6","failed","#EF4444","#8A94A6")

@@ -1,0 +1,32 @@
+{
+  "name": "因恒暗色金融终端",
+  "dataColors": ["#3D7EFF", "#22C55E", "#EF4444", "#8A94A6", "#67A2FF", "#A6C8FF"],
+  "background": "#0A0E14",
+  "foreground": "#E8ECF1",
+  "tableAccent": "#3D7EFF",
+  "good": "#22C55E",
+  "neutral": "#8A94A6",
+  "bad": "#EF4444",
+  "visualStyles": {
+    "*": { "*": {
+      "background": [{ "show": true, "color": { "solid": { "color": "#131A24" } }, "transparency": 0 }],
+      "border": [{ "show": true, "color": { "solid": { "color": "#1F2A38" } }, "radius": 8 }],
+      "title": [{ "show": true, "fontFamily": "Microsoft YaHei UI", "fontSize": 14, "fontColor": { "solid": { "color": "#E8ECF1" } }, "alignment": "left" }],
+      "visualHeader": [{ "show": false }]
+    }},
+    "card": { "*": {
+      "labels": [{ "fontFamily": "Segoe UI", "fontSize": 32, "fontColor": { "solid": { "color": "#E8ECF1" } } }],
+      "categoryLabels": [{ "show": true, "fontFamily": "Microsoft YaHei UI", "fontSize": 12, "color": { "solid": { "color": "#8A94A6" } } }]
+    }},
+    "tableEx": { "*": {
+      "grid": [{ "gridVertical": false, "gridHorizontal": true, "outlineColor": { "solid": { "color": "#1F2A38" } }, "rowPadding": 8 }],
+      "columnHeaders": [{ "fontFamily": "Microsoft YaHei UI", "fontSize": 12, "fontColor": { "solid": { "color": "#8A94A6" } }, "backColor": { "solid": { "color": "#131A24" } } }],
+      "values": [{ "fontFamily": "Segoe UI", "fontSize": 13, "fontColorPrimary": { "solid": { "color": "#E8ECF1" } }, "backColorPrimary": { "solid": { "color": "#131A24" } }, "backColorSecondary": { "solid": { "color": "#101721" } } }]
+    }}
+  },
+  "textClasses": {
+    "title": { "fontFace": "Microsoft YaHei UI", "fontSize": 16, "color": "#E8ECF1" },
+    "label": { "fontFace": "Microsoft YaHei UI", "fontSize": 12, "color": "#8A94A6" },
+    "callout": { "fontFace": "Segoe UI", "fontSize": 32, "color": "#E8ECF1" }
+  }
+}

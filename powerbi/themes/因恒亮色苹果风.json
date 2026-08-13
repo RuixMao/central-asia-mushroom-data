@@ -1,0 +1,18 @@
+{
+  "name": "因恒亮色苹果风",
+  "dataColors": ["#0071E3", "#22C55E", "#EF4444", "#86868B", "#4A9FFF", "#98C7F7"],
+  "background": "#F5F5F7",
+  "foreground": "#1D1D1F",
+  "tableAccent": "#0071E3",
+  "good": "#22C55E",
+  "neutral": "#86868B",
+  "bad": "#EF4444",
+  "visualStyles": {
+    "*": { "*": {
+      "background": [{ "show": true, "color": { "solid": { "color": "#FFFFFF" } }, "transparency": 0 }],
+      "border": [{ "show": true, "color": { "solid": { "color": "#D2D2D7" } }, "radius": 12 }],
+      "title": [{ "fontFamily": "Microsoft YaHei UI", "fontSize": 14, "fontColor": { "solid": { "color": "#1D1D1F" } } }],
+      "visualHeader": [{ "show": false }]
+    }}
+  }
+}
