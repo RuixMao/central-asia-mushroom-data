@@ -65,7 +65,8 @@ def run():
  annual_ref=[]
  for (country,species_id,form),days in history.items():
   hs=SPECIES_HS.get(species_id or "unknown")
-  seq=annual_by_country_hs.get((country,hs)) if hs else {}
+  seq=annual_by_country_hs.get((country,hs)) if hs else None
+  seq=seq or {}
   if len(seq)>=2:
    years=sorted(seq);first=seq[years[0]];last=seq[years[-1]]
    change=f"{(last/first-1)*100:.1f}%" if first else None
