@@ -54,7 +54,7 @@ test("server-renders the corporate website and public data center", async () => 
   const reportsHtml = await reports.text();
   assert.match(reportsHtml, /YINHENG RESEARCH/);
   assert.match(reportsHtml, /数据来源：因恒科技/);
-  assert.doesNotMatch(reportsHtml, /AI 生成/);
+  assert.doesNotMatch(reportsHtml, /AI 生成|AI 报告|DeepSeek/);
 
   const reportDetail = await render("/reports/example-report");
   assert.equal(reportDetail.status, 200);

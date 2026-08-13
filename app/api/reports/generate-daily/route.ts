@@ -15,7 +15,7 @@ const summaryFrom=(body:string)=>plain(body.split(/\n\s*\n/).find(block=>block.t
 export async function POST(){
   if(!await getChatGPTUser()) return Response.json({error:"请先登录后生成日报"},{status:401});
   const apiKey=process.env.AI_API_KEY;
-  if(!apiKey) return Response.json({error:"DeepSeek 密钥尚未配置"},{status:503});
+  if(!apiKey) return Response.json({error:"报告生成服务尚未配置"},{status:503});
   const date=chinaDate(), start=new Date(`${date}T00:00:00+08:00`), end=new Date(start.getTime()+86400000);
   const snapshots=await getDb().select().from(dataSnapshots).where(and(eq(dataSnapshots.metric,"price_retail"),gte(dataSnapshots.capturedAt,start),lt(dataSnapshots.capturedAt,end))).orderBy(desc(dataSnapshots.capturedAt)).limit(500);
   const prices=snapshots.filter(row=>{const data=row.data as PriceData;return data.status==="live"&&data.price_local!=null});
@@ -35,5 +35,5 @@ export async function POST(){
   if(!customerSafe(body)) return Response.json({error:"日报未通过客户成稿检查，请重新生成"},{status:502});
   const title=`中亚菌类价格日报｜${date}`,id=crypto.randomUUID(),slug=`${date}-central-asia-mushroom-price-${id.slice(0,6)}`,now=new Date();
   await getDb().insert(reports).values({id,slug,title,type:"daily",summary:summaryFrom(body),body,country:"KZ",aiGenerated:true,publishedAt:now,createdAt:now});
-  return Response.json({ok:true,id,slug,title,body,priceCount:prices.length,gapCount:gaps.length,aiGenerated:true,generatedBy:"deepseek"});
+  return Response.json({ok:true,id,slug,title,body,priceCount:prices.length,gapCount:gaps.length});
 }
