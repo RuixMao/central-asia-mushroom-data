@@ -918,7 +918,7 @@ footer p, footer > span { font-size: 8px; }
 .reports-site .filter-bar{border-color:#d9dee2}.reports-site .filter-bar b,.reports-site .filter-bar span{border-color:#cbd5db}.reports-site .filter-bar b{background:#103752;color:#fff}.reports-site .filter-bar small{color:#54738a}
 .reports-site .report-generator{margin-top:28px;border-color:#d7dfe4;background:#f2f5f7}.reports-site .report-generator b{color:#103752}.reports-site .report-generator button{background:#103752}.reports-site .report-generator button:hover{background:#1e658f}
 .reports-site .report-list article{border-color:#d9dee2}.reports-site .report-list>article>span{color:#1e658f}.reports-site .report-list h2{margin:10px 0;color:#16191d;font-weight:500}.reports-site .report-list p{color:#5f6b74}.reports-site .report-list small{color:#6c7c86}
-.reports-site .tag-row b{background:#e8eef1;color:#103752}.reports-site .report-list>a{color:#1e658f;font-size:13px;font-weight:700}.reports-site .report-list>a:hover{color:#103752}
+.reports-site .tag-row b{background:#e8eef1;color:#103752}.reports-site .report-list article>a{color:#1e658f;font-size:13px;font-weight:700}.reports-site .report-list article>a:hover{color:#103752}
 .report-unavailable{color:#83929b!important;font-size:12px!important;letter-spacing:0!important}
 .reports-site .global-footer{background:#103752;border-color:#103752;color:#fff}.reports-site .global-footer span,.reports-site .global-footer nav a{color:#dce7ed}
 .report-detail-page{padding-top:54px}.report-back{display:inline-block;margin-bottom:34px;color:#1e658f;font-size:13px;font-weight:700}

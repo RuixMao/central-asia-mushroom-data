@@ -59,4 +59,8 @@ test("server-renders the corporate website and public data center", async () => 
   const reportDetail = await render("/reports/example-report");
   assert.equal(reportDetail.status, 200);
   assert.match(await reportDetail.text(), /正在读取报告/);
+
+  const encodedReportDetail = await render("/reports/%E4%B8%AD%E4%BA%9A%E8%8F%8C%E7%B1%BB%E6%97%A5%E6%8A%A5");
+  assert.equal(encodedReportDetail.status, 200);
+  assert.match(await encodedReportDetail.text(), /正在读取报告/);
 });

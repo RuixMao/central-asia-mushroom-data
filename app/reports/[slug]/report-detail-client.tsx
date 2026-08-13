@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
-import Link from "next/link";
 
 type Report={slug:string;title:string;type:string;country:string;summary:string;body:string;publishedAt:string|number|Date};
 
@@ -34,8 +33,8 @@ export default function ReportDetailClient({slug}:{slug:string}){
     }).catch(reason=>{if(reason instanceof Error&&reason.name!=="AbortError")setError(reason.message)});
     return ()=>controller.abort();
   },[slug]);
-  if(error)return <section className="report-state"><b>{error}</b><Link href="/reports">返回报告中心 →</Link></section>;
+  if(error)return <section className="report-state"><b>{error}</b>{/* Native navigation avoids the current vinext client-router failure. */}<a href="/reports" data-native-navigation="true">返回报告中心 →</a></section>;
   if(!report)return <section className="report-state" aria-live="polite">正在读取报告…</section>;
   const date=new Date(report.publishedAt).toLocaleDateString("zh-CN");
-  return <><Link className="report-back" href="/reports">← 返回报告中心</Link><article className="report-detail"><header><div className="tag-row"><b>{report.type}</b><b>{report.country}</b></div><h1>{report.title}</h1><p>{report.summary}</p><small>{date} · 数据来源：因恒科技</small></header><ReportBody body={report.body}/></article></>;
+  return <>{/* Native navigation avoids the current vinext client-router failure. */}<a className="report-back" href="/reports" data-native-navigation="true">← 返回报告中心</a><article className="report-detail"><header><div className="tag-row"><b>{report.type}</b><b>{report.country}</b></div><h1>{report.title}</h1><p>{report.summary}</p><small>{date} · 数据来源：因恒科技</small></header><ReportBody body={report.body}/></article></>;
 }

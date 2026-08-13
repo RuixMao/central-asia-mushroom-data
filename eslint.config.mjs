@@ -36,6 +36,10 @@ const eslintConfig = defineConfig([
       },
     },
   },
+  {
+    files: ["app/reports/reports-client.tsx", "app/reports/*/report-detail-client.tsx"],
+    rules: { "@next/next/no-html-link-for-pages": "off" },
+  },
 ]);
 
 export default eslintConfig;
