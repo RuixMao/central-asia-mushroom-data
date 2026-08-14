@@ -43,8 +43,8 @@ export default function CorporateHome(){
         {code:"UZ",name:"乌兹别克斯坦",metric:"贸易与市场基线",status:"官方最新",tone:"official"},
         {code:"KG",name:"吉尔吉斯斯坦",metric:"贸易与渠道监测",status:"验证基线",tone:"baseline"},
         {code:"TJ",name:"塔吉克斯坦",metric:"贸易与机会跟踪",status:"验证基线",tone:"baseline"},
-        {code:"TM",name:"土库曼斯坦",metric:"公开资料监测",status:"待持续补充",tone:"pending"}
-      ].map((market,i)=><article className={`map-market market-${i+1}`} key={market.code}><div><b>{market.code}</b><strong>{market.name}</strong></div><p>{market.metric}</p><em className={market.tone}>{market.status}</em></article>)}</div><div className="coverage-legend"><span><i className="live"></i>实时接口</span><span><i className="official"></i>官方最新</span><span><i className="baseline"></i>已验证基线</span><span><i className="pending"></i>待补充</span></div><p className="coverage-note">连线表示数据与业务覆盖关系，不代表地理距离、贸易规模或国家排名。</p></div></section>
+        {code:"TM",name:"土库曼斯坦",metric:"公开资料监测",status:"",tone:""}
+      ].map((market,i)=><article className={`map-market market-${i+1}`} key={market.code}><div><b>{market.code}</b><strong>{market.name}</strong></div><p>{market.metric}</p>{market.status&&<em className={market.tone}>{market.status}</em>}</article>)}</div><div className="coverage-legend"><span><i className="live"></i>实时接口</span><span><i className="official"></i>官方最新</span><span><i className="baseline"></i>已验证基线</span></div><p className="coverage-note">连线表示数据与业务覆盖关系，不代表地理距离、贸易规模或国家排名。</p></div></section>
 
       <section className="solution-section" id="solutions"><div className="corp-section-head"><span>SOLUTIONS</span><h2>面向不同机构的区域研究支持</h2></div><div className="solution-list">{solutions.map(([slug,title,copy],i)=><article key={slug}><span>0{i+1}</span><h3>{title}</h3><p>{copy}</p><a href={`/solutions/${slug}`}>了解方案 →</a></article>)}</div></section>
 

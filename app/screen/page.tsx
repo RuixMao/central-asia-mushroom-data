@@ -87,7 +87,7 @@ export default function ScreenPage() {
           {rows.slice(0, 10).map((row, index) => <div className="feed-row" key={`${row.original_title}-${index}`}>
             <span>{row.observation_date}<small>{row.country_name ?? row.country} · {row.city}</small></span>
             <b>{row.species_name ?? row.species_id}<small>{row.platform_name}</small></b>
-            <em>{row.current_price} {row.currency}<small>${row.normalized_usd_per_kg?.toFixed(2) ?? "—"}/kg</small></em>
+            <em>${row.normalized_usd_per_kg?.toFixed(2) ?? "—"}<small>USD / 公斤</small></em>
           </div>)}
           {!rows.length && !error && <p className="screen-empty">等待五国自动化采集写入数据…</p>}
         </div>
