@@ -17,3 +17,4 @@ jobs:
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          UN_COMTRADE_API_KEY: ${{ secrets.UN_COMTRADE_API_KEY }}

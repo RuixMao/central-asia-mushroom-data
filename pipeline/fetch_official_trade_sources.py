@@ -1,12 +1,14 @@
 import datetime as dt
 import hashlib
 
+from config import UN_COMTRADE_API_KEY
 from utils import log, post_to_site, safe_get
 
 
 SOURCES = (
     {"id": "cn_customs", "countries": ("KZ", "UZ", "KG", "TJ", "TM"),
      "name": "中国海关统计", "url": "https://english.customs.gov.cn/Statistics/Statistics",
+     "probe_url": "https://online.customs.gov.cn/ocportal/mySearch/",
      "role": "china_export_control", "scope": "国别及总体进出口校验；菌类双边值使用中国报告的 UN Comtrade 出口镜像"},
     {"id": "tj_statistics", "countries": ("TJ",), "name": "塔吉克斯坦国家统计局",
      "url": "https://www.stat.tj/ru/", "role": "importer_official_control",
@@ -32,7 +34,12 @@ SOURCES = (
 def run():
     checked_at = dt.datetime.now(dt.timezone.utc).isoformat()
     for source in SOURCES:
-        response = safe_get(source["url"], retries=3, backoff=3, timeout=45)
+        headers = {"Ocp-Apim-Subscription-Key": UN_COMTRADE_API_KEY} if source["id"].startswith("un_mirror_") and UN_COMTRADE_API_KEY else {}
+        probe_url = source.get("probe_url", source["url"])
+        if source["id"].startswith("un_mirror_"):
+            reporter = {"un_mirror_ru": 643, "un_mirror_kz": 398, "un_mirror_tr": 792}[source["id"]]
+            probe_url = f"https://comtradeapi.un.org/data/v1/get/C/A/HS?period=2024&reporterCode={reporter}&flowCode=X&partnerCode=0&cmdCode=070951&maxRecords=1"
+        response = safe_get(probe_url, headers=headers, retries=3, backoff=3, timeout=45)
         body = response.content if response else b""
         available = bool(response and body)
         digest = hashlib.sha256(body).hexdigest() if body else None
