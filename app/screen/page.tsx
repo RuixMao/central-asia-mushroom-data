@@ -19,7 +19,7 @@ type PriceRow = {
 };
 
 type Snapshot<T> = { id: string; country: string; data: T; capturedAt: string };
-type TradeData = { hs?: string; year?: number; value_usd?: number; partner_value_usd?: number; partner_code?: string | number; status?: string; reporting_basis?: string; estimate_lower_usd?: number; estimate_upper_usd?: number; coverage_pct?: number; confidence?: string };
+type TradeData = { hs?: string; year?: number; value_usd?: number; partner_value_usd?: number; partner_code?: string | number; status?: string; reporting_basis?: string; estimate_lower_usd?: number; estimate_upper_usd?: number; coverage_pct?: number; confidence?: string; source_id?: string; source_role?: string; availability?: string };
 
 const API = "/api/powerbi?table=prices";
 const countries = [
@@ -139,6 +139,15 @@ export default function ScreenPage() {
     return { countries: countryData, total, china, estimatedCountries, share: total > 0 && china > 0 ? china / total * 100 : null };
   }, [trade]);
 
+  const verifiedTradeSources = useMemo(() => {
+    const latest = new Map<string, Snapshot<TradeData>>();
+    trade.filter(row => String(row.data.partner_code) === "SOURCE_REGISTRY" && row.data.source_id).forEach(row => {
+      const key = `${row.country}|${row.data.source_id}`;
+      if (!latest.has(key) || row.capturedAt > latest.get(key)!.capturedAt) latest.set(key, row);
+    });
+    return Array.from(latest.values()).filter(row => row.data.status === "live" && row.data.availability === "reachable");
+  }, [trade]);
+
   return <main className="live-screen">
     <header className="screen-head">
       <div><span>INHEN CENTRAL ASIA INTELLIGENCE</span><h1>中亚菌类市场实时数据中枢</h1></div>
@@ -187,7 +196,7 @@ export default function ScreenPage() {
             {country.partners.length ? <div className="trade-legend">{country.partners.slice(0, 5).map(partner => <span key={partner.code} title={`${partner.name} · $${partner.value.toLocaleString("en-US")}`}><i className={`partner-${partner.code.toLowerCase()}`} />{partner.name} {country.global > 0 ? `${(partner.value / country.global * 100).toFixed(1)}%` : "—"}</span>)}</div> : <p>等待来源国明细</p>}
           </article>)}
         </div>
-        <p className="trade-method">口径：中亚五国食用菌（HS 070951 / 070959 / 200310）进口贸易，单位 USD。优先采用进口国申报；缺失时采用中国及主要伙伴国出口镜像，并显示覆盖率、规模区间与置信等级。来源：UN Comtrade / 中国海关统计口径，年度数据。</p>
+        <p className="trade-method">口径：中亚五国食用菌（HS 070951 / 070959 / 200310）进口贸易，单位 USD。优先采用进口国申报；缺失时采用中国及主要伙伴国出口镜像，并显示覆盖率、规模区间与置信等级。已核验来源 {verifiedTradeSources.length} 个：UN Comtrade、中国海关统计、塔吉克斯坦国家统计局、土库曼斯坦国家统计委员会及海关；年度数据。</p>
       </article>
 
       <article className="screen-feed">
