@@ -6,6 +6,14 @@ from utils import log, post_to_site, safe_get
 
 
 SOURCES = (
+    {"id": "uz_statistics_monthly", "countries": ("UZ",),
+     "name": "乌兹别克斯坦国家统计委员会", "url": "https://stat.uz/en/official-statistics/merchandise-trade",
+     "probe_url": "https://api.siat.stat.uz/media/uploads/sdmx/sdmx_data_3088.json",
+     "role": "importer_official_control",
+     "scope": "按月发布的两位商品编码进口额，用于核验食用菌所属章节的市场变化"},
+    {"id": "uz_customs", "countries": ("UZ",), "name": "乌兹别克斯坦海关委员会",
+     "url": "https://customs.uz/en", "role": "customs_official_control",
+     "scope": "官方货物外贸统计与消费品进口信息，用于国家统计口径交叉核验"},
     {"id": "cn_customs", "countries": ("KZ", "UZ", "KG", "TJ", "TM"),
      "name": "中国海关统计", "url": "https://english.customs.gov.cn/Statistics/Statistics",
      "probe_url": "https://online.customs.gov.cn/ocportal/mySearch/",
