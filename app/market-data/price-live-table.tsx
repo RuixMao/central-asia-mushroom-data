@@ -1,22 +1,32 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 
-type PriceData = { variety?: string; form?: string; spec?: string; channel?: string; price_local?: number; currency?: string; price_cny?: number; observed_at?: string; source_url?: string; status?: "live"|"gap"; reason?: string };
+type PriceData = { species_id?: string; variety?: string; product_form?: string; form?: string; package_display?: string; spec?: string; platform_name?: string; channel?: string; price_local?: number; currency?: string; price_usd?: number; normalized_price_usd_per_kg?: number; price_cny?: number; observed_at?: string; source_url?: string; status?: "live" | "gap" };
 type Snapshot = { id: string; country: string; data: PriceData; source: string };
-const countryNames: Record<string,string> = {KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦"};
-const fallback: Snapshot[] = [
-  {id:"kz-1",country:"KZ",source:"Arbuz / Carefood",data:{variety:"双孢菇",form:"鲜品",spec:"1kg",channel:"电商/商超",currency:"KZT",observed_at:"2026-08-11",source_url:"https://arbuz.kz/",status:"live"}},
-  {id:"kg-1",country:"KG",source:"Globus Online",data:{variety:"双孢菇",form:"鲜品",spec:"1kg",channel:"商超",price_local:520,currency:"KGS",observed_at:"2026-08-11",source_url:"https://globus-online.kg/",status:"live"}},
-  {id:"tj-1",country:"TJ",source:"Zudbiyor",data:{variety:"双孢菇",form:"鲜品",spec:"1kg",channel:"即时零售",price_local:86.3,currency:"TJS",observed_at:"2026-08-11",source_url:"https://zudbiyor.tj/product/141",status:"live"}},
-];
-const countries = [["ALL","全部国家"],...Object.entries(countryNames)];
-const varieties = ["全部菌种","双孢菇","平菇","香菇","金针菇","木耳"];
 
-export default function PriceLiveTable(){
-  const [records,setRecords]=useState<Snapshot[]>(fallback),[country,setCountry]=useState("ALL"),[variety,setVariety]=useState("全部菌种"),[fallbackMode,setFallbackMode]=useState(true);
-  useEffect(()=>{fetch("/api/ingest/snapshot?metric=price_retail&latest=1&limit=500").then(r=>r.ok?r.json() as Promise<{records?:Snapshot[]}>:Promise.reject()).then(p=>{if(p.records?.length){setRecords(p.records);setFallbackMode(false)}}).catch(()=>{})},[]);
-  const visible=useMemo(()=>records.filter(r=>(country==="ALL"||r.country===country)&&(variety==="全部菌种"||r.data.variety===variety)),[records,country,variety]);
-  const live=visible.filter(r=>r.data.status!=="gap"), gaps=visible.filter(r=>r.data.status==="gap");
-  const gapText=`📡 采集缺口 — 暂未在${country==="ALL"?"所选国家":countryNames[country]}电商发现${variety==="全部菌种"?"该菌种":variety}在售`;
-  return <><div className="live-price-filters"><label>国家<select value={country} onChange={e=>setCountry(e.target.value)}>{countries.map(([v,l])=><option value={v} key={v}>{l}</option>)}</select></label><label>菌种<select value={variety} onChange={e=>setVariety(e.target.value)}>{varieties.map(v=><option value={v} key={v}>{v}</option>)}</select></label><small>{fallbackMode?"显示已验证基线":"D1 自动采集数据"}</small></div>{live.length?<div className="live-price-table"><div className="live-price-row head"><b>国家</b><b>菌种</b><b>形态</b><b>规格</b><b>渠道</b><b>原币价格</b><b>¥折算</b><b>观察日期</b><b>来源</b></div>{live.map(r=><div className="live-price-row" key={r.id}><span>{countryNames[r.country]}</span><span>{r.data.variety}</span><span>{r.data.form}</span><span>{r.data.spec}</span><span>{r.data.channel}</span><span>{r.data.price_local==null?"待补":`${r.data.price_local} ${r.data.currency}`}</span><span>{r.data.price_cny==null?"待补":`¥${r.data.price_cny}`}</span><span>{r.data.observed_at}</span><span>{r.data.source_url?<a href={r.data.source_url} target="_blank" rel="noreferrer">{r.source} ↗</a>:r.source}</span></div>)}</div>:<div className="price-gap">{gapText}</div>}{gaps.map(r=><div className="price-gap" key={r.id}>📡 采集缺口 — {countryNames[r.country]} {r.data.variety}：{r.data.reason}</div>)}</>;
+const countryNames: Record<string, string> = { KZ: "哈萨克斯坦", UZ: "乌兹别克斯坦", KG: "吉尔吉斯斯坦", TJ: "塔吉克斯坦", TM: "土库曼斯坦" };
+const speciesNames: Record<string, string> = { agaricus_bisporus: "双孢菇", button_mushroom: "双孢菇", pleurotus_ostreatus: "平菇", oyster_mushroom: "平菇", lentinula_edodes: "香菇", shiitake: "香菇", flammulina_velutipes: "金针菇", enoki: "金针菇", pleurotus_eryngii: "杏鲍菇", king_oyster_mushroom: "杏鲍菇", wood_ear: "木耳", mixed_mushrooms: "混合菌菇", mixed_species: "混合菌菇" };
+const formNames: Record<string, string> = { fresh: "鲜品", dried: "干品", frozen: "冻品", canned: "罐藏", pickled: "腌制", processed: "加工品" };
+const sourceNames: Record<string, string> = { "kaspi-kz": "Kaspi 商城", "yandex-uz": "Yandex Market", "magnit-tj": "Magnit.tj", somon: "Somon.tj", gipertm: "Giper.tm", arbuz: "Arbuz.kz", globus: "Globus Online", olx: "OLX", omarket: "O!Market", asmanexpress: "Asman Express" };
+const CNY_PER_USD = 7.2;
+const fallback: Snapshot[] = [
+  { id: "kg-1", country: "KG", source: "globus", data: { species_id: "button_mushroom", product_form: "fresh", package_display: "1 kg", platform_name: "Globus Online", price_local: 520, currency: "KGS", price_usd: 5.95, normalized_price_usd_per_kg: 5.95, observed_at: "2026-08-11", source_url: "https://globus-online.kg/", status: "live" } },
+  { id: "tj-1", country: "TJ", source: "magnit-tj", data: { species_id: "button_mushroom", product_form: "fresh", package_display: "250 g", platform_name: "Magnit.tj", price_local: 29.9, currency: "TJS", price_usd: 3.23, normalized_price_usd_per_kg: 12.94, observed_at: "2026-08-11", source_url: "https://magnit.tj/", status: "live" } },
+];
+const labelSpecies = (data: PriceData) => speciesNames[data.species_id ?? ""] ?? data.variety ?? "其他菌菇";
+const labelForm = (data: PriceData) => formNames[data.product_form ?? ""] ?? data.form ?? "—";
+const money = (value: number) => new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 }).format(value);
+
+export default function PriceLiveTable() {
+  const [records, setRecords] = useState<Snapshot[]>(fallback);
+  const [country, setCountry] = useState("ALL");
+  const [variety, setVariety] = useState("ALL");
+  const [fallbackMode, setFallbackMode] = useState(true);
+  useEffect(() => { fetch("/api/ingest/snapshot?metric=price_retail&latest=1&limit=500").then(r => r.ok ? r.json() as Promise<{ records?: Snapshot[] }> : Promise.reject()).then(payload => { const valid = (payload.records ?? []).filter(r => r.data.status !== "gap" && r.data.price_local != null && r.data.currency && r.data.observed_at); if (valid.length) { setRecords(valid); setFallbackMode(false); } }).catch(() => {}); }, []);
+  const varieties = useMemo(() => Array.from(new Set(records.map(r => labelSpecies(r.data)))).sort((a, b) => a.localeCompare(b, "zh-CN")), [records]);
+  const visible = useMemo(() => records.filter(r => (country === "ALL" || r.country === country) && (variety === "ALL" || labelSpecies(r.data) === variety)), [records, country, variety]);
+  return <>
+    <div className="live-price-filters"><label>国家<select value={country} onChange={e => setCountry(e.target.value)}><option value="ALL">全部国家</option>{Object.entries(countryNames).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label>菌种<select value={variety} onChange={e => setVariety(e.target.value)}><option value="ALL">全部菌种</option>{varieties.map(value => <option value={value} key={value}>{value}</option>)}</select></label><small>{fallbackMode ? "已验证价格样例" : `已收录 ${visible.length} 条有效价格`} · 人民币按 1 美元≈{CNY_PER_USD} 元估算</small></div>
+    {visible.length ? <div className="live-price-table"><div className="live-price-row head"><b>国家</b><b>菌种</b><b>形态</b><b>规格</b><b>渠道</b><b>商品价格</b><b>人民币折算</b><b>每公斤参考价</b><b>采价日期</b><b>来源</b></div>{visible.map(r => { const cny = r.data.price_cny ?? (r.data.price_usd == null ? null : r.data.price_usd * CNY_PER_USD); const cnyPerKg = r.data.normalized_price_usd_per_kg == null ? null : r.data.normalized_price_usd_per_kg * CNY_PER_USD; const source = r.data.platform_name ?? sourceNames[r.source] ?? r.source; return <div className="live-price-row" key={r.id}><span>{countryNames[r.country] ?? r.country}</span><span>{labelSpecies(r.data)}</span><span>{labelForm(r.data)}</span><span>{r.data.package_display ?? r.data.spec ?? "—"}</span><span>{source}</span><span>{money(r.data.price_local!)} {r.data.currency}</span><span>{cny == null ? "—" : `¥${money(cny)}`}</span><span>{cnyPerKg == null ? "—" : `¥${money(cnyPerKg)}/kg`}</span><span>{r.data.observed_at}</span><span>{r.data.source_url ? <a href={r.data.source_url} target="_blank" rel="noreferrer">查看商品页 ↗</a> : source}</span></div>; })}</div> : <div className="price-empty"><strong>当前筛选条件下暂无有效报价</strong><span>请选择其他国家或菌种查看。</span></div>}
+  </>;
 }
