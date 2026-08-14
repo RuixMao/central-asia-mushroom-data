@@ -34,17 +34,19 @@ SOURCES = (
 def run():
     checked_at = dt.datetime.now(dt.timezone.utc).isoformat()
     for source in SOURCES:
-        headers = {"Ocp-Apim-Subscription-Key": UN_COMTRADE_API_KEY} if source["id"].startswith("un_mirror_") and UN_COMTRADE_API_KEY else {}
+        is_mirror = source["id"].startswith("un_mirror_")
+        headers = {"Ocp-Apim-Subscription-Key": UN_COMTRADE_API_KEY} if is_mirror and UN_COMTRADE_API_KEY else {}
         probe_url = source.get("probe_url", source["url"])
-        if source["id"].startswith("un_mirror_"):
+        if is_mirror:
             reporter = {"un_mirror_ru": 643, "un_mirror_kz": 398, "un_mirror_tr": 792}[source["id"]]
             partner = 860 if reporter == 398 else 398
             probe_url = ("https://comtradeapi.un.org/data/v1/get/C/A/HS"
                          f"?period=2024&reporterCode={reporter}&flowCode=X&partnerCode={partner}"
                          "&cmdCode=070951&partner2Code=0&customsCode=C00&motCode=0&maxRecords=50")
-        response = safe_get(probe_url, headers=headers, retries=3, backoff=3, timeout=45)
+        response = None if is_mirror else safe_get(probe_url, headers=headers, retries=3, backoff=3, timeout=45)
         body = response.content if response else b""
-        available = bool(response and body)
+        available = bool(UN_COMTRADE_API_KEY) if is_mirror else bool(response and body)
+        availability = "configured" if is_mirror and available else "reachable" if available else "unreachable"
         digest = hashlib.sha256(body).hexdigest() if body else None
         for country in source["countries"]:
             post_to_site("/api/ingest/snapshot", {
@@ -53,11 +55,11 @@ def run():
                          "source_name": source["name"], "source_url": source["url"],
                          "source_role": source["role"], "evidence_scope": source["scope"],
                          "supports_hs_partner_api": source["id"].startswith("un_mirror_"),
-                         "availability": "reachable" if available else "unreachable",
+                         "availability": availability,
                          "content_sha256": digest, "checked_at": checked_at,
                          "status": "live" if available else "gap"}
             })
-        log(f"official source {source['id']} {'reachable' if available else 'unreachable'}")
+        log(f"official source {source['id']} {availability}")
 
 
 if __name__ == "__main__":

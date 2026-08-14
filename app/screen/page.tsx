@@ -145,7 +145,7 @@ export default function ScreenPage() {
       const key = `${row.country}|${row.data.source_id}`;
       if (!latest.has(key) || row.capturedAt > latest.get(key)!.capturedAt) latest.set(key, row);
     });
-    return Array.from(latest.values()).filter(row => row.data.status === "live" && row.data.availability === "reachable");
+    return Array.from(latest.values()).filter(row => row.data.status === "live" && ["reachable", "configured"].includes(row.data.availability ?? ""));
   }, [trade]);
 
   return <main className="live-screen">
