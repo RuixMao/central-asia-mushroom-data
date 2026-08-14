@@ -44,6 +44,7 @@ export default function ScreenPage() {
   const [trade, setTrade] = useState<Snapshot<TradeData>[]>([]);
   const [countryFilter, setCountryFilter] = useState("ALL");
   const [speciesFilter, setSpeciesFilter] = useState("ALL");
+  const [chartCountry, setChartCountry] = useState("KZ");
 
   useEffect(() => {
     let active = true;
@@ -103,6 +104,31 @@ export default function ScreenPage() {
       });
       return { code, name, rows: countryRows, countryMedian, speciesGroups };
     }), [filteredRows, countryFilter]);
+
+  const priceTrend = useMemo(() => {
+    const byDate = new Map<string, number[]>();
+    rows.filter(row => row.country === chartCountry &&
+      (speciesFilter === "ALL" || row.species_id === speciesFilter) &&
+      Number.isFinite(Number(row.normalized_usd_per_kg))
+    ).forEach(row => byDate.set(row.observation_date, [
+      ...(byDate.get(row.observation_date) ?? []), Number(row.normalized_usd_per_kg),
+    ]));
+    return Array.from(byDate.entries()).sort(([a], [b]) => a.localeCompare(b)).slice(-14)
+      .map(([date, prices]) => ({ date, value: median(prices) ?? 0, samples: prices.length }));
+  }, [rows, chartCountry, speciesFilter]);
+
+  const chartGeometry = useMemo(() => {
+    const values = priceTrend.map(point => point.value);
+    const min = values.length ? Math.min(...values) : 0;
+    const max = values.length ? Math.max(...values) : 0;
+    const spread = Math.max(max - min, max * .08, 1);
+    const points = priceTrend.map((point, index) => ({
+      ...point,
+      x: priceTrend.length === 1 ? 50 : 7 + index / (priceTrend.length - 1) * 86,
+      y: 84 - (point.value - min) / spread * 66,
+    }));
+    return { min, max, points };
+  }, [priceTrend]);
 
   const logisticsByCountry = useMemo(() => {
     const result = new Map<string, number>();
@@ -167,14 +193,23 @@ export default function ScreenPage() {
 
     <section className="screen-grid">
       <article className="screen-map">
-        <div className="screen-title logistics-title"><div><b>跨境贸易物流总览</b><small>TRADE &amp; LOGISTICS</small></div></div>
-        <div className="country-network">
-          <strong className="network-core"><i>•••</i>{logisticsAverage ? <><b>{logisticsAverage.value.toFixed(1)}天</b><small>{logisticsAverage.count}国物流时效均值</small></> : <>喀什<br/><small>数据中枢</small></>}</strong>
-          {countries.map(([code, name, city], index) => {
-            const days = logisticsByCountry.get(code);
-            const tradeValue = tradeByCountry.get(code);
-            return <div key={code}><span className={`trade-line line-${index} tier-${tradeTier(code)}`} aria-hidden="true"/><div className={`country-node node-${index}`}><i className={days != null ? "on" : ""}/><b>{name}</b><span>{city}</span><strong>{days == null ? "—" : `${days.toFixed(days % 1 ? 1 : 0)} 天`}</strong><em>{tradeValue == null ? "贸易额 —" : `最近年度 $${(tradeValue / 1_000_000).toFixed(2)}M`}</em></div></div>;
-          })}
+        <div className="screen-title price-chart-title"><span>01</span><div><b>国家市场价格趋势</b><small>MEDIAN PRICE · USD / KG</small></div></div>
+        <div className="price-chart-controls" aria-label="趋势图国家筛选">
+          {countries.map(([code, name]) => <button className={chartCountry === code ? "active" : ""} onClick={() => setChartCountry(code)} key={code}>{name}<small>{code}</small></button>)}
+        </div>
+        <div className="market-price-chart">
+          <header><div><small>当前市场</small><b>{countries.find(([code]) => code === chartCountry)?.[1]}</b></div><div><small>价格区间</small><b>${chartGeometry.min.toFixed(2)} — ${chartGeometry.max.toFixed(2)}</b></div><div><small>统计口径</small><b>{speciesFilter === "ALL" ? "全部菌种" : speciesOptions.find(([id]) => id === speciesFilter)?.[1]}</b></div></header>
+          {chartGeometry.points.length ? <div className="price-chart-canvas">
+            <div className="chart-scale"><span>${chartGeometry.max.toFixed(2)}</span><span>${((chartGeometry.max + chartGeometry.min) / 2).toFixed(2)}</span><span>${chartGeometry.min.toFixed(2)}</span></div>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={`${chartCountry} 市场价格折线图`}>
+              <defs><linearGradient id="priceArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#39e39a" stopOpacity=".3"/><stop offset="1" stopColor="#39e39a" stopOpacity="0"/></linearGradient></defs>
+              <path className="price-chart-area" d={`M ${chartGeometry.points.map(point => `${point.x} ${point.y}`).join(" L ")} L ${chartGeometry.points.at(-1)?.x} 91 L ${chartGeometry.points[0].x} 91 Z`} />
+              <polyline points={chartGeometry.points.map(point => `${point.x},${point.y}`).join(" ")} />
+              {chartGeometry.points.map(point => <circle key={point.date} cx={point.x} cy={point.y} r="1.25"><title>{point.date} · ${point.value.toFixed(2)}/kg · {point.samples}条样本</title></circle>)}
+            </svg>
+            <div className="chart-dates"><span>{chartGeometry.points[0].date}</span><span>{chartGeometry.points.at(-1)?.date}</span></div>
+          </div> : <p className="screen-empty">当前国家或菌种暂无可用价格趋势</p>}
+          <footer><span>● 每日挂牌价中位数</span><em>最近 {chartGeometry.points.length} 个有效采集日 · 悬停数据点查看样本</em></footer>
         </div>
       </article>
 
