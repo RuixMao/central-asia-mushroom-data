@@ -116,7 +116,6 @@ export default function ScreenPage() {
       <span><i />最新数据日 {latestDate || "—"}</span>
       <b>有效价格 {latestRows.length} 条</b>
       <b>国家覆盖 {stats.countries}/5</b>
-      <em>gap 统计尚未接入当前只读接口</em>
       <strong>挂牌价 ≠ 成交价，仅供趋势参考</strong>
     </div>
 

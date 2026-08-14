@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Image from "next/image";
 
 const products=[
@@ -25,12 +25,18 @@ const insights=[
 ];
 
 export default function CorporateHome(){
-  const [menu,setMenu]=useState(false); const [sent,setSent]=useState(false); const [lang,setLang]=useState("中文");
+  const [menu,setMenu]=useState(false); const [sent,setSent]=useState(false); const [lang,setLang]=useState("中文"); const [role,setRole]=useState("产能方");
+  useEffect(()=>{setRole(localStorage.getItem("yinheng-role")||"产能方")},[]);
+  const chooseRole=(next:string)=>{setRole(next);localStorage.setItem("yinheng-role",next)};
   const submit=(e:FormEvent)=>{e.preventDefault();setSent(true)};
   return <div className="corp-site">
-    <header className="corp-nav"><a className="corp-logo" href="#home" aria-label="因恒科技首页"><Image src="/inhen-tech-logo.png" alt="因恒科技 Inhen Tech" width={282} height={90} priority /></a><button className="menu-toggle" aria-label="打开导航" aria-expanded={menu} onClick={()=>setMenu(!menu)}>☰</button><nav className={menu?"open":""}>{[["#home","首页"],["#products","产品与服务"],["/market-data","数据中心"],["#solutions","解决方案"],["#insights","市场洞察"],["#about","关于我们"]].map(([href,label])=><a href={href} key={href} onClick={()=>setMenu(false)}>{label}</a>)}</nav><button className="lang-switch" onClick={()=>setLang(lang==="中文"?"EN":"中文")} aria-label="切换语言">{lang}⌄</button><a className="nav-demo" href="#contact">申请演示</a></header>
+    <header className="corp-nav"><a className="corp-logo" href="#home" aria-label="因恒科技首页"><Image src="/inhen-tech-logo.png" alt="因恒科技 Inhen Tech" width={282} height={90} priority /></a><button className="menu-toggle" aria-label="打开导航" aria-expanded={menu} onClick={()=>setMenu(!menu)}>☰</button><nav className={menu?"open":""}>{[["#home","首页"],["#products","产品与服务"],["/market-data","数据中心"],["/mushroom","菌类出海"],["#solutions","解决方案"],["/insights","市场洞察"],["/about","关于我们"]].map(([href,label])=><a href={href} key={href} onClick={()=>setMenu(false)}>{label}</a>)}</nav><button className="lang-switch" onClick={()=>setLang(lang==="中文"?"EN":"中文")} aria-label="切换语言">{lang}⌄</button><a className="nav-demo" href="#contact">申请演示</a></header>
     <main>
       <section className="corp-hero" id="home"><div className="corp-hero-copy"><span>YINHENG · CENTRAL ASIA DATA & RESEARCH</span><h1>洞察中亚市场，<br/>连接数据与决策</h1><p>汇集区域宏观经济、产业、企业与市场信息，为金融机构、投资者和企业提供可信、及时、可执行的市场研究支持。</p><div><a className="corp-primary" href="#contact">申请产品演示</a><a className="corp-secondary" href="#solutions">了解解决方案 →</a></div></div><div className="corp-hero-visual"><Image src="/central-asia-corridor.png" alt="喀什连接中亚的跨境物流与农业走廊" width={1536} height={1024} priority/><div className="visual-caption"><span>REGIONAL FOCUS</span><b>中国 · 喀什 · 中亚五国</b></div></div></section>
+
+      <section className="home-use-section"><div className="corp-section-head"><span>START HERE</span><h2>现在就可以直接使用</h2></div><div className="home-use-grid">{[["实时大屏","五国贸易、可信度与价格动态","/screen"],["数据终端","按国家和菌种查询价格记录","/terminal"],["市场报告","阅读日报、周报与月度研究","/reports"]].map(([title,copy,href])=><a href={href} key={href}><span>OPEN</span><h3>{title}</h3><p>{copy}</p><b>进入使用 →</b></a>)}</div></section>
+
+      <section className="role-section"><div><span>YOUR ROLE</span><h2>选择您的角色</h2><p>{role==="产能方"?"推荐：查看目标国价格、渠道和出口机会。":role==="渠道商"?"推荐：跟踪品类供应、价格区间与市场报告。":role==="投资者"?"推荐：从五国贸易规模、政策和可信度开始。":"推荐：进入数据目录、方法说明与报告中心。"}</p></div><div>{["产能方","渠道商","投资者","研究者"].map(item=><button className={role===item?"active":""} onClick={()=>chooseRole(item)} key={item}>{item}</button>)}</div></section>
 
       <section className="value-section"><div className="corp-section-head"><span>CORE VALUE</span><h2>从分散信息到可执行判断</h2><p>以区域专注、多源整合和严谨研究，降低中亚市场的信息获取与验证成本。</p></div><div className="value-grid">{[["整","区域数据整合","统一整理宏观、贸易、产业和市场信息，保留来源与统计口径。"],["监","市场持续监测","跟踪价格、渠道、政策和项目变化，形成连续的市场观察。"],["研","企业与产业研究","围绕重点行业、企业和产业链建立结构化研究框架。"],["策","决策研究服务","将数据转化为简报、专题报告和可执行的研究建议。"]].map(([icon,title,copy])=><article key={title}><i>{icon}</i><h3>{title}</h3><p>{copy}</p><a href="#products">了解更多 →</a></article>)}</div></section>
 

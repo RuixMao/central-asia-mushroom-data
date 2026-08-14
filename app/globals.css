@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./overhaul.css";
 
 :root {
   --ink: #16191d;

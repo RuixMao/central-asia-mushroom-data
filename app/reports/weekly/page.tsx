@@ -1,0 +1,2 @@
+import ProductShell from "../../product-shell"; import ReportsClient from "../reports-client";
+export default function Page(){return <ProductShell className="reports-site"><main className="saas-main"><section className="saas-hero compact"><span>WEEKLY RESEARCH</span><h1>每周市场报告</h1><p>围绕一周价格变化、渠道动态与重点信号进行归纳。</p></section><div className="filter-bar"><a href="/reports">全部</a><a href="/reports/daily">日报</a><b>周报</b><a href="/reports/monthly">月报</a></div><ReportsClient filter="weekly"/></main></ProductShell>}
