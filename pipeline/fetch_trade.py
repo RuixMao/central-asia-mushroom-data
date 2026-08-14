@@ -6,10 +6,11 @@ from utils import log, post_to_site, safe_get
 # 历史回溯窗口：UN Comtrade 提供 2018 至今的年度数据，
 # 用于构建"年度进口单价"历史序列（value_usd / net_weight_kg = USD/kg）。
 TRADE_YEARS = range(2018, dt.date.today().year + 1)
+TRADE_PARTNERS = (("ALL", 0), ("CN", 156), ("RU", 643), ("KZ", 398), ("BY", 112), ("TR", 792))
 
 
 def _fetch(url, headers):
-    response = safe_get(url, headers=headers, retries=1)
+    response = safe_get(url, headers=headers, retries=4, backoff=3)
     return response.json().get("data", []) if response else []
 
 
@@ -26,21 +27,23 @@ def run():
     for country, cfg in COUNTRIES.items():
         for hs in HS_CODES:
             for year in TRADE_YEARS:
-                url = f"https://comtradeapi.un.org/data/v1/get/C/A/HS?period={year}&reporterCode={cfg['reporter']}&flowCode=M&partnerCode=0&cmdCode={hs}&partner2Code=0&customsCode=C00&motCode=0&maxRecords=50"
-                headers = {"Ocp-Apim-Subscription-Key": UN_COMTRADE_API_KEY} if UN_COMTRADE_API_KEY else {}
-                rows = _fetch(url, headers)
-                if not rows:
-                    log(f"trade gap {country} {hs} {year}")
+                for partner_code, partner in TRADE_PARTNERS:
+                    url = f"https://comtradeapi.un.org/data/v1/get/C/A/HS?period={year}&reporterCode={cfg['reporter']}&flowCode=M&partnerCode={partner}&cmdCode={hs}&partner2Code=0&customsCode=C00&motCode=0&maxRecords=50"
+                    headers = {"Ocp-Apim-Subscription-Key": UN_COMTRADE_API_KEY} if UN_COMTRADE_API_KEY else {}
+                    rows = _fetch(url, headers)
+                    row = rows[0] if rows else {}
+                    unit = _unit_price(row) if row else None
+                    value = row.get("primaryValue") if row else None
+                    payload = {"hs": hs, "year": year, "partner_code": partner_code,
+                               "value_usd": value, "partner_value_usd": value,
+                               "net_weight_kg": row.get("netWgt") if row else None,
+                               "unit_price_usd_kg": unit,
+                               "partner_unit_price_usd_kg": unit,
+                               "status": "live" if value is not None else "gap"}
+                    post_to_site("/api/ingest/snapshot", {"metric": "trade", "country": country,
+                                                          "source": "UN Comtrade", "data": payload})
+                    log(f"trade {payload['status']} {country} {hs} {year} partner={partner_code}")
                     time.sleep(1.5)
-                    continue
-                row = rows[0]
-                unit = _unit_price(row)
-                post_to_site("/api/ingest/snapshot", {"metric": "trade", "country": country, "source": "UN Comtrade",
-                                                      "data": {"hs": hs, "year": year, "value_usd": row.get("primaryValue"),
-                                                               "net_weight_kg": row.get("netWgt"),
-                                                               "unit_price_usd_kg": unit,
-                                                               "status": "live" if unit is not None else "gap"}})
-                time.sleep(1.5)
     # 月度数据（尽力而为）：UN Comtrade 部分国家/产品提供月度序列，
     # 采最近 24 个月，用作月度价格参考；接口不支持时自动跳过（不影响年度主链路）。
     try:

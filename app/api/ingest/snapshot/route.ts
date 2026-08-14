@@ -20,7 +20,7 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const metric = params.get("metric");
   const country = params.get("country");
-  const limit = Math.min(Math.max(Number(params.get("limit") ?? (params.has("latest") ? 50 : 100)), 1), 500);
+  const limit = Math.min(Math.max(Number(params.get("limit") ?? (params.has("latest") ? 50 : 100)), 1), 2000);
   const filters = [];
   if (metric && metrics.has(metric)) filters.push(eq(dataSnapshots.metric, metric as "trade"));
   if (country && countries.has(country)) filters.push(eq(dataSnapshots.country, country as "KZ"));

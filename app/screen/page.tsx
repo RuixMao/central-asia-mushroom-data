@@ -19,8 +19,7 @@ type PriceRow = {
 };
 
 type Snapshot<T> = { id: string; country: string; data: T; capturedAt: string };
-type LogisticsData = { median_days?: number; observed_at?: string; status?: string };
-type TradeData = { hs?: string; year?: number; value_usd?: number; status?: string };
+type TradeData = { hs?: string; year?: number; value_usd?: number; partner_value_usd?: number; partner_code?: string | number; status?: string };
 
 const API = "/api/powerbi?table=prices";
 const countries = [
@@ -40,26 +39,23 @@ export default function ScreenPage() {
   const [rows, setRows] = useState<PriceRow[]>([]);
   const [updated, setUpdated] = useState<Date | null>(null);
   const [error, setError] = useState("");
-  const [logistics, setLogistics] = useState<Snapshot<LogisticsData>[]>([]);
   const [trade, setTrade] = useState<Snapshot<TradeData>[]>([]);
   const [countryFilter, setCountryFilter] = useState("ALL");
   const [speciesFilter, setSpeciesFilter] = useState("ALL");
-  const [chartCountry, setChartCountry] = useState("KZ");
 
   useEffect(() => {
     let active = true;
     const load = async () => {
       try {
-        const [priceResponse, logisticsResponse, tradeResponse] = await Promise.all([
+        const [priceResponse, tradeResponse] = await Promise.all([
           fetch(API, { cache: "no-store" }),
-          fetch("/api/ingest/snapshot?metric=logistics&latest=1&limit=500", { cache: "no-store" }),
-          fetch("/api/ingest/snapshot?metric=trade&latest=1&limit=500", { cache: "no-store" }),
+          fetch("/api/ingest/snapshot?metric=trade&limit=2000", { cache: "no-store" }),
         ]);
         if (!priceResponse.ok) throw new Error(`HTTP ${priceResponse.status}`);
-        const [pricePayload, logisticsPayload, tradePayload] = await Promise.all([
-          priceResponse.json(), logisticsResponse.ok ? logisticsResponse.json() : { records: [] }, tradeResponse.ok ? tradeResponse.json() : { records: [] },
+        const [pricePayload, tradePayload] = await Promise.all([
+          priceResponse.json(), tradeResponse.ok ? tradeResponse.json() : { records: [] },
         ]);
-        if (active) { setRows(pricePayload.records ?? []); setLogistics(logisticsPayload.records ?? []); setTrade(tradePayload.records ?? []); setUpdated(new Date()); setError(""); }
+        if (active) { setRows(pricePayload.records ?? []); setTrade(tradePayload.records ?? []); setUpdated(new Date()); setError(""); }
       } catch (reason) {
         if (active) setError(reason instanceof Error ? reason.message : "数据连接失败");
       }
@@ -105,64 +101,33 @@ export default function ScreenPage() {
       return { code, name, rows: countryRows, countryMedian, speciesGroups };
     }), [filteredRows, countryFilter]);
 
-  const priceTrend = useMemo(() => {
-    const byDate = new Map<string, number[]>();
-    rows.filter(row => row.country === chartCountry &&
-      (speciesFilter === "ALL" || row.species_id === speciesFilter) &&
-      Number.isFinite(Number(row.normalized_usd_per_kg))
-    ).forEach(row => byDate.set(row.observation_date, [
-      ...(byDate.get(row.observation_date) ?? []), Number(row.normalized_usd_per_kg),
-    ]));
-    return Array.from(byDate.entries()).sort(([a], [b]) => a.localeCompare(b)).slice(-14)
-      .map(([date, prices]) => ({ date, value: median(prices) ?? 0, samples: prices.length }));
-  }, [rows, chartCountry, speciesFilter]);
-
-  const chartGeometry = useMemo(() => {
-    const values = priceTrend.map(point => point.value);
-    const min = values.length ? Math.min(...values) : 0;
-    const max = values.length ? Math.max(...values) : 0;
-    const spread = Math.max(max - min, max * .08, 1);
-    const points = priceTrend.map((point, index) => ({
-      ...point,
-      x: priceTrend.length === 1 ? 50 : 7 + index / (priceTrend.length - 1) * 86,
-      y: 84 - (point.value - min) / spread * 66,
-    }));
-    return { min, max, points };
-  }, [priceTrend]);
-
-  const logisticsByCountry = useMemo(() => {
-    const result = new Map<string, number>();
-    logistics.filter(row => row.data.status === "live" && Number.isFinite(row.data.median_days)).sort((a, b) => (b.data.observed_at ?? b.capturedAt).localeCompare(a.data.observed_at ?? a.capturedAt)).forEach(row => {
-      if (!result.has(row.country)) result.set(row.country, Number(row.data.median_days));
+  const tradeShares = useMemo(() => {
+    const latest = new Map<string, Snapshot<TradeData>>();
+    trade.filter(row => row.data.hs && Number.isFinite(Number(row.data.year))).forEach(row => {
+      const partner = String(row.data.partner_code ?? "ALL");
+      const key = `${row.country}|${row.data.hs}|${row.data.year}|${partner}`;
+      const previous = latest.get(key);
+      if (!previous || row.capturedAt > previous.capturedAt) latest.set(key, row);
     });
-    return result;
-  }, [logistics]);
-
-  const tradeByCountry = useMemo(() => {
-    const latestBySeries = new Map<string, Snapshot<TradeData>>();
-    trade.filter(row => row.data.status === "live" && row.data.hs && Number.isFinite(row.data.year) && Number.isFinite(row.data.value_usd)).forEach(row => {
-      const key = `${row.country}|${row.data.hs}|${row.data.year}`;
-      const previous = latestBySeries.get(key);
-      if (!previous || row.capturedAt > previous.capturedAt) latestBySeries.set(key, row);
+    const partnerNames: Record<string, string> = { CN: "中国", RU: "俄罗斯", KZ: "哈萨克斯坦", BY: "白俄罗斯", TR: "土耳其" };
+    const countryData = countries.map(([code, name]) => {
+      const relevant = Array.from(latest.values()).filter(row => row.country === code && row.data.status === "live");
+      const years = relevant.filter(row => String(row.data.partner_code ?? "ALL") === "ALL" || String(row.data.partner_code) === "0").map(row => Number(row.data.year));
+      const year = years.length ? Math.max(...years) : null;
+      const yearRows = year == null ? [] : relevant.filter(row => Number(row.data.year) === year);
+      const global = yearRows.filter(row => ["ALL", "0"].includes(String(row.data.partner_code ?? "ALL"))).reduce((sum, row) => sum + Number(row.data.value_usd ?? 0), 0);
+      const partners = Object.keys(partnerNames).map(partner => ({
+        code: partner, name: partnerNames[partner], value: yearRows.filter(row => String(row.data.partner_code) === partner).reduce((sum, row) => sum + Number(row.data.value_usd ?? row.data.partner_value_usd ?? 0), 0),
+      })).filter(item => item.value > 0).sort((a, b) => b.value - a.value);
+      const known = partners.reduce((sum, item) => sum + item.value, 0);
+      if (global > known) partners.push({ code: "OTHER", name: "其他来源", value: global - known });
+      const china = partners.find(item => item.code === "CN")?.value ?? 0;
+      return { code, name, year, global, partners, china, share: global > 0 && china > 0 ? china / global * 100 : null };
     });
-    const latestYear = new Map<string, number>();
-    latestBySeries.forEach(row => latestYear.set(row.country, Math.max(latestYear.get(row.country) ?? 0, Number(row.data.year))));
-    const totals = new Map<string, number>();
-    latestBySeries.forEach(row => {
-      if (Number(row.data.year) === latestYear.get(row.country)) totals.set(row.country, (totals.get(row.country) ?? 0) + Number(row.data.value_usd));
-    });
-    return totals;
+    const total = countryData.reduce((sum, item) => sum + item.global, 0);
+    const china = countryData.reduce((sum, item) => sum + item.china, 0);
+    return { countries: countryData, total, china, share: total > 0 && china > 0 ? china / total * 100 : null };
   }, [trade]);
-
-  const tradeTier = useMemo(() => {
-    const values = countries.map(([code]) => tradeByCountry.get(code)).filter((value): value is number => value != null).sort((a, b) => a - b);
-    return (code: string) => { const value = tradeByCountry.get(code); if (value == null || !values.length) return "thin"; const rank = values.indexOf(value) / Math.max(values.length - 1, 1); return rank >= .67 ? "thick" : rank >= .34 ? "medium" : "thin"; };
-  }, [tradeByCountry]);
-
-  const logisticsAverage = useMemo(() => {
-    const values = Array.from(logisticsByCountry.values());
-    return values.length ? { value: values.reduce((sum, value) => sum + value, 0) / values.length, count: values.length } : null;
-  }, [logisticsByCountry]);
 
   return <main className="live-screen">
     <header className="screen-head">
@@ -193,24 +158,24 @@ export default function ScreenPage() {
 
     <section className="screen-grid">
       <article className="screen-map">
-        <div className="screen-title price-chart-title"><span>01</span><div><b>国家市场价格趋势</b><small>MEDIAN PRICE · USD / KG</small></div></div>
-        <div className="price-chart-controls" aria-label="趋势图国家筛选">
-          {countries.map(([code, name]) => <button className={chartCountry === code ? "active" : ""} onClick={() => setChartCountry(code)} key={code}>{name}<small>{code}</small></button>)}
+        <div className="screen-title price-chart-title"><span>01</span><div><b>中国出口菌类市场占比</b><small>CHINA SHARE OF MUSHROOM IMPORTS</small></div></div>
+        <div className="trade-donut-grid">
+          <article className="trade-donut-card total">
+            <div className={`trade-donut ${tradeShares.share == null ? "empty" : ""}`} style={tradeShares.share == null ? undefined : { background: `conic-gradient(#42e6b0 0 ${tradeShares.share}%, #1b4d68 ${tradeShares.share}% 100%)` }}>
+              <div><strong>{tradeShares.share == null ? "—" : `${tradeShares.share.toFixed(1)}%`}</strong><span>中国进口占比</span></div>
+            </div>
+            <header><b>中亚五国总计</b><small>⚠ 年度数据，非实时</small></header>
+            <p>{tradeShares.total > 0 ? `进口总额 $${(tradeShares.total / 1_000_000).toFixed(2)}M` : "等待来源国明细"}</p>
+          </article>
+          {tradeShares.countries.map(country => <article className="trade-donut-card" key={country.code}>
+            <div className={`trade-donut small ${country.share == null ? "empty" : ""}`} style={country.share == null ? undefined : { background: `conic-gradient(#42e6b0 0 ${country.share}%, #1b4d68 ${country.share}% 100%)` }}>
+              <div><strong>{country.share == null ? "—" : `${country.share.toFixed(1)}%`}</strong><span>中国占比</span></div>
+            </div>
+            <header><b>{country.name}</b><small>{country.year ?? "—"}</small></header>
+            {country.partners.length ? <div className="trade-legend">{country.partners.slice(0, 5).map(partner => <span key={partner.code} title={`${partner.name} · $${partner.value.toLocaleString("en-US")}`}><i className={`partner-${partner.code.toLowerCase()}`} />{partner.name} {country.global > 0 ? `${(partner.value / country.global * 100).toFixed(1)}%` : "—"}</span>)}</div> : <p>等待来源国明细</p>}
+          </article>)}
         </div>
-        <div className="market-price-chart">
-          <header><div><small>当前市场</small><b>{countries.find(([code]) => code === chartCountry)?.[1]}</b></div><div><small>价格区间</small><b>${chartGeometry.min.toFixed(2)} — ${chartGeometry.max.toFixed(2)}</b></div><div><small>统计口径</small><b>{speciesFilter === "ALL" ? "全部菌种" : speciesOptions.find(([id]) => id === speciesFilter)?.[1]}</b></div></header>
-          {chartGeometry.points.length ? <div className="price-chart-canvas">
-            <div className="chart-scale"><span>${chartGeometry.max.toFixed(2)}</span><span>${((chartGeometry.max + chartGeometry.min) / 2).toFixed(2)}</span><span>${chartGeometry.min.toFixed(2)}</span></div>
-            <svg viewBox="0 0 100 100" preserveAspectRatio="none" role="img" aria-label={`${chartCountry} 市场价格折线图`}>
-              <defs><linearGradient id="priceArea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#39e39a" stopOpacity=".3"/><stop offset="1" stopColor="#39e39a" stopOpacity="0"/></linearGradient></defs>
-              <path className="price-chart-area" d={`M ${chartGeometry.points.map(point => `${point.x} ${point.y}`).join(" L ")} L ${chartGeometry.points.at(-1)?.x} 91 L ${chartGeometry.points[0].x} 91 Z`} />
-              <polyline points={chartGeometry.points.map(point => `${point.x},${point.y}`).join(" ")} />
-              {chartGeometry.points.map(point => <circle key={point.date} cx={point.x} cy={point.y} r="1.25"><title>{point.date} · ${point.value.toFixed(2)}/kg · {point.samples}条样本</title></circle>)}
-            </svg>
-            <div className="chart-dates"><span>{chartGeometry.points[0].date}</span><span>{chartGeometry.points.at(-1)?.date}</span></div>
-          </div> : <p className="screen-empty">当前国家或菌种暂无可用价格趋势</p>}
-          <footer><span>● 每日挂牌价中位数</span><em>最近 {chartGeometry.points.length} 个有效采集日 · 悬停数据点查看样本</em></footer>
-        </div>
+        <p className="trade-method">口径：中亚五国食用菌（HS 070951 鲜双孢菇 / 070959 其他鲜菇 / 200310 罐装）进口贸易，单位 USD；来源 UN Comtrade，年度数据。</p>
       </article>
 
       <article className="screen-feed">
