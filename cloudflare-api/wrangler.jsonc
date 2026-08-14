@@ -1,0 +1,26 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "inhen",
+  "main": "worker.js",
+  "compatibility_date": "2026-08-14",
+  "workers_dev": true,
+  "vars": {
+    "SYNC_SECRET_SHA256": "153f3d46e9ab6f3b339d3c265bc4588cd39cba2cb26165b10e135badeeaa25ce"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yinheng-market-data",
+      "database_id": "dc6f6cc2-6611-4ce7-be0f-3be4357b9fef"
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "api.yinheng.site",
+      "custom_domain": true
+    }
+  ],
+  "observability": {
+    "enabled": true
+  }
+}

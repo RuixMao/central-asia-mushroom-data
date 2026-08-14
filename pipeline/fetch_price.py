@@ -12,7 +12,7 @@ from adapters.gipertm import GiperAdapter
 from adapters.asmanexpress import AsmanAdapter
 from config import TARGET_SPECIES
 from taxonomy import classify,normalize_price,parse_package
-from utils import log,post_to_site,safe_get,today_str
+from utils import log,post_to_data,post_to_site,safe_get,today_str
 
 SOURCES=[
 (GlobusAdapter,{"platform":"globus","platform_name":"Globus Online","platform_product_id":"9905ed980f9d469888dadc3efc68b6fe000200010000","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://globus-online.kg/ru-kg/good/9905ed980f9d469888dadc3efc68b6fe000200010000","title":"Грибы Шампиньоны фасованные вес 1 кг","package":"1 kg","currency":"KGS","language":"ru"}),
@@ -68,7 +68,10 @@ def run():
    norm=normalize_price(row["current_price"],package_text);local_per_usd=float(fx[row["currency"]]);now=dt.datetime.now(dt.timezone.utc).isoformat()
    is_valid=category["status"]=="classified" and category["confidence"]>=.9 and norm["price_per_kg"] is not None
    items.append({**row,"product_url":row.pop("url"),"original_language":row.pop("language"),"species_id":category["species_id"],"product_form":category["product_form"],"classification_status":category["status"],"classification_confidence":category["confidence"],"classification_evidence":category["evidence"],"observed_at":now,"observation_date":today_str(),"package_value":norm["value"],"package_unit":norm["unit"],"normalized_quantity_kg":norm["quantity_kg"],"normalized_price_per_kg":norm["price_per_kg"],"price_usd":round(row["current_price"]/local_per_usd,2),"usd_rate_local_per_usd":local_per_usd,"fx_source":"fxapi.app","fx_timestamp":fx_time,"in_stock":True,"source_type":row.pop("source_type","server_html"),"validation_status":"valid" if is_valid else "needs_review"})
- if items and not dry_run:post_to_site("/api/ingest/prices",{"items":items})
+ if items and not dry_run:
+  payload={"items":items}
+  post_to_site("/api/ingest/prices",payload)
+  post_to_data("/api/ingest/prices",payload)
  # 写 price_retail 快照（AI 日报与网页端价格表的数据源）。
  # 注意：快照接口的 data.observed_at 必须是 YYYY-MM-DD（日报按 ==today 过滤），
  # 不能用 items 里的 ISO 时间戳；成功写 live、失败源写 gap，确保缺口可见。

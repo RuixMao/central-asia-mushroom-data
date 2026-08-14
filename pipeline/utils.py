@@ -6,6 +6,9 @@ import urllib.parse
 import requests
 from config import SITE_URL, CRON_SECRET
 
+DATA_API_URL = os.environ.get("DATA_API_URL", "").rstrip("/")
+DATA_SYNC_SECRET = os.environ.get("DATA_SYNC_SECRET", "")
+
 def log(message): print(f"[{dt.datetime.now().isoformat(timespec='seconds')}] {message}", flush=True)
 def today_str(): return dt.date.today().isoformat()
 def median(nums): return statistics.median(nums) if nums else None
@@ -50,6 +53,20 @@ def post_to_site(endpoint, data, cron_secret=CRON_SECRET, retries=3):
             if attempt == retries - 1:
                 detail=getattr(exc.response,"text","")[:1000] if getattr(exc,"response",None) is not None else ""
                 raise RuntimeError(f"POST failed {url}: {exc}; response={detail}") from exc
+            time.sleep(2 ** attempt)
+
+def post_to_data(endpoint, data, retries=3):
+    if not DATA_API_URL or not DATA_SYNC_SECRET:
+        return None
+    url = f"{DATA_API_URL}{endpoint}"
+    for attempt in range(retries):
+        try:
+            response = requests.post(url, json=data, headers={"x-cron-secret": DATA_SYNC_SECRET}, timeout=45)
+            response.raise_for_status()
+            return response.json()
+        except requests.RequestException as exc:
+            if attempt == retries - 1:
+                raise RuntimeError(f"DATA API sync failed {url}: {exc}") from exc
             time.sleep(2 ** attempt)
 
 def get_site(endpoint):
