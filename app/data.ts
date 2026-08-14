@@ -18,6 +18,11 @@ export type MirrorRecord = {
   product: string;
   importerCifUsd: number | null;
   chinaFobUsd: number;
+  confirmedTradeUsd?: number;
+  confirmedQuantityKg?: number;
+  confirmedPartners?: string[];
+  confidence: "A+" | "A" | "B+" | "B";
+  confidenceBasis: string;
 };
 
 export type Opportunity = {
@@ -67,11 +72,11 @@ export const tradeRecords: TradeRecord[] = [
 ];
 
 export const mirrorRecords: MirrorRecord[] = [
-  { countryCode: "KZ", country: "哈萨克斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 1_027_970, chinaFobUsd: 3_688_137 },
-  { countryCode: "KG", country: "吉尔吉斯斯坦", hs: "070951", product: "鲜/冷双孢蘑菇", importerCifUsd: 40_376, chinaFobUsd: 31_321 },
-  { countryCode: "KG", country: "吉尔吉斯斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 228_842, chinaFobUsd: 64_386 },
-  { countryCode: "TJ", country: "塔吉克斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: null, chinaFobUsd: 278_116 },
-  { countryCode: "TM", country: "土库曼斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: null, chinaFobUsd: 230_076 },
+  { countryCode: "KZ", country: "哈萨克斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 1_027_970, chinaFobUsd: 3_688_137, confidence: "A", confidenceBasis: "进口国与出口国均有申报" },
+  { countryCode: "KG", country: "吉尔吉斯斯坦", hs: "070951", product: "鲜/冷双孢蘑菇", importerCifUsd: 40_376, chinaFobUsd: 31_321, confidence: "A", confidenceBasis: "进口国与出口国均有申报" },
+  { countryCode: "KG", country: "吉尔吉斯斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 228_842, chinaFobUsd: 64_386, confidence: "A", confidenceBasis: "进口国与出口国均有申报" },
+  { countryCode: "TJ", country: "塔吉克斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: null, chinaFobUsd: 278_116, confirmedTradeUsd: 286_590, confirmedQuantityKg: 263_264, confirmedPartners: ["中国", "哈萨克斯坦"], confidence: "B+", confidenceBasis: "两国对塔出口申报汇总" },
+  { countryCode: "TM", country: "土库曼斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: null, chinaFobUsd: 230_076, confirmedTradeUsd: 249_690, confirmedQuantityKg: 127_563, confirmedPartners: ["中国", "土耳其", "亚美尼亚"], confidence: "B+", confidenceBasis: "三国对土出口申报汇总" },
 ];
 
 export const opportunities: Opportunity[] = [
