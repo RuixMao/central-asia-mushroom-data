@@ -10,6 +10,7 @@ type MirrorItem = {
   product: string;
   importerCifUsd: number | null;
   chinaFobUsd: number | null;
+  officialQuantityKg?: number;
   confirmedTradeUsd?: number;
   confirmedQuantityKg?: number;
   confirmedPartners?: string[];
@@ -18,7 +19,7 @@ type MirrorItem = {
 };
 
 const productNames: Record<string, string> = {
-  "070951": "鲜或冷藏双孢蘑菇",
+  "070951": "鲜或冷藏蘑菇",
   "070959": "其他鲜或冷藏蘑菇",
   "200310": "加工保藏蘑菇",
 };
@@ -35,13 +36,8 @@ export default function MirrorLiveGrid() {
       .then((payload) => {
         if (!payload.records?.length) return;
         setRecords(fallback.map((base) => ({
-          ...base,
           ...payload.records!.find((item) => item.countryCode === base.countryCode && item.hs === base.hs),
-          confirmedTradeUsd: base.confirmedTradeUsd,
-          confirmedQuantityKg: base.confirmedQuantityKg,
-          confirmedPartners: base.confirmedPartners,
-          confidence: base.confidence,
-          confidenceBasis: base.confidenceBasis,
+          ...base,
         })));
       })
       .catch(() => {});
@@ -56,12 +52,12 @@ export default function MirrorLiveGrid() {
       {items.length ? <div className="mirror-grid">{items.map((record) => {
         const gap = gapRate(record.importerCifUsd, record.chinaFobUsd);
         const hasOfficial = record.importerCifUsd !== null;
-        const status = hasOfficial ? (gap !== null && gap >= 70 ? "两地统计差异较大" : "两地数据基本可比") : `已覆盖${record.confirmedPartners?.join("、")}`;
+        const status = hasOfficial ? `2024 年进口申报，${record.officialQuantityKg?.toLocaleString("en-US")} 公斤` : `已覆盖${record.confirmedPartners?.join("、")}`;
         return <article key={`${record.countryCode}-${record.hs}`}>
           <span className="mirror-grade" title={record.confidenceBasis}>{record.confidence}</span>
           <span className="mirror-category">{productNames[record.hs] ?? record.product}</span>
           <h3>HS {record.hs}</h3>
-          <div><p>{hasOfficial ? "当地公布进口额" : "已确认贸易额"}<b>{money(hasOfficial ? record.importerCifUsd : record.confirmedTradeUsd)}</b></p><p>中国对当地出口额<b>{money(record.chinaFobUsd)}</b></p></div>
+          <div><p>{hasOfficial ? "当地公布进口额" : "已确认贸易额"}<b>{money(hasOfficial ? record.importerCifUsd : record.confirmedTradeUsd)}</b></p><p>{hasOfficial ? "其中来自中国" : "中国对当地出口额"}<b>{money(record.chinaFobUsd)}</b></p></div>
           {hasOfficial ? <strong>{gap === null ? "—" : `${gap.toFixed(1)}%`}<small>两地统计差异</small></strong> : <strong>{record.confirmedQuantityKg?.toLocaleString("en-US") ?? "—"}<small>已确认数量（公斤）</small></strong>}
           <i>{status}</i><small className="mirror-basis">{record.confidenceBasis}</small>
         </article>;
