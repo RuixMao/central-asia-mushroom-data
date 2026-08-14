@@ -19,7 +19,7 @@ type PriceRow = {
 };
 
 type Snapshot<T> = { id: string; country: string; data: T; capturedAt: string };
-type TradeData = { hs?: string; year?: number; value_usd?: number; partner_value_usd?: number; partner_code?: string | number; status?: string };
+type TradeData = { hs?: string; year?: number; value_usd?: number; partner_value_usd?: number; partner_code?: string | number; status?: string; reporting_basis?: string; estimate_lower_usd?: number; estimate_upper_usd?: number; coverage_pct?: number; confidence?: string };
 
 const API = "/api/powerbi?table=prices";
 const countries = [
@@ -107,26 +107,36 @@ export default function ScreenPage() {
       const partner = String(row.data.partner_code ?? "ALL");
       const key = `${row.country}|${row.data.hs}|${row.data.year}|${partner}`;
       const previous = latest.get(key);
-      if (!previous || row.capturedAt > previous.capturedAt) latest.set(key, row);
+      const quality = (item: Snapshot<TradeData>) => item.data.status === "live" ? (item.data.reporting_basis === "importer_official" ? 3 : item.data.reporting_basis === "exporter_mirror" ? 2 : 1) : 0;
+      if (!previous || quality(row) > quality(previous) || (quality(row) === quality(previous) && row.capturedAt > previous.capturedAt)) latest.set(key, row);
     });
     const partnerNames: Record<string, string> = { CN: "中国", RU: "俄罗斯", KZ: "哈萨克斯坦", BY: "白俄罗斯", TR: "土耳其" };
     const countryData = countries.map(([code, name]) => {
       const relevant = Array.from(latest.values()).filter(row => row.country === code && row.data.status === "live");
-      const years = relevant.filter(row => String(row.data.partner_code ?? "ALL") === "ALL" || String(row.data.partner_code) === "0").map(row => Number(row.data.year));
+      const years = relevant.filter(row => ["ALL", "0", "ESTIMATE"].includes(String(row.data.partner_code ?? "ALL"))).map(row => Number(row.data.year));
       const year = years.length ? Math.max(...years) : null;
       const yearRows = year == null ? [] : relevant.filter(row => Number(row.data.year) === year);
       const global = yearRows.filter(row => ["ALL", "0"].includes(String(row.data.partner_code ?? "ALL"))).reduce((sum, row) => sum + Number(row.data.value_usd ?? 0), 0);
+      const estimates = yearRows.filter(row => String(row.data.partner_code) === "ESTIMATE");
+      const estimateLower = estimates.reduce((sum, row) => sum + Number(row.data.estimate_lower_usd ?? 0), 0);
+      const estimateUpper = estimates.reduce((sum, row) => sum + Number(row.data.estimate_upper_usd ?? 0), 0);
+      const coverage = estimates.length ? estimates.reduce((sum, row) => sum + Number(row.data.coverage_pct ?? 0), 0) / estimates.length : null;
+      const confidenceOrder = ["insufficient", "low", "medium", "high"];
+      const confidence = estimates.length ? estimates.reduce((lowest, row) => confidenceOrder.indexOf(row.data.confidence ?? "insufficient") < confidenceOrder.indexOf(lowest) ? (row.data.confidence ?? "insufficient") : lowest, "high") : global > 0 ? "official" : "insufficient";
       const partners = Object.keys(partnerNames).map(partner => ({
         code: partner, name: partnerNames[partner], value: yearRows.filter(row => String(row.data.partner_code) === partner).reduce((sum, row) => sum + Number(row.data.value_usd ?? row.data.partner_value_usd ?? 0), 0),
       })).filter(item => item.value > 0).sort((a, b) => b.value - a.value);
       const known = partners.reduce((sum, item) => sum + item.value, 0);
-      if (global > known) partners.push({ code: "OTHER", name: "其他来源", value: global - known });
+      const marketValue = global > 0 ? global : estimateLower > 0 ? (estimateLower + Math.max(estimateUpper, estimateLower)) / 2 : 0;
+      if (marketValue > known) partners.push({ code: "OTHER", name: global > 0 ? "其他来源" : "未覆盖来源", value: marketValue - known });
       const china = partners.find(item => item.code === "CN")?.value ?? 0;
-      return { code, name, year, global, partners, china, share: global > 0 && china > 0 ? china / global * 100 : null };
+      const basis = global > 0 ? "进口国申报" : estimateLower > 0 ? "伙伴国镜像估算" : "数据不足";
+      return { code, name, year, global: marketValue, officialTotal: global, estimateLower, estimateUpper, coverage, confidence, basis, partners, china, share: marketValue > 0 && china > 0 ? china / marketValue * 100 : null };
     });
     const total = countryData.reduce((sum, item) => sum + item.global, 0);
     const china = countryData.reduce((sum, item) => sum + item.china, 0);
-    return { countries: countryData, total, china, share: total > 0 && china > 0 ? china / total * 100 : null };
+    const estimatedCountries = countryData.filter(item => !item.officialTotal && item.estimateLower > 0).length;
+    return { countries: countryData, total, china, estimatedCountries, share: total > 0 && china > 0 ? china / total * 100 : null };
   }, [trade]);
 
   return <main className="live-screen">
@@ -165,17 +175,19 @@ export default function ScreenPage() {
               <div><strong>{tradeShares.share == null ? "—" : `${tradeShares.share.toFixed(1)}%`}</strong><span>中国进口占比</span></div>
             </div>
             <header><b>中亚五国总计</b><small>⚠ 年度数据，非实时</small></header>
-            <p>{tradeShares.total > 0 ? `进口总额 $${(tradeShares.total / 1_000_000).toFixed(2)}M` : "等待来源国明细"}</p>
+            <p>{tradeShares.total > 0 ? `市场规模 $${(tradeShares.total / 1_000_000).toFixed(2)}M${tradeShares.estimatedCountries ? ` · 含 ${tradeShares.estimatedCountries} 国镜像估算` : ""}` : "等待来源国明细"}</p>
           </article>
           {tradeShares.countries.map(country => <article className="trade-donut-card" key={country.code}>
             <div className={`trade-donut small ${country.share == null ? "empty" : ""}`} style={country.share == null ? undefined : { background: `conic-gradient(#42e6b0 0 ${country.share}%, #1b4d68 ${country.share}% 100%)` }}>
               <div><strong>{country.share == null ? "—" : `${country.share.toFixed(1)}%`}</strong><span>中国占比</span></div>
             </div>
             <header><b>{country.name}</b><small>{country.year ?? "—"}</small></header>
+            <div className={`trade-confidence confidence-${country.confidence}`}><b>{country.basis}</b><span>{country.confidence === "official" ? "官方" : country.confidence === "high" ? "高置信" : country.confidence === "medium" ? "中置信" : country.confidence === "low" ? "低置信" : "待补充"}{country.coverage != null ? ` · 覆盖 ${country.coverage.toFixed(0)}%` : ""}</span></div>
+            {!country.officialTotal && country.estimateLower > 0 && <p className="trade-range">规模区间 ${(country.estimateLower / 1_000_000).toFixed(2)}—${(country.estimateUpper / 1_000_000).toFixed(2)}M USD</p>}
             {country.partners.length ? <div className="trade-legend">{country.partners.slice(0, 5).map(partner => <span key={partner.code} title={`${partner.name} · $${partner.value.toLocaleString("en-US")}`}><i className={`partner-${partner.code.toLowerCase()}`} />{partner.name} {country.global > 0 ? `${(partner.value / country.global * 100).toFixed(1)}%` : "—"}</span>)}</div> : <p>等待来源国明细</p>}
           </article>)}
         </div>
-        <p className="trade-method">口径：中亚五国食用菌（HS 070951 鲜双孢菇 / 070959 其他鲜菇 / 200310 罐装）进口贸易，单位 USD；来源 UN Comtrade，年度数据。</p>
+        <p className="trade-method">口径：中亚五国食用菌（HS 070951 / 070959 / 200310）进口贸易，单位 USD。优先采用进口国申报；缺失时采用中国及主要伙伴国出口镜像，并显示覆盖率、规模区间与置信等级。来源：UN Comtrade / 中国海关统计口径，年度数据。</p>
       </article>
 
       <article className="screen-feed">
