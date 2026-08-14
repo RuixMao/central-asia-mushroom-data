@@ -12,6 +12,7 @@ type PriceRow = {
   species_name?: string;
   product_form: string;
   platform_name: string;
+  product_id?: string;
   original_title: string;
   currency: string;
   current_price: number;
@@ -19,7 +20,7 @@ type PriceRow = {
   in_stock: number;
 };
 
-const API = "https://api.yinheng.site/api/powerbi?table=prices";
+const API = "/api/powerbi?table=prices";
 const countries = [
   ["KZ", "哈萨克斯坦", "阿拉木图"], ["UZ", "乌兹别克斯坦", "塔什干"],
   ["KG", "吉尔吉斯斯坦", "比什凯克"], ["TJ", "塔吉克斯坦", "杜尚别"],
@@ -54,6 +55,15 @@ export default function ScreenPage() {
     return { countries: new Set(rows.map(row => row.country)).size, species: new Set(rows.map(row => row.species_id)).size, platforms: new Set(rows.map(row => row.platform_name)).size, average };
   }, [rows]);
 
+  const countryGroups = useMemo(() => countries.map(([code, name]) => {
+    const countryRows = rows.filter(row => row.country === code);
+    const speciesGroups = Array.from(new Set(countryRows.map(row => row.species_id))).map(speciesId => {
+      const items = countryRows.filter(row => row.species_id === speciesId);
+      return { speciesId, name: items[0]?.species_name ?? speciesId, items };
+    });
+    return { code, name, rows: countryRows, speciesGroups };
+  }), [rows]);
+
   return <main className="live-screen">
     <header className="screen-head">
       <div><span>INHEN CENTRAL ASIA INTELLIGENCE</span><h1>中亚菌类市场实时数据中枢</h1></div>
@@ -81,14 +91,19 @@ export default function ScreenPage() {
       </article>
 
       <article className="screen-feed">
-        <div className="screen-title"><span>02</span><div><b>实时价格观察</b><small>LIVE PRICE FEED</small></div></div>
+        <div className="screen-title"><span>02</span><div><b>国家与菌种价格观察</b><small>COUNTRY → SPECIES → SKU</small></div></div>
         {error && <p className="screen-error">数据连接异常：{error}</p>}
-        <div className="price-feed">
-          {rows.slice(0, 10).map((row, index) => <div className="feed-row" key={`${row.original_title}-${index}`}>
-            <span>{row.observation_date}<small>{row.country_name ?? row.country} · {row.city}</small></span>
-            <b>{row.species_name ?? row.species_id}<small>{row.platform_name}</small></b>
-            <em>${row.normalized_usd_per_kg?.toFixed(2) ?? "—"}<small>USD / 公斤</small></em>
-          </div>)}
+        <div className="country-price-groups">
+          {countryGroups.map(group => <section className={`country-price-group ${group.rows.length ? "has-data" : ""}`} key={group.code}>
+            <header><div><b>{group.name}</b><small>{group.code}</small></div><em>{group.rows.length} 条 · {group.speciesGroups.length} 菌种</em></header>
+            {group.speciesGroups.length ? <div className="species-price-groups">{group.speciesGroups.map(speciesGroup => <article key={speciesGroup.speciesId}>
+              <div className="species-group-head"><b>{speciesGroup.name}</b><span>{speciesGroup.items.length} SKU</span></div>
+              {speciesGroup.items.slice(0, 4).map((row, index) => <div className="species-price-row" key={`${row.product_id ?? row.original_title}-${index}`}>
+                <span title={row.original_title}>{row.city} · {row.platform_name}<small>{row.observation_date}</small></span>
+                <em>${row.normalized_usd_per_kg?.toFixed(2) ?? "—"}<small>USD / 公斤</small></em>
+              </div>)}
+            </article>)}</div> : <p className="country-collecting">数据采集中</p>}
+          </section>)}
           {!rows.length && !error && <p className="screen-empty">等待五国自动化采集写入数据…</p>}
         </div>
       </article>
