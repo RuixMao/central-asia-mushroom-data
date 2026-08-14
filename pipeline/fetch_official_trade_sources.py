@@ -38,7 +38,10 @@ def run():
         probe_url = source.get("probe_url", source["url"])
         if source["id"].startswith("un_mirror_"):
             reporter = {"un_mirror_ru": 643, "un_mirror_kz": 398, "un_mirror_tr": 792}[source["id"]]
-            probe_url = f"https://comtradeapi.un.org/data/v1/get/C/A/HS?period=2024&reporterCode={reporter}&flowCode=X&partnerCode=0&cmdCode=070951&maxRecords=1"
+            partner = 860 if reporter == 398 else 398
+            probe_url = ("https://comtradeapi.un.org/data/v1/get/C/A/HS"
+                         f"?period=2024&reporterCode={reporter}&flowCode=X&partnerCode={partner}"
+                         "&cmdCode=070951&partner2Code=0&customsCode=C00&motCode=0&maxRecords=50")
         response = safe_get(probe_url, headers=headers, retries=3, backoff=3, timeout=45)
         body = response.content if response else b""
         available = bool(response and body)
