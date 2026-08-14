@@ -19,15 +19,15 @@ test("server-renders the corporate website and public data center", async () => 
   const html = await response.text();
   assert.match(html, /因恒科技/);
   assert.match(html, /inhen-tech-logo\.png/);
-  assert.match(html, /洞察中亚市场/);
-  assert.match(html, /产品与服务/);
-  assert.match(html, /数据中心/);
+  assert.match(html, /中亚食用菌出海/);
+  assert.match(html, /市场行情/);
+  assert.match(html, /需求分析/);
   assert.match(html, /解决方案/);
-  assert.match(html, /市场洞察/);
-  assert.match(html, /申请产品演示/);
+  assert.match(html, /出海路径/);
+  assert.match(html, /合作对接/);
   assert.match(html, /href="\/privacy"/);
   assert.match(html, /href="\/terms"/);
-  assert.match(html, /href="\/market-data"/);
+  assert.match(html, /href="\/market"/);
   assert.match(html, /\$6\.96M/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 

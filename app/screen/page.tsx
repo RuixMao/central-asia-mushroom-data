@@ -39,8 +39,11 @@ export default function ScreenPage() {
   const [error, setError] = useState("");
   const [countryFilter, setCountryFilter] = useState("ALL");
   const [speciesFilter, setSpeciesFilter] = useState("ALL");
+  const [role, setRole] = useState("产能方");
 
   useEffect(() => {
+    const queryRole=new URLSearchParams(window.location.search).get("role");
+    setRole(queryRole||localStorage.getItem("yinheng-role")||"产能方");
     let active = true;
     const load = async () => {
       try {
@@ -105,6 +108,7 @@ export default function ScreenPage() {
     const china = countryData.reduce((sum, country) => sum + country.china, 0);
     return { countries: countryData, total, china, share: total > 0 ? china / total * 100 : null };
   }, []);
+  const chooseRole=(next:string)=>{setRole(next);localStorage.setItem("yinheng-role",next);const url=new URL(window.location.href);url.searchParams.set("role",next);history.replaceState(null,"",url)};
 
   return <main className="live-screen">
     <header className="screen-head">
@@ -118,6 +122,7 @@ export default function ScreenPage() {
       <b>国家覆盖 {stats.countries}/5</b>
       <strong>挂牌价 ≠ 成交价，仅供趋势参考</strong>
     </div>
+    <nav className="screen-role-switch" aria-label="角色视图"><span>当前视图</span>{["产能方","渠道商","投资者","研究者"].map(item=><button className={role===item?"active":""} onClick={()=>chooseRole(item)} key={item}>{item}</button>)}</nav>
 
     <section className="screen-kpis">
       <article><span>有效价格记录</span><b>{rows.length}</b><small>历史有效观察</small></article>
