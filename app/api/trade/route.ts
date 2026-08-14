@@ -52,14 +52,17 @@ export async function GET(request: Request) {
     const year = Math.min(currentYear(), Math.max(2000, Number(url.searchParams.get("year") ?? currentYear() - 1)));
     const base = { period: String(year), cmdCode: PRODUCTS, partner2Code: "0", customsCode: "C00", motCode: "0", maxRecords: "500" };
     try {
-      const [imports, chinaExports] = await Promise.all([
-        comtrade(new URLSearchParams({ ...base, reporterCode: REPORTERS, flowCode: "M", partnerCode: "0" }), apiKey),
-        comtrade(new URLSearchParams({ ...base, reporterCode: "156", flowCode: "X", partnerCode: COUNTRY_META.map(country => country.reporter).join(",") }), apiKey),
-      ]);
-      const importRows = imports.data ?? []; const exportRows = chinaExports.data ?? [];
+      const countryPayloads = await Promise.all(COUNTRY_META.map(async country => {
+        const [imports, exports] = await Promise.all([
+          comtrade(new URLSearchParams({ ...base, reporterCode: String(country.reporter), flowCode: "M", partnerCode: "0" }), apiKey),
+          comtrade(new URLSearchParams({ ...base, reporterCode: "156", flowCode: "X", partnerCode: String(country.reporter) }), apiKey),
+        ]);
+        return { country, importRows: imports.data ?? [], exportRows: exports.data ?? [] };
+      }));
       const records = COUNTRY_META.flatMap(country => PRODUCTS.split(",").map(hs => {
-        const importer = importRows.find(row => row.reporterCode === country.reporter && row.cmdCode === hs);
-        const mirror = exportRows.find(row => row.partnerCode === country.reporter && row.cmdCode === hs);
+        const payload = countryPayloads.find(item => item.country.code === country.code)!;
+        const importer = payload.importRows.find(row => row.cmdCode === hs);
+        const mirror = payload.exportRows.find(row => row.cmdCode === hs);
         const importerValue = importer?.primaryValue ?? null; const mirrorValue = mirror?.primaryValue ?? null;
         return { countryCode: country.code, country: country.name, hs, product: PRODUCT_NAMES[hs], year, importerCifUsd: importerValue, chinaFobUsd: mirrorValue, importerSource: "进口国申报（UN Comtrade）", mirrorSource: "中国出口镜像（中国海关经 UN Comtrade）", confidence: importerValue !== null && mirrorValue !== null ? "A−" : mirrorValue !== null ? "B+" : importerValue !== null ? "B" : "C" };
       }));

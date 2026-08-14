@@ -48,6 +48,8 @@ test("server-renders the corporate website and public data center", async () => 
   assert.match(marketHtml, /UN Comtrade/);
   assert.match(marketHtml, /72\.1%/);
   assert.match(marketHtml, /未报告/);
+  assert.doesNotMatch(marketHtml, /正在使用已核验基线|多源数据已连接|置信度|单侧证据|发布门槛/);
+  assert.match(marketHtml, /中国出口与中亚进口对比/);
 
   const reports = await render("/reports");
   assert.equal(reports.status, 200);
