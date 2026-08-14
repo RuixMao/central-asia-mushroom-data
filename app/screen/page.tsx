@@ -18,6 +18,10 @@ type PriceRow = {
   normalized_usd_per_kg: number | null;
 };
 
+type Snapshot<T> = { id: string; country: string; data: T; capturedAt: string };
+type LogisticsData = { median_days?: number; observed_at?: string; status?: string };
+type TradeData = { hs?: string; year?: number; value_usd?: number; status?: string };
+
 const API = "/api/powerbi?table=prices";
 const countries = [
   ["KZ", "哈萨克斯坦", "阿拉木图"], ["UZ", "乌兹别克斯坦", "塔什干"],
@@ -36,6 +40,8 @@ export default function ScreenPage() {
   const [rows, setRows] = useState<PriceRow[]>([]);
   const [updated, setUpdated] = useState<Date | null>(null);
   const [error, setError] = useState("");
+  const [logistics, setLogistics] = useState<Snapshot<LogisticsData>[]>([]);
+  const [trade, setTrade] = useState<Snapshot<TradeData>[]>([]);
   const [countryFilter, setCountryFilter] = useState("ALL");
   const [speciesFilter, setSpeciesFilter] = useState("ALL");
 
@@ -43,10 +49,16 @@ export default function ScreenPage() {
     let active = true;
     const load = async () => {
       try {
-        const response = await fetch(API, { cache: "no-store" });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const payload = await response.json();
-        if (active) { setRows(payload.records ?? []); setUpdated(new Date()); setError(""); }
+        const [priceResponse, logisticsResponse, tradeResponse] = await Promise.all([
+          fetch(API, { cache: "no-store" }),
+          fetch("/api/ingest/snapshot?metric=logistics&latest=1&limit=500", { cache: "no-store" }),
+          fetch("/api/ingest/snapshot?metric=trade&latest=1&limit=500", { cache: "no-store" }),
+        ]);
+        if (!priceResponse.ok) throw new Error(`HTTP ${priceResponse.status}`);
+        const [pricePayload, logisticsPayload, tradePayload] = await Promise.all([
+          priceResponse.json(), logisticsResponse.ok ? logisticsResponse.json() : { records: [] }, tradeResponse.ok ? tradeResponse.json() : { records: [] },
+        ]);
+        if (active) { setRows(pricePayload.records ?? []); setLogistics(logisticsPayload.records ?? []); setTrade(tradePayload.records ?? []); setUpdated(new Date()); setError(""); }
       } catch (reason) {
         if (active) setError(reason instanceof Error ? reason.message : "数据连接失败");
       }
@@ -92,6 +104,40 @@ export default function ScreenPage() {
       return { code, name, rows: countryRows, countryMedian, speciesGroups };
     }), [filteredRows, countryFilter]);
 
+  const logisticsByCountry = useMemo(() => {
+    const result = new Map<string, number>();
+    logistics.filter(row => row.data.status === "live" && Number.isFinite(row.data.median_days)).sort((a, b) => (b.data.observed_at ?? b.capturedAt).localeCompare(a.data.observed_at ?? a.capturedAt)).forEach(row => {
+      if (!result.has(row.country)) result.set(row.country, Number(row.data.median_days));
+    });
+    return result;
+  }, [logistics]);
+
+  const tradeByCountry = useMemo(() => {
+    const latestBySeries = new Map<string, Snapshot<TradeData>>();
+    trade.filter(row => row.data.status === "live" && row.data.hs && Number.isFinite(row.data.year) && Number.isFinite(row.data.value_usd)).forEach(row => {
+      const key = `${row.country}|${row.data.hs}|${row.data.year}`;
+      const previous = latestBySeries.get(key);
+      if (!previous || row.capturedAt > previous.capturedAt) latestBySeries.set(key, row);
+    });
+    const latestYear = new Map<string, number>();
+    latestBySeries.forEach(row => latestYear.set(row.country, Math.max(latestYear.get(row.country) ?? 0, Number(row.data.year))));
+    const totals = new Map<string, number>();
+    latestBySeries.forEach(row => {
+      if (Number(row.data.year) === latestYear.get(row.country)) totals.set(row.country, (totals.get(row.country) ?? 0) + Number(row.data.value_usd));
+    });
+    return totals;
+  }, [trade]);
+
+  const tradeTier = useMemo(() => {
+    const values = countries.map(([code]) => tradeByCountry.get(code)).filter((value): value is number => value != null).sort((a, b) => a - b);
+    return (code: string) => { const value = tradeByCountry.get(code); if (value == null || !values.length) return "thin"; const rank = values.indexOf(value) / Math.max(values.length - 1, 1); return rank >= .67 ? "thick" : rank >= .34 ? "medium" : "thin"; };
+  }, [tradeByCountry]);
+
+  const logisticsAverage = useMemo(() => {
+    const values = Array.from(logisticsByCountry.values());
+    return values.length ? { value: values.reduce((sum, value) => sum + value, 0) / values.length, count: values.length } : null;
+  }, [logisticsByCountry]);
+
   return <main className="live-screen">
     <header className="screen-head">
       <div><span>INHEN CENTRAL ASIA INTELLIGENCE</span><h1>中亚菌类市场实时数据中枢</h1></div>
@@ -121,12 +167,13 @@ export default function ScreenPage() {
 
     <section className="screen-grid">
       <article className="screen-map">
-        <div className="screen-title"><span>01</span><div><b>五国数据覆盖</b><small>COUNTRY COVERAGE</small></div></div>
+        <div className="screen-title logistics-title"><div><b>跨境贸易物流总览</b><small>TRADE &amp; LOGISTICS</small></div></div>
         <div className="country-network">
-          <strong className="network-core"><i>•••</i>喀什<br/><small>数据中枢</small></strong>
+          <strong className="network-core"><i>•••</i>{logisticsAverage ? <><b>{logisticsAverage.value.toFixed(1)}天</b><small>{logisticsAverage.count}国物流时效均值</small></> : <>喀什<br/><small>数据中枢</small></>}</strong>
           {countries.map(([code, name, city], index) => {
-            const count = rows.filter(row => row.country === code).length;
-            return <div className={`country-node node-${index}`} key={code}><i className={count ? "on" : ""}/><b>{name}</b><span>{city}</span><em>{count ? `${count} 条有效观察` : "采集中"}</em></div>;
+            const days = logisticsByCountry.get(code);
+            const tradeValue = tradeByCountry.get(code);
+            return <div key={code}><span className={`trade-line line-${index} tier-${tradeTier(code)}`} aria-hidden="true"/><div className={`country-node node-${index}`}><i className={days != null ? "on" : ""}/><b>{name}</b><span>{city}</span><strong>{days == null ? "—" : `${days.toFixed(days % 1 ? 1 : 0)} 天`}</strong><em>{tradeValue == null ? "贸易额 —" : `最近年度 $${(tradeValue / 1_000_000).toFixed(2)}M`}</em></div></div>;
           })}
         </div>
       </article>
