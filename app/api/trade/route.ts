@@ -6,12 +6,26 @@ type ComtradeRow = {
   period?: string;
   reporterCode?: number;
   reporterDesc?: string | null;
+  partnerCode?: number;
   cmdCode?: string;
   cmdDesc?: string | null;
   primaryValue?: number | null;
   netWgt?: number | null;
   isAggregate?: boolean;
 };
+
+const COUNTRY_META = [
+  { code: "KZ", name: "哈萨克斯坦", reporter: 398 }, { code: "UZ", name: "乌兹别克斯坦", reporter: 860 },
+  { code: "KG", name: "吉尔吉斯斯坦", reporter: 417 }, { code: "TJ", name: "塔吉克斯坦", reporter: 762 },
+  { code: "TM", name: "土库曼斯坦", reporter: 795 },
+] as const;
+const PRODUCT_NAMES: Record<string, string> = { "070951": "鲜或冷藏双孢蘑菇", "070959": "其他鲜或冷藏蘑菇", "200310": "加工保藏蘑菇" };
+
+async function comtrade(params: URLSearchParams, apiKey: string) {
+  const response = await fetch(`https://comtradeapi.un.org/data/v1/get/C/A/HS?${params}`, { headers: { "Ocp-Apim-Subscription-Key": apiKey } });
+  if (!response.ok) throw new Error(`UN Comtrade request failed (${response.status})`);
+  return response.json() as Promise<{ data?: ComtradeRow[] }>;
+}
 
 const currentYear = () => new Date().getUTCFullYear();
 
@@ -34,6 +48,24 @@ export async function GET(request: Request) {
   if (!apiKey) return Response.json({ error: "UN Comtrade API key is not configured" }, { status: 503 });
 
   const url = new URL(request.url);
+  if (url.searchParams.get("mode") === "mirror") {
+    const year = Math.min(currentYear(), Math.max(2000, Number(url.searchParams.get("year") ?? currentYear() - 1)));
+    const base = { period: String(year), cmdCode: PRODUCTS, partner2Code: "0", customsCode: "C00", motCode: "0", maxRecords: "500" };
+    try {
+      const [imports, chinaExports] = await Promise.all([
+        comtrade(new URLSearchParams({ ...base, reporterCode: REPORTERS, flowCode: "M", partnerCode: "0" }), apiKey),
+        comtrade(new URLSearchParams({ ...base, reporterCode: "156", flowCode: "X", partnerCode: COUNTRY_META.map(country => country.reporter).join(",") }), apiKey),
+      ]);
+      const importRows = imports.data ?? []; const exportRows = chinaExports.data ?? [];
+      const records = COUNTRY_META.flatMap(country => PRODUCTS.split(",").map(hs => {
+        const importer = importRows.find(row => row.reporterCode === country.reporter && row.cmdCode === hs);
+        const mirror = exportRows.find(row => row.partnerCode === country.reporter && row.cmdCode === hs);
+        const importerValue = importer?.primaryValue ?? null; const mirrorValue = mirror?.primaryValue ?? null;
+        return { countryCode: country.code, country: country.name, hs, product: PRODUCT_NAMES[hs], year, importerCifUsd: importerValue, chinaFobUsd: mirrorValue, importerSource: "进口国申报（UN Comtrade）", mirrorSource: "中国出口镜像（中国海关经 UN Comtrade）", confidence: importerValue !== null && mirrorValue !== null ? "A−" : mirrorValue !== null ? "B+" : importerValue !== null ? "B" : "C" };
+      }));
+      return Response.json({ sourceStrategy: "reporter-first-with-china-mirror", year, fetchedAt: new Date().toISOString(), records }, { headers: { "Cache-Control": "public, max-age=3600, s-maxage=21600" } });
+    } catch (error) { return Response.json({ error: error instanceof Error ? error.message : "Mirror data request failed" }, { status: 502 }); }
+  }
   const frequency: Frequency = url.searchParams.get("frequency") === "M" ? "M" : "A";
   const start = Math.max(2000, Number(url.searchParams.get("start") ?? (frequency === "A" ? 2022 : currentYear() - 1)));
   const end = Math.min(currentYear(), Number(url.searchParams.get("end") ?? currentYear()));
