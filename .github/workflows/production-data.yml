@@ -1,0 +1,21 @@
+name: Production Data
+on:
+  schedule:
+    - cron: '25 3 5 * *'
+  workflow_dispatch:
+jobs:
+  faostat:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r pipeline/requirements.txt
+      - name: Run deterministic pipeline tests
+        run: python -m unittest discover -s tests -p 'test_*.py'
+      - name: Collect FAOSTAT mushroom production
+        run: python pipeline/fetch_production.py
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

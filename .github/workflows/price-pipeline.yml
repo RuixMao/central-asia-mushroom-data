@@ -40,6 +40,7 @@ jobs:
           PLATFORM: ${{ inputs.platform }}
           COLLECTION_POINT: ${{ inputs.collection_point }}
           DRY_RUN: ${{ inputs.dry_run }}
+          WB_DESTS_JSON: ${{ secrets.WB_DESTS_JSON }}
       - name: Build daily summaries
         if: ${{ inputs.dry_run != true }}
         run: curl --fail --silent --show-error -X POST "$SITE_URL/api/prices/summarize" -H "x-cron-secret:$CRON_SECRET" -H "content-type:application/json" -d '{}'

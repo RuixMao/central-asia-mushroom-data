@@ -2,7 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../../../../db";
 import { dataSnapshots } from "../../../../db/schema";
 
-const metrics = new Set(["trade", "price", "price_retail", "logistics"]);
+const metrics = new Set(["trade", "price", "price_retail", "logistics", "production", "source_health", "macro"]);
 const countries = new Set(["KZ", "UZ", "KG", "TJ", "TM"]);
 const authorized = (request: Request) => Boolean(process.env.CRON_SECRET) && request.headers.get("x-cron-secret") === process.env.CRON_SECRET;
 
