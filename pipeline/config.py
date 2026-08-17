@@ -8,7 +8,7 @@ CRON_SECRET = os.environ.get("CRON_SECRET", "")
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "deepseek")
 AI_API_KEY = os.environ.get("AI_API_KEY", "")
 AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://api.deepseek.com")
-AI_MODEL = os.environ.get("AI_MODEL", "deepseek-chat")
+AI_MODEL = os.environ.get("AI_MODEL", "deepseek-v4-flash")
 UN_COMTRADE_API_KEY = os.environ.get("UN_COMTRADE_API_KEY", "")
 
 COUNTRIES = {

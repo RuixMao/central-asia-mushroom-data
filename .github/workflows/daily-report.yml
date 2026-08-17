@@ -3,6 +3,12 @@ on:
   schedule:
     - cron: '30 3 * * *'
   workflow_dispatch:
+    inputs:
+      validate_only:
+        description: Validate DeepSeek connection without publishing a report
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: customer-daily-report
@@ -18,12 +24,37 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r pipeline/requirements.txt
+      - name: Validate DeepSeek V4 Flash connection
+        if: ${{ inputs.validate_only == true }}
+        run: |
+          python - <<'PY'
+          import os
+          from openai import OpenAI
+
+          client = OpenAI(
+              api_key=os.environ["AI_API_KEY"],
+              base_url=os.environ["AI_BASE_URL"],
+          )
+          response = client.chat.completions.create(
+              model=os.environ["AI_MODEL"],
+              messages=[{"role": "user", "content": "仅回复：连接验证成功"}],
+              max_tokens=20,
+          )
+          if not (response.choices[0].message.content or "").strip():
+              raise RuntimeError("DeepSeek returned an empty response")
+          print("DeepSeek V4 Flash connection validated")
+          PY
+        env:
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_BASE_URL: https://api.deepseek.com
+          AI_MODEL: deepseek-v4-flash
       - name: Generate customer daily report from verified production data
+        if: ${{ inputs.validate_only != true }}
         run: python pipeline/generate_report.py
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
-          AI_MODEL: ${{ secrets.AI_MODEL }}
+          AI_BASE_URL: https://api.deepseek.com
+          AI_MODEL: deepseek-v4-flash
