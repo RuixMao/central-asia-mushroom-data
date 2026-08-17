@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { mirrorRecords, opportunities } from "./data";
 
 type PriceRow = { observation_date:string; country:string; country_name?:string; species_id:string; species_name?:string; platform_name:string; original_title:string; normalized_usd_per_kg:number|null };
-type Report = { slug?:string; title:string; type:string; date?:string; publishedAt?:string|number|Date };
+type Report = { slug?:string; title:string; summary?:string; type:string; date?:string; publishedAt?:string|number|Date };
 const countryNames:Record<string,string>={KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦"};
 const countryCodes=["KZ","UZ","KG","TJ","TM"];
 const money=(value:number)=>value?value>=1_000_000?`$${(value/1_000_000).toFixed(2)}M`:`$${Math.round(value/1000).toLocaleString("zh-CN")}K`:"—";
@@ -40,10 +40,24 @@ export function InsightsLivePreview(){
 export function ExpandLivePreview(){
   const [report,setReport]=useState<Report|null>(null);
   useEffect(()=>{fetch("/api/ingest/report",{cache:"no-store"}).then(r=>r.ok?r.json():Promise.reject()).then(p=>setReport(p.records?.[0]??null)).catch(()=>{})},[]);
-  return <section className="theme-data-grid four">
+  return <><section className="theme-data-grid expand-intelligence-grid">
     <article className="theme-data-card"><span>案例图谱</span><h2>企业拓展路径</h2><p className="theme-empty">案例收集中</p><small>仅收录具备公开来源、可回溯核验的企业案例。</small><a href="/expand/cases">查看案例库 →</a></article>
-    <article className="theme-data-card"><span>每日菌情</span><h2>{report?.title??"最新报告暂未发布"}</h2><p>{report?`${report.type} · ${report.date??(report.publishedAt?new Date(report.publishedAt).toLocaleDateString("zh-CN"):"—")}`:"—"}</p><a href={report?.slug?`/reports/${encodeURIComponent(report.slug)}`:"/reports"}>查看市场报告 →</a></article>
-    <article className="theme-data-card"><span>商机雷达</span><h2>已验证需求信号</h2><div className="theme-signal-list">{opportunities.slice(0,3).map(o=><div key={o.id}><b>{o.country} · {o.product}</b><span>{o.status}</span><small>{o.signal}</small></div>)}</div><a href="/expand/radar">打开商机雷达 →</a></article>
+    <article className="theme-data-card daily-intelligence-card"><header><div><span>每日菌情</span><h2>{report?.title??"最新报告暂未发布"}</h2></div><small>{report?(report.date??(report.publishedAt?new Date(report.publishedAt).toLocaleDateString("zh-CN"):"—")):"—"}</small></header><p>{report?.summary??"当日价格、渠道与政策证据尚未形成可发布结论。"}</p><div className="daily-intelligence-actions"><a className="theme-primary-link" href={report?.slug?`/reports/${encodeURIComponent(report.slug)}`:"/reports"}>阅读今日菌情 →</a><a href="/expand/daily">查看历史日报</a></div></article>
     <article className="theme-data-card"><span>合作对接</span><h2>提交出海需求</h2><p>面向产能方、渠道商、技术与服务机构。</p><a className="theme-primary-link" href="/expand/contact">发起合作对接 →</a></article>
+  </section><OpportunityRadar compact/></>;
+}
+
+export function OpportunityRadar({compact=false}:{compact?:boolean}){
+  const visible=compact?opportunities.slice(0,3):opportunities;
+  return <section className={`opportunity-radar ${compact?"compact":"full"}`} aria-label="商机雷达">
+    <header className="opportunity-radar-head"><div><span>OPPORTUNITY RADAR</span><h2>商机雷达</h2><p>将贸易规模、变化幅度、渠道覆盖和证据质量合并为验证优先级；机会分不是成交预测。</p></div>{compact&&<a href="/expand/radar">查看全部商机 →</a>}</header>
+    <div className="opportunity-radar-grid">{visible.map((item,index)=><article key={item.id}>
+      <div className="radar-rank"><span>{String(index+1).padStart(2,"0")} · {item.country}</span><strong>{item.score}<small>/100</small></strong></div>
+      <div className="radar-tags"><b>{item.status}</b><span>证据 {item.confidence}</span><span>覆盖 {item.coverage}%</span></div>
+      <h3>{item.product}</h3><p>{item.signal}</p>
+      <div className="radar-next"><span>建议下一步</span><b>{item.nextAction}</b></div>
+      <footer><span>HS {item.hs}</span><span>市场规模 {money(item.marketUsd)}</span><span>{item.change>0?"+":""}{item.change}%</span></footer>
+    </article>)}</div>
+    {!compact&&<div className="radar-method"><b>阅读方式</b><span>优先验证：证据较强且值得立即核验</span><span>值得跟进：具备一定市场基础</span><span>补数观察：先补价格、渠道或贸易口径</span><span>暂缓：当前风险或口径问题高于机会信号</span></div>}
   </section>;
 }

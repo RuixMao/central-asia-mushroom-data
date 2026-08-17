@@ -7,6 +7,7 @@
 @import "./role-button-fix.css";
 @import "./terminal-brand.css";
 @import "./terminal-delivery.css";
+@import "./intelligence-radar.css";
 
 :root {
   --ink: #16191d;
