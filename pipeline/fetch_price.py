@@ -80,7 +80,12 @@ def run():
  if items and not dry_run:
   payload={"items":items}
   post_to_site("/api/ingest/prices",payload)
-  post_to_data("/api/ingest/prices",payload)
+  # yinheng.site is the canonical production database. A legacy mirror must
+  # never turn an otherwise successful collection into a failed daily run.
+  try:
+   post_to_data("/api/ingest/prices",payload)
+  except RuntimeError as exc:
+   log(f"legacy data mirror warning: {exc}")
  # 写 price_retail 快照（AI 日报与网页端价格表的数据源）。
  # 注意：快照接口的 data.observed_at 必须是 YYYY-MM-DD（日报按 ==today 过滤），
  # 不能用 items 里的 ISO 时间戳；成功写 live、失败源写 gap，确保缺口可见。
