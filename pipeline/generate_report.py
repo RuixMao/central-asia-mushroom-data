@@ -1,4 +1,5 @@
 import json
+import os
 import re
 import statistics
 import unicodedata
@@ -81,7 +82,8 @@ def cell(value):return str(value if value not in (None,"") else "—").replace("
 def run():
  today=today_str();today_date=date.fromisoformat(today);snapshots=get_site("/api/ingest/snapshot?metric=price_retail&limit=500").get("records",[])
  existing=get_site("/api/ingest/report?type=daily").get("records",[])
- if any(today in str(report.get("title", "")) for report in existing):
+ revision=os.environ.get("REPORT_REVISION", "").lower() in {"1","true","yes"}
+ if not revision and any(today in str(report.get("title", "")) for report in existing):
   print(f"{today} 日报已存在，跳过重复生成")
   return
  live=[r for r in snapshots if r.get("data",{}).get("status")=="live" and r.get("data",{}).get("normalized_price_usd_per_kg") is not None]
@@ -152,7 +154,7 @@ def run():
  try:
   for attempt in range(2):
    request=prompt if attempt==0 else f"{prompt}\n\n上一稿未通过发布检查。请仅使用允许的证据编号，保留五个指定栏目后完整重写。"
-   result=client.chat.completions.create(model=AI_MODEL or "deepseek-v4-flash",messages=[{"role":"user","content":request}],temperature=.15);analysis=(result.choices[0].message.content or "").strip()
+   result=client.chat.completions.create(model=AI_MODEL or "deepseek-v4-flash",messages=[{"role":"user","content":request}],temperature=.15,max_tokens=5000);analysis=(result.choices[0].message.content or "").strip()
    if customer_safe(analysis,allowed):break
  except (AuthenticationError,APIError) as exc:
   log(f"DeepSeek unavailable, using verified fallback: {type(exc).__name__}")
@@ -161,7 +163,8 @@ def run():
  used_ids=set(re.findall(r"\[(S\d+)\]",analysis));used_evidence=[(index,item) for index,item in enumerate(evidence) if item["id"] in used_ids]
  sources="\n".join(f'- [{item["id"]}] [{cell(item["发布机构"])}：{cell(item["标题"])}]({item["url"]})（{item["发布日期"]}，检索于 {item["retrieved"]}）' for _,item in used_evidence) or "- 本期未纳入可核验的新增政策与新闻材料，相关部分不作外推。"
  body=f"{analysis}\n\n## 今日价格全景\n{table_text}\n\n## 来源与资料日期\n{sources}"
- result=post_to_site("/api/ingest/report",{"title":f"中亚菌类市场研究日报｜{today}","type":"daily","summary":summary_from(body),"body":body,"country":"KZ","aiGenerated":True,"sources":[{"evidence_id":item["id"],"document_id":item["document_id"],"source_type":item["source_type"],"title":item["标题"],"url":item["url"],"publisher":item["发布机构"],"published_at":item["发布日期"],"retrieved_at":item["retrieved"]} for _,item in used_evidence]})
+ title=f"中亚菌类市场研究日报｜{today}" + ("（DeepSeek增强版）" if revision else "")
+ result=post_to_site("/api/ingest/report",{"title":title,"type":"daily","summary":summary_from(body),"body":body,"country":"KZ","aiGenerated":True,"sources":[{"evidence_id":item["id"],"document_id":item["document_id"],"source_type":item["source_type"],"title":item["标题"],"url":item["url"],"publisher":item["发布机构"],"published_at":item["发布日期"],"retrieved_at":item["retrieved"]} for _,item in used_evidence]})
  post_to_site("/api/ingest/revalidate",{})
  print(f'市场研究日报完成：{len(prices)} 条标准化价格，{len(evidence)} 条已核验证据，slug={result.get("slug")}')
 
