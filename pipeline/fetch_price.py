@@ -14,6 +14,7 @@ from adapters.kaspi import KaspiAdapter
 from adapters.yandex import YandexMarketAdapter
 from adapters.gipertm import GiperAdapter
 from adapters.asmanexpress import AsmanAdapter
+from adapters.arbuz import ArbuzAdapter
 from adapters.catalog_search import CatalogSearchAdapter
 from adapters.wildberries import WildberriesAdapter
 from adapters.flagma import FlagmaAdapter
@@ -22,6 +23,8 @@ from taxonomy import classify,normalize_price,parse_package
 from utils import log,post_to_data,post_to_site,safe_get,today_str
 
 SOURCES=[
+(ArbuzAdapter,{"platform":"arbuz-kz","platform_name":"Arbuz.kz","platform_product_id":"fresh-mushroom-catalog","country":"KZ","city":"Almaty","collection_point_id":"ALMATY_POINT_01","url":"https://arbuz.kz/ru/almaty/catalog/cat/225444-griby","title":"Свежие грибы","package":"","currency":"KZT","language":"ru"}),
+(ArbuzAdapter,{"platform":"arbuz-kz","platform_name":"Arbuz.kz","platform_product_id":"frozen-mushroom-catalog","country":"KZ","city":"Almaty","collection_point_id":"ALMATY_POINT_01","url":"https://arbuz.kz/ru/almaty/catalog/cat/225587-griby_zamorozhennye","title":"Замороженные грибы","package":"","currency":"KZT","language":"ru"}),
 (GlobusAdapter,{"platform":"globus","platform_name":"Globus Online","platform_product_id":"9905ed980f9d469888dadc3efc68b6fe000200010000","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://globus-online.kg/ru-kg/good/9905ed980f9d469888dadc3efc68b6fe000200010000","title":"Грибы Шампиньоны фасованные вес 1 кг","package":"1 kg","currency":"KGS","language":"ru"}),
 (GlobusAdapter,{"platform":"globus","platform_name":"Globus Online","platform_product_id":"fresh-oyster-category","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://globus-online.kg/ru-kg/catalog/grocery/category/f65c13b6fb5ffb8c5752ff03be5a71bd/a0e91ee087e645b98fb1698163a1c64f000200010000","title":"Грибы Вешенки фасованные вес 1 кг","marker":"Вешен","package":"1 kg","currency":"KGS","language":"ru"}),
 (OMarketAdapter,{"platform":"omarket","platform_name":"O!Market","platform_product_id":"4450008b-61fc-4fb7-839f-c4bdd5669c5c","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://market.o.kg/ru/bishkek/produkty-pitanija/ovoschi-frukty/product/4450008b-61fc-4fb7-839f-c4bdd5669c5c/griby-shampinony-1kg","title":"Грибы Шампиньоны 300 г","package":"300 g","currency":"KGS","language":"ru"}),
