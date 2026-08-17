@@ -1,4 +1,5 @@
 import os
+import re
 from dotenv import load_dotenv
 
 load_dotenv(".env.local")
@@ -6,7 +7,9 @@ load_dotenv()
 SITE_URL = os.environ.get("SITE_URL", "http://localhost").rstrip("/")
 CRON_SECRET = os.environ.get("CRON_SECRET", "")
 AI_PROVIDER = os.environ.get("AI_PROVIDER", "deepseek")
-AI_API_KEY = os.environ.get("AI_API_KEY", "").strip()
+_AI_API_KEY_RAW = os.environ.get("AI_API_KEY", "")
+_AI_API_KEY_MATCH = re.search(r"sk-[A-Za-z0-9_-]+", _AI_API_KEY_RAW)
+AI_API_KEY = _AI_API_KEY_MATCH.group(0) if _AI_API_KEY_MATCH else _AI_API_KEY_RAW.strip()
 AI_BASE_URL = os.environ.get("AI_BASE_URL", "https://api.deepseek.com")
 AI_MODEL = os.environ.get("AI_MODEL", "deepseek-v4-flash")
 UN_COMTRADE_API_KEY = os.environ.get("UN_COMTRADE_API_KEY", "")
