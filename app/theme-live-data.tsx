@@ -49,14 +49,17 @@ export function ExpandLivePreview(){
 
 export function OpportunityRadar({compact=false}:{compact?:boolean}){
   const visible=compact?opportunities.slice(0,3):opportunities;
+  const stages=["发现信号","补充证据","成本测算","渠道验证","报价/打样"];
   return <section className={`opportunity-radar ${compact?"compact":"full"}`} aria-label="商机雷达">
     <header className="opportunity-radar-head"><div><span>OPPORTUNITY RADAR</span><h2>商机雷达</h2><p>将贸易规模、变化幅度、渠道覆盖和证据质量合并为验证优先级；机会分不是成交预测。</p></div>{compact&&<a href="/expand/radar">查看全部商机 →</a>}</header>
     <div className="opportunity-radar-grid">{visible.map((item,index)=><article key={item.id}>
       <div className="radar-rank"><span>{String(index+1).padStart(2,"0")} · {item.country}</span></div>
       <div className="radar-tags"><b>{item.status}</b><span>证据 {item.confidence}</span><span>覆盖 {item.coverage}%</span></div>
       <h3>{item.product}</h3><p>{item.signal}</p>
+      <div className="radar-progress" aria-label="验证进度">{stages.map((stage,stageIndex)=><span className={stageIndex===0?"done":stageIndex===1&&item.coverage>=70?"active":""} key={stage}>{stage}</span>)}</div>
       <div className="radar-next"><span>建议下一步</span><b>{item.nextAction}</b></div>
       <footer><span>HS {item.hs}</span><span>市场规模 {money(item.marketUsd)}</span><span>{item.change>0?"+":""}{item.change}%</span></footer>
+      {!compact&&<div className="radar-actions"><a href={`/countries/${item.countryCode.toLowerCase()}`}>查看底层证据</a><button type="button" onClick={()=>window.print()}>打印机会卡</button><a href="/expand/contact">申请进一步验证</a></div>}
     </article>)}</div>
     {!compact&&<div className="radar-method"><b>阅读方式</b><span>优先验证：证据较强且值得立即核验</span><span>值得跟进：具备一定市场基础</span><span>补数观察：先补价格、渠道或贸易口径</span><span>暂缓：当前风险或口径问题高于机会信号</span></div>}
   </section>;
