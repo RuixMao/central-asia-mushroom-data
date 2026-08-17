@@ -1,56 +1,30 @@
 .intel-side .intel-brand {
   width: 100%;
-  min-height: 66px;
-  display: grid;
-  grid-template-columns: 48px 1fr;
+  min-height: 70px;
+  padding: 10px 12px;
+  display: flex;
   align-items: center;
-  gap: 13px;
-  color: #ffffff;
-  background: transparent;
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, .28);
   text-decoration: none;
 }
 
 .intel-side .intel-brand img {
-  display: none;
-}
-
-.intel-side .intel-brand::before {
-  content: "因";
-  width: 48px;
-  height: 48px;
-  display: grid;
-  place-items: center;
-  color: #ffffff;
-  background: #789f3f;
-  font-size: 27px;
-  font-weight: 700;
-  line-height: 1;
-}
-
-.intel-side .intel-brand::after {
-  content: "因恒科技\A INHEN TECH";
-  white-space: pre;
-  color: #ffffff;
-  font-size: 17px;
-  font-weight: 700;
-  line-height: 1.45;
-  letter-spacing: .04em;
+  width: min(178px, 100%);
+  height: auto;
+  display: block;
+  filter: none !important;
+  object-fit: contain;
 }
 
 @media (max-width: 760px) {
   .intel-side .intel-brand {
-    width: max-content;
-    min-height: 52px;
-    grid-template-columns: 40px auto;
+    width: 190px;
+    min-height: 58px;
+    padding: 7px 9px;
   }
 
-  .intel-side .intel-brand::before {
-    width: 40px;
-    height: 40px;
-    font-size: 23px;
-  }
-
-  .intel-side .intel-brand::after {
-    font-size: 15px;
+  .intel-side .intel-brand img {
+    width: 164px;
   }
 }
