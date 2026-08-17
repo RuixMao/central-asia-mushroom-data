@@ -202,11 +202,11 @@ export const priceObservations = [
 ];
 
 export const dataSources = [
-  { name: "UN Comtrade", level: "A", scope: "五国贸易主表", cadence: "年/月", status: "已接入基线", note: "官方贸易统计；保留报告国、伙伴国、贸易流向和HS版本。", url: "https://comtradeapi.un.org" },
-  { name: "中国海关", level: "A", scope: "中国出口镜像", cadence: "月", status: "待自动接入", note: "用于核对中国对中亚出口、贸易方式和境内地区。", url: "https://english.customs.gov.cn/Statistics/Statistics" },
-  { name: "FAOSTAT", level: "A−", scope: "农业供给能力", cadence: "年", status: "已接入基线", note: "中亚菌类产量为FAO估算值；衍生指标需标注口径限制。", url: "https://www.fao.org/faostat" },
-  { name: "哈萨克斯坦统计局", level: "A", scope: "4/6/10位商品", cadence: "月", status: "排期接入", note: "可补充国别—商品、地区贸易和EAEU互贸明细。", url: "https://stat.gov.kz/en/industries/economy/foreign-market/" },
-  { name: "乌兹别克斯坦统计委", level: "A", scope: "外贸与经济指标", cadence: "月/年", status: "排期接入", note: "官方页面提供CSV、JSON和XML数据出口。", url: "https://stat.uz/en/official-statistics/merchandise-trade" },
+  { name: "UN Comtrade", level: "A", scope: "五国贸易主表", cadence: "年/月", status: "可查询", note: "官方贸易统计；保留报告国、伙伴国、贸易流向和HS版本。", url: "https://comtradeapi.un.org" },
+  { name: "中国海关", level: "A", scope: "中国出口镜像", cadence: "月", status: "专题查询", note: "用于核对中国对中亚出口、贸易方式和境内地区。", url: "https://english.customs.gov.cn/Statistics/Statistics" },
+  { name: "FAOSTAT", level: "A−", scope: "农业供给能力", cadence: "年", status: "可查询", note: "中亚菌类产量为FAO估算值；衍生指标需标注口径限制。", url: "https://www.fao.org/faostat" },
+  { name: "哈萨克斯坦统计局", level: "A", scope: "4/6/10位商品", cadence: "月", status: "专题查询", note: "可补充国别—商品、地区贸易和EAEU互贸明细。", url: "https://stat.gov.kz/en/industries/economy/foreign-market/" },
+  { name: "乌兹别克斯坦统计委", level: "A", scope: "外贸与经济指标", cadence: "月/年", status: "专题查询", note: "官方页面提供CSV、JSON和XML数据出口。", url: "https://stat.uz/en/official-statistics/merchandise-trade" },
   { name: "市场观察池", level: "B+", scope: "价格与渠道", cadence: "周", status: "7条已核验", note: "挂牌价不是成交价；每条记录绑定采集日期、来源与证据。", url: "#prices" },
 ];
 
