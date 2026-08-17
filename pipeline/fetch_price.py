@@ -1,4 +1,5 @@
 import datetime as dt
+import json
 import os
 from adapters.globus import GlobusAdapter
 from adapters.omarket import OMarketAdapter
@@ -13,6 +14,9 @@ from adapters.kaspi import KaspiAdapter
 from adapters.yandex import YandexMarketAdapter
 from adapters.gipertm import GiperAdapter
 from adapters.asmanexpress import AsmanAdapter
+from adapters.catalog_search import CatalogSearchAdapter
+from adapters.wildberries import WildberriesAdapter
+from adapters.flagma import FlagmaAdapter
 from config import TARGET_SPECIES
 from taxonomy import classify,normalize_price,parse_package
 from utils import log,post_to_data,post_to_site,safe_get,today_str
@@ -21,6 +25,8 @@ SOURCES=[
 (GlobusAdapter,{"platform":"globus","platform_name":"Globus Online","platform_product_id":"9905ed980f9d469888dadc3efc68b6fe000200010000","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://globus-online.kg/ru-kg/good/9905ed980f9d469888dadc3efc68b6fe000200010000","title":"Грибы Шампиньоны фасованные вес 1 кг","package":"1 kg","currency":"KGS","language":"ru"}),
 (GlobusAdapter,{"platform":"globus","platform_name":"Globus Online","platform_product_id":"fresh-oyster-category","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://globus-online.kg/ru-kg/catalog/grocery/category/f65c13b6fb5ffb8c5752ff03be5a71bd/a0e91ee087e645b98fb1698163a1c64f000200010000","title":"Грибы Вешенки фасованные вес 1 кг","marker":"Вешен","package":"1 kg","currency":"KGS","language":"ru"}),
 (OMarketAdapter,{"platform":"omarket","platform_name":"O!Market","platform_product_id":"4450008b-61fc-4fb7-839f-c4bdd5669c5c","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://market.o.kg/ru/bishkek/produkty-pitanija/ovoschi-frukty/product/4450008b-61fc-4fb7-839f-c4bdd5669c5c/griby-shampinony-1kg","title":"Грибы Шампиньоны 300 г","package":"300 g","currency":"KGS","language":"ru"}),
+(CatalogSearchAdapter,{"platform":"globus","platform_name":"Globus Online","platform_product_id":"catalog-search","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://globus-online.kg/ru-kg/search?q=грибы","title":"Каталог грибов","package":"","currency":"KGS","language":"ru"}),
+(CatalogSearchAdapter,{"platform":"omarket","platform_name":"O!Market","platform_product_id":"catalog-search","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://market.o.kg/bishkek/search?q=грибы","title":"Каталог грибов","package":"","currency":"KGS","language":"ru"}),
 (ZudbiyorAdapter,{"platform":"zudbiyor","platform_name":"Zudbiyor","platform_product_id":"141","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://zudbiyor.tj/product/141","title":"Шампиньоны целые 1 кг","package":"1 kg","currency":"TJS","language":"ru"}),
 (MagnitAdapter,{"platform":"magnit-tj","platform_name":"Magnit.tj","platform_product_id":"18786","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://magnit.tj/product/show/18786","title":"Шампиньоны цена за 250 г","package":"250 g","currency":"TJS","language":"ru"}),
 (OlxSearchAdapter,{"platform":"olx-uz","platform_name":"OLX.uz поиск","platform_product_id":"search-fresh-mushrooms","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://www.olx.uz/list/q-грибы-свежие/","title":"Свежие грибы","package":"","currency":"UZS","language":"ru"}),
@@ -43,6 +49,11 @@ SOURCES=[
 (AsmanAdapter,{"platform":"asmanexpress","platform_name":"Asman Express","platform_product_id":"944","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://asmanexpress.com/mini/product/944","title":"Eklin Gelin kömelek bütin 400 gr","package":"400 g","currency":"TMT","language":"tk"}),
 (AsmanAdapter,{"platform":"asmanexpress","platform_name":"Asman Express","platform_product_id":"1308","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://asmanexpress.com/mini/product/1308","title":"Rita bitin Gelin kömelekli 400 gr","package":"400 g","currency":"TMT","language":"tk"}),
 (AsmanAdapter,{"platform":"asmanexpress","platform_name":"Asman Express","platform_product_id":"12389","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://asmanexpress.com/mini/product/12389","title":"Rita Kesilen şampinýonlar 200 gr","package":"200 g","currency":"TMT","language":"tk"}),
+(FlagmaAdapter,{"platform":"flagma-kz","platform_name":"Flagma.kz","platform_product_id":"catalog-search","country":"KZ","city":"Almaty","collection_point_id":"ALMATY_POINT_01","url":"https://flagma.kz/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"KZT","language":"ru"}),
+(FlagmaAdapter,{"platform":"flagma-uz","platform_name":"Flagma.uz","platform_product_id":"catalog-search","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://flagma.uz/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"UZS","language":"ru"}),
+(FlagmaAdapter,{"platform":"flagma-kg","platform_name":"Flagma.kg","platform_product_id":"catalog-search","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://flagma-kg.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"KGS","language":"ru"}),
+(FlagmaAdapter,{"platform":"flagma-tj","platform_name":"Flagma.tj","platform_product_id":"catalog-search","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://flagma-tj.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"TJS","language":"ru"}),
+(FlagmaAdapter,{"platform":"flagma-tm","platform_name":"Flagma-TM","platform_product_id":"catalog-search","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://flagma-tm.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"TMT","language":"ru"}),
 ]
 
 # Kaspi 与 Yandex 的搜索页可发现多个商品。为五个目标品类分别发起搜索，
@@ -57,13 +68,26 @@ for species_id,labels in TARGET_SPECIES.items():
 # 旧的单品种搜索配置已由上面的多品种任务覆盖，防止重复访问与重复 SKU。
 SOURCES=[entry for entry in SOURCES if entry[1].get("platform_product_id") not in {"search-shampinon"}]
 
+# Wildberries 的配送区 dest 必须按国家实测，避免把默认俄罗斯结果错归入中亚。
+# CI 可用 WB_DESTS_JSON 显式启用，例如 {"KZ":"已核验的dest"}。
+try:
+ wb_dests=json.loads(os.getenv("WB_DESTS_JSON", "{}"))
+except json.JSONDecodeError:
+ wb_dests={}
+wb_meta={"KZ":("KZT","Almaty","ALMATY_POINT_01"),"UZ":("UZS","Tashkent","TASHKENT_POINT_01"),"KG":("KGS","Bishkek","BISHKEK_POINT_01"),"TJ":("TJS","Dushanbe","DUSHANBE_POINT_01"),"TM":("TMT","Ashgabat","ASHGABAT_POINT_01")}
+for code,dest in wb_dests.items():
+ if code not in wb_meta:continue
+ currency,city,point=wb_meta[code]
+ SOURCES.append((WildberriesAdapter,{"platform":f"wildberries-{code.lower()}","platform_name":"Wildberries","platform_product_id":"catalog-search","country":code,"city":city,"collection_point_id":point,"url":"https://search.wb.ru/","title":"Каталог грибов","package":"","currency":currency,"language":"ru","dest":str(dest)}))
+
 def rates():
  r=safe_get("https://fxapi.app/api/usd.json",retries=2);return r.json()["rates"],r.json().get("timestamp")
 def run():
- fx,fx_time=rates();items=[];errors=[];wanted_platform=os.getenv("PLATFORM","").strip();wanted_point=os.getenv("COLLECTION_POINT","").strip();dry_run=os.getenv("DRY_RUN","false").lower()=="true"
+ fx,fx_time=rates();items=[];errors=[];active_configs=[];wanted_platform=os.getenv("PLATFORM","").strip();wanted_point=os.getenv("COLLECTION_POINT","").strip();dry_run=os.getenv("DRY_RUN","false").lower()=="true"
  for Adapter,config in SOURCES:
   if wanted_platform and config["platform"]!=wanted_platform:continue
   if wanted_point and config["collection_point_id"]!=wanted_point:continue
+  active_configs.append(config)
   rows,error=Adapter(config).collect_many()
   if error:errors.append({"platform":config["platform"],"reason":error});continue
   for row in rows:
@@ -97,9 +121,17 @@ def run():
    normalized_usd_per_kg=round(it["normalized_price_per_kg"]/it["usd_rate_local_per_usd"],2)
    package_display=f'{it["package_value"]:g} {it["package_unit"]}' if it.get("package_value") and it.get("package_unit") else ""
    post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":it["country"],"source":it["platform"],"data":{"product_key":f'{it["platform"]}:{it["collection_point_id"]}:{it["platform_product_id"]}',"species_id":it["species_id"],"species_zh":labels.get("zh",it["species_id"]),"species_foreign":labels.get("ru") or labels.get("en"),"original_title":it["original_title"],"product_form":it["product_form"],"package_display":package_display,"platform_id":it["platform"],"platform_name":it["platform_name"],"status":"live","price_local":it["current_price"],"price_usd":it["price_usd"],"normalized_price_usd_per_kg":normalized_usd_per_kg,"currency":it["currency"],"observed_at":today,"retrieved_at":it["observed_at"],"source_url":it["product_url"]}})
-  for e in errors:
-   country=next((c["country"] for _,c in SOURCES if c["platform"]==e["platform"]),"")
-   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":country,"source":e["platform"],"data":{"status":"gap","reason":e["reason"],"observed_at":today}})
+  successful_platforms={it["platform"] for it in items}
+  platform_errors={e["platform"]:e["reason"] for e in errors if e["platform"] not in successful_platforms}
+  for platform,reason in platform_errors.items():
+   country=next((c["country"] for _,c in SOURCES if c["platform"]==platform),"")
+   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":country,"source":platform,"data":{"status":"gap","reason":reason,"observed_at":today}})
+  platform_configs={c["platform"]:c for c in active_configs}
+  for platform,config in platform_configs.items():
+   count=sum(1 for it in items if it["platform"]==platform)
+   valid_count=sum(1 for it in items if it["platform"]==platform and it["validation_status"]=="valid")
+   health_status="live" if valid_count else ("needs_review" if count else "gap")
+   post_to_site("/api/ingest/snapshot",{"metric":"source_health","country":config["country"],"source":platform,"data":{"status":health_status,"candidate_count":count,"valid_count":valid_count,"needs_review_count":count-valid_count,"reason":platform_errors.get(platform),"observed_at":today}})
  log(f"平台适配器完成：有效 {len(items)} 条，失败 {len(errors)} 条，dry_run={dry_run}；{errors}")
- if not items:raise RuntimeError("没有有效价格")
+ if not items and not dry_run:raise RuntimeError("没有有效价格")
 if __name__=="__main__":run()
