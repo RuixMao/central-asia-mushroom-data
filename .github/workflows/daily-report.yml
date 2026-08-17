@@ -9,6 +9,11 @@ on:
         required: false
         default: false
         type: boolean
+      publish_revision:
+        description: Publish a same-day DeepSeek enhanced revision
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: customer-daily-report
@@ -63,3 +68,4 @@ jobs:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           AI_BASE_URL: https://api.deepseek.com
           AI_MODEL: deepseek-v4-flash
+          REPORT_REVISION: ${{ inputs.publish_revision == true && 'true' || 'false' }}
