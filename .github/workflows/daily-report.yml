@@ -42,7 +42,8 @@ jobs:
           response = client.chat.completions.create(
               model=os.environ["AI_MODEL"],
               messages=[{"role": "user", "content": "仅回复：连接验证成功"}],
-              max_tokens=20,
+              max_tokens=50,
+              extra_body={"thinking": {"type": "disabled"}},
           )
           if not (response.choices[0].message.content or "").strip():
               raise RuntimeError("DeepSeek returned an empty response")
