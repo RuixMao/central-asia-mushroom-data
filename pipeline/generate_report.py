@@ -16,6 +16,19 @@ FORBIDDEN=re.compile(r"https?://|(?:price|observed|source)\s*[_-]\s*(?:usd|local
 # 品类 → HS 编码（用于把 UN Comtrade 年度进口单价映射到报告品类）
 SPECIES_HS={"button_mushroom":"070951","oyster_mushroom":"070959","shiitake":"070959","king_oyster_mushroom":"070959","enoki":"070959","wood_ear":"070959","snow_fungus":"070959","morel":"070959","matsutake":"070959","porcini":"070959","chanterelle":"070959","straw_mushroom":"070959","honey_fungus":"070959","suillus":"070959","truffle":"070959","mixed_mushrooms":"070959","unknown":"070959"}
 
+CUSTOMER_PAIN_GUIDANCE="""
+这份日报的目标不是复述数据，而是帮助客户减少试错成本并决定下一步行动。你必须站在客户痛点的位置组织内容：
+- 产能方关心卖什么、卖到哪里、价格是否有空间、规格和渠道是否匹配；
+- 渠道商关心采购成本、跨平台价差、货源稳定性、补货优先级和异常报价风险；
+- 投资者关心市场量级、需求持续性、数据可信度、风险暴露和需要继续验证的关键假设；
+- 研究与管理人员关心证据口径、变化是否真实、哪些结论可行动、哪些只能继续观察。
+
+每一条核心洞察都按“客户痛点 → 可核验证据 → 业务影响 → 今日可执行动作 → 触发或停止条件”表达。
+建议必须具体到适用角色、国家/品类、动作、验证指标和风险边界，不能写“持续关注市场”“加强合作”“把握机遇”等空泛表述。
+优先回答：今天相较最近可比观察发生了什么、客户为什么需要在意、现在应做什么、什么情况下不应行动。
+如果证据只支持观察而不支持决策，要明确写成“验证任务”，不能包装成确定性商机。
+"""
+
 def customer_safe(body,allowed):
  normalized=unicodedata.normalize("NFKC",body);refs=set(re.findall(r"\[(S\d+)\]",normalized))
  return 900<=len(normalized)<=4200 and "```" not in normalized and "中亚菌类市场研究日报｜" not in normalized and not FORBIDDEN.search(normalized) and all(normalized.count(section)==1 for section in SECTIONS) and refs<=allowed
@@ -28,6 +41,10 @@ def cell(value):return str(value if value not in (None,"") else "—").replace("
 
 def run():
  today=today_str();today_date=date.fromisoformat(today);snapshots=get_site("/api/ingest/snapshot?metric=price_retail&limit=500").get("records",[])
+ existing=get_site("/api/ingest/report?type=daily").get("records",[])
+ if any(today in str(report.get("title", "")) for report in existing):
+  print(f"{today} 日报已存在，跳过重复生成")
+  return
  live=[r for r in snapshots if r.get("data",{}).get("status")=="live" and r.get("data",{}).get("normalized_price_usd_per_kg") is not None]
  prices=[r for r in live if r["data"].get("observed_at")==today]
  if not prices:raise RuntimeError(f"{today} 没有标准化可比价格，拒绝生成误导性日报")
@@ -75,7 +92,8 @@ def run():
  evidence=[]
  for index,doc in enumerate(documents):evidence.append({"id":f"S{index+1}","document_id":doc["id"],"source_type":doc["kind"],"国家":COUNTRIES.get(doc["country"],doc["country"]),"类型":doc["kind"],"标题":doc["title"],"发布机构":doc["publisher"],"发布日期":str(doc["publishedAt"])[:10],"事实摘要":doc["excerpt"],"url":doc["sourceUrl"],"retrieved":str(doc["retrievedAt"])[:10]})
  allowed={item["id"] for item in evidence}
- prompt=f"""你是因恒科技的中亚食用菌首席市场研究员。请写一份面向进口商、渠道商、投资人与经营管理层的中文市场日报。必须像严谨的机构研究简报：先给结论，再解释驱动因素、证据强弱、风险和可执行动作。只可使用下方价格、历史序列和证据包，不得自行补充新闻、政策、数字、来源、因果或预测。
+prompt=f"""你是因恒科技的中亚食用菌首席市场研究员。请写一份面向进口商、渠道商、投资人与经营管理层的中文市场日报。必须像严谨的机构研究简报：先给结论，再解释驱动因素、证据强弱、风险和可执行动作。只可使用下方价格、历史序列和证据包，不得自行补充新闻、政策、数字、来源、因果或预测。
+{CUSTOMER_PAIN_GUIDANCE}
 日期：{today}
 价格表由系统确定性生成，正文不要抄写全部数字：
 {table_text}
