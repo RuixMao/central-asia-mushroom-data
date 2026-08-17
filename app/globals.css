@@ -992,3 +992,18 @@ footer p, footer > span { font-size: 8px; }
 @media(max-width:900px){.data-center-kpis{grid-template-columns:1fr 1fr}.data-center-kpis article:nth-child(2){border-right:0}.data-signal-grid,.data-source-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.data-center-kpis,.data-center-split,.data-signal-grid,.data-source-grid{grid-template-columns:1fr}.data-center-kpis article{border-right:0;border-bottom:1px solid #d7e1e7}.data-center-block,.data-center-split>article{padding:22px 18px}.data-center-block header{display:block}.data-center-block header>a{display:inline-block;margin-top:10px}.data-center-table{overflow-x:auto}.data-center-table>div{min-width:680px}}
 .status-可申请{background:#f5edd5;color:#7c5b17}.status-项目制{background:#e8edf1;color:#52636e}
+
+/* Customer-facing contrast guardrails */
+.decision-home{--corp-navy:#103752;--corp-blue:#1e658f;--corp-steel:#54738a;--corp-ink:#16191d;--corp-line:#d9dee2;--ink:#16191d;--muted:#5f6b74;--gold:#1e658f;--line:#d9dee2}
+.marketing-site .global-nav{background:#fff;border-color:#d9dee2;box-shadow:0 7px 24px rgba(16,55,82,.08)}
+.marketing-site .global-nav nav a,.marketing-site .global-nav summary{color:#365b73}
+.marketing-site .global-nav nav a:hover,.marketing-site .global-nav summary:hover{color:#0f5b85}
+.marketing-site .global-nav details div{background:#fff;border-color:#d9dee2;box-shadow:0 14px 30px rgba(16,55,82,.14)}
+.marketing-site .saas-account{border-color:#103752;background:#103752;color:#fff}
+.marketing-site .global-footer{background:#103752;border-color:#103752;color:#fff}
+.marketing-site .global-footer b{color:#fff}
+.marketing-site .global-footer span,.marketing-site .global-footer nav a{color:#dce7ed}
+.marketing-site .global-footer nav a:hover{color:#fff}
+.decision-home .corp-primary{background:#103752;color:#fff}
+.decision-home .corp-secondary{color:#0f5b85}
+.data-center-block,.data-center-split>article{min-width:0}

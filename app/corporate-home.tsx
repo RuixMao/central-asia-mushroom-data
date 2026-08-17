@@ -24,7 +24,7 @@ export default function CorporateHome(){return <div className="marketing-site de
   <main>
     <section className="decision-hero"><div><span>YINHENG · CENTRAL ASIA MARKET ENTRY</span><h1>中亚食用菌出海决策平台</h1><p>整合五国贸易、价格、渠道与物流信息，帮助菌企选择目标市场并验证进入条件。</p><div><a className="corp-primary" href="/data">进入数据中心</a><a className="corp-secondary" href="#markets">查看重点市场 →</a></div></div><Image src="/central-asia-corridor.png" alt="喀什连接中亚的跨境物流与农业走廊" width={1536} height={1024} priority/></section>
 
-    <section className="decision-section"><header><span>THREE DECISIONS</span><h2>进入中亚前，先回答三个问题</h2></header><div className="decision-question-grid">{[["01","哪个国家值得进入","比较市场容量、增长趋势、竞争来源和证据完整度。"],["02","什么产品存在机会","结合贸易品类、零售价格和渠道供给识别验证方向。"],["03","到岸成本和风险如何","核对物流、准入、规格与真实成交条件，不用挂牌价替代成交价。"]].map(x=><article key={x[0]}><span>{x[0]}</span><h3>{x[1]}</h3><p>{x[2]}</p></article>)}</div></section>
+    <section className="decision-section"><header><span>MARKET ANSWERS</span><h2>三个关键市场判断</h2></header><div className="decision-question-grid">{[["01","优先市场：哈萨克斯坦","五国中贸易规模领先，适合优先验证鲜品冷链、渠道报价与成交条件。"],["02","优先品类：鲜/冷双孢蘑菇","哈萨克斯坦与乌兹别克斯坦的贸易和价格记录相对完整，可先从明确规格切入。"],["03","落地重点：冷链与成交验证","先核算到岸成本、运输损耗、准入要求和渠道成交价，再确定报价与试单方案。"]].map(x=><article key={x[0]}><span>{x[0]}</span><h3>{x[1]}</h3><p>{x[2]}</p></article>)}</div></section>
 
     <section className="decision-section decision-capabilities"><header><span>MARKET SERVICES</span><h2>从市场判断到落地验证</h2></header><div className="decision-capability-grid">{[["国别市场研究","贸易规模、竞争来源、风险与进入条件","/insights/country"],["五国价格监测","按国家、品类、规格和平台查看可追溯报价","/terminal"],["商机与风险验证","识别市场信号、风险和下一步行动","/opportunities"],["定制研究与合作对接","围绕具体产品与国家制定验证方案","/expand/contact"]].map(x=><a href={x[2]} key={x[0]}><h3>{x[0]}</h3><p>{x[1]}</p><b>查看详情 →</b></a>)}</div></section>
 
