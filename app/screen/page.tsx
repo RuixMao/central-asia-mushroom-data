@@ -17,9 +17,22 @@ type PriceRow = {
   platform_name: string;
   original_title: string;
   normalized_usd_per_kg: number | null;
+  normalized_quantity_kg?: number | null;
+  current_price?: number | null;
+  promotion_price?: number | null;
+  in_stock?: boolean | null;
 };
 
+type DailyRow = { date: string; country: string; speciesId: string; validSkuCount: number; inStockSkuCount: number; outOfStockRate: number; promotionShare: number; qualityGrade?: string; sevenDayChange?: number | null };
+
+type Snapshot<T> = { id: string; country: string; data: T; capturedAt: string };
+type TradeData = { hs?: string; year?: number; value_usd?: number; partner_value_usd?: number; partner_code?: string | number; status?: string; reporting_basis?: string; estimate_lower_usd?: number; estimate_upper_usd?: number; coverage_pct?: number; confidence?: string; source_id?: string; source_role?: string; availability?: string };
 const API = "/api/powerbi?table=prices";
+const roles = [
+  ["buyer", "用户 / 买家", "比价、规格、库存"], ["supplier", "供应商 / 产能方", "价格机会、贸易空间"],
+  ["investor", "投资者", "规模、增速、集中度"], ["researcher", "研究者 / 分析师", "来源、口径、缺口"],
+] as const;
+type Role = typeof roles[number][0];
 const countries = [
   ["KZ", "哈萨克斯坦", "阿拉木图"], ["UZ", "乌兹别克斯坦", "塔什干"],
   ["KG", "吉尔吉斯斯坦", "比什凯克"], ["TJ", "塔吉克斯坦", "杜尚别"],
@@ -37,22 +50,42 @@ export default function ScreenPage() {
   const [rows, setRows] = useState<PriceRow[]>([]);
   const [updated, setUpdated] = useState<Date | null>(null);
   const [error, setError] = useState("");
+  const [trade, setTrade] = useState<Snapshot<TradeData>[]>([]);
+  const [daily, setDaily] = useState<DailyRow[]>([]);
   const [countryFilter, setCountryFilter] = useState("ALL");
   const [speciesFilter, setSpeciesFilter] = useState("ALL");
-  const [role, setRole] = useState("研究者");
+  const [role, setRole] = useState<Role>("researcher");
+  const [comparableOnly, setComparableOnly] = useState(false);
 
   useEffect(() => {
-    const queryRole=new URLSearchParams(window.location.search).get("role");
-    const allowed=["产能方","渠道商","投资者","研究者"];
-    const saved=queryRole||localStorage.getItem("screen_persona")||"研究者";
-    setRole(allowed.includes(saved)?saved:"研究者");
+    const queryRole = new URLSearchParams(window.location.search).get("role") as Role | null;
+    const savedRole = window.localStorage.getItem("screen-role") as Role | null;
+    const valid = roles.map(item => item[0]);
+    setRole(valid.includes(queryRole as Role) ? queryRole! : valid.includes(savedRole as Role) ? savedRole! : "researcher");
+  }, []);
+
+  const chooseRole = (nextRole: Role) => {
+    setRole(nextRole);
+    window.localStorage.setItem("screen-role", nextRole);
+    const url = new URL(window.location.href);
+    url.searchParams.set("role", nextRole);
+    window.history.replaceState({}, "", url);
+  };
+
+  useEffect(() => {
     let active = true;
     const load = async () => {
       try {
-        const priceResponse = await fetch(API, { cache: "no-store" });
+        const [priceResponse, tradeResponse, dailyResponse] = await Promise.all([
+          fetch(API, { cache: "no-store" }),
+          fetch("/api/ingest/snapshot?metric=trade&limit=2000", { cache: "no-store" }),
+          fetch("/api/powerbi?table=daily", { cache: "no-store" }),
+        ]);
         if (!priceResponse.ok) throw new Error(`HTTP ${priceResponse.status}`);
-        const pricePayload = await priceResponse.json();
-        if (active) { setRows(pricePayload.records ?? []); setUpdated(new Date()); setError(""); }
+        const [pricePayload, tradePayload, dailyPayload] = await Promise.all([
+          priceResponse.json(), tradeResponse.ok ? tradeResponse.json() : { records: [] }, dailyResponse.ok ? dailyResponse.json() : { records: [] },
+        ]);
+        if (active) { setRows(pricePayload.records ?? []); setTrade(tradePayload.records ?? []); setDaily(dailyPayload.records ?? []); setUpdated(new Date()); setError(""); }
       } catch (reason) {
         if (active) setError(reason instanceof Error ? reason.message : "数据连接失败");
       }
@@ -65,13 +98,19 @@ export default function ScreenPage() {
   const speciesOptions = useMemo(() => Array.from(new Map(rows.map(row => [row.species_id, row.species_name ?? row.species_id])).entries()), [rows]);
   const latestDate = useMemo(() => rows.reduce((latest, row) => row.observation_date > latest ? row.observation_date : latest, ""), [rows]);
   const latestRows = useMemo(() => rows.filter(row => row.observation_date === latestDate), [rows, latestDate]);
-  const validPrices = useMemo(() => rows.map(row => Number(row.normalized_usd_per_kg)).filter(Number.isFinite), [rows]);
+  const dominantQuantity = useMemo(() => {
+    const counts = new Map<number, number>();
+    latestRows.forEach(row => { const quantity = Number(row.normalized_quantity_kg); if (quantity > 0) counts.set(quantity, (counts.get(quantity) ?? 0) + 1); });
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  }, [latestRows]);
+  const scopedRows = useMemo(() => comparableOnly && dominantQuantity != null ? rows.filter(row => Number(row.normalized_quantity_kg) === dominantQuantity) : rows, [rows, comparableOnly, dominantQuantity]);
+  const validPrices = useMemo(() => scopedRows.map(row => Number(row.normalized_usd_per_kg)).filter(Number.isFinite), [scopedRows]);
   const priceRange = useMemo(() => validPrices.length ? [Math.min(...validPrices), Math.max(...validPrices)] : [0, 0], [validPrices]);
 
-  const filteredRows = useMemo(() => rows.filter(row =>
+  const filteredRows = useMemo(() => scopedRows.filter(row =>
     (countryFilter === "ALL" || row.country === countryFilter) &&
     (speciesFilter === "ALL" || row.species_id === speciesFilter)
-  ), [rows, countryFilter, speciesFilter]);
+  ), [scopedRows, countryFilter, speciesFilter]);
 
   const stats = useMemo(() => ({
     countries: new Set(latestRows.map(row => row.country)).size,
@@ -92,7 +131,7 @@ export default function ScreenPage() {
           productId,
           history: history.sort((a, b) => a.observation_date.localeCompare(b.observation_date)).slice(-7),
           latest: history.sort((a, b) => b.observation_date.localeCompare(a.observation_date))[0],
-        }));
+        })).sort((a, b) => Number(a.latest.normalized_usd_per_kg) - Number(b.latest.normalized_usd_per_kg));
         return { speciesId, name: speciesRows[0]?.species_name ?? speciesId, products };
       });
       return { code, name, rows: countryRows, countryMedian, speciesGroups };
@@ -110,8 +149,49 @@ export default function ScreenPage() {
     const china = countryData.reduce((sum, country) => sum + country.china, 0);
     return { countries: countryData, total, china, share: total > 0 ? china / total * 100 : null };
   }, []);
-  const chooseRole=(next:string)=>{setRole(next);localStorage.setItem("screen_persona",next);const url=new URL(window.location.href);url.searchParams.set("role",next);history.replaceState(null,"",url)};
-  const roleNote:Record<string,string>={产能方:"优先查看五国价格、贸易量级与价格洼地",渠道商:"优先查看 SKU 明细与渠道；物流时效暂无可核验数据",投资者:"优先查看贸易规模、趋势与数据质量",研究者:"展示贸易、价格、渠道与全部数据口径"};
+  const verifiedTradeSources = useMemo(() => {
+    const latest = new Map<string, Snapshot<TradeData>>();
+    trade.filter(row => String(row.data.partner_code) === "SOURCE_REGISTRY" && row.data.source_id).forEach(row => {
+      const key = `${row.country}|${row.data.source_id}`;
+      if (!latest.has(key) || row.capturedAt > latest.get(key)!.capturedAt) latest.set(key, row);
+    });
+    return Array.from(latest.values()).filter(row => row.data.status === "live" && ["reachable", "configured"].includes(row.data.availability ?? ""));
+  }, [trade]);
+
+  const qualitySummary = useMemo(() => {
+    const latestDailyDate = daily.reduce((latest, row) => row.date > latest ? row.date : latest, "");
+    const current = daily.filter(row => row.date === latestDailyDate);
+    const valid = current.reduce((sum, row) => sum + Number(row.validSkuCount ?? 0), 0);
+    const inStock = current.reduce((sum, row) => sum + Number(row.inStockSkuCount ?? 0), 0);
+    const grades = current.map(row => row.qualityGrade).filter(Boolean) as string[];
+    return { date: latestDailyDate, valid, stockRate: valid ? inStock / valid * 100 : null, grade: grades.length ? grades.sort()[Math.floor(grades.length / 2)] : "—" };
+  }, [daily]);
+
+  const marketSignals = useMemo(() => {
+    const latest = rows.filter(row => row.observation_date === latestDate && Number.isFinite(Number(row.normalized_usd_per_kg)));
+    const groups = new Map<string, PriceRow[]>();
+    latest.forEach(row => groups.set(row.species_id, [...(groups.get(row.species_id) ?? []), row]));
+    return Array.from(groups.entries()).map(([speciesId, items]) => {
+      const ordered = [...items].sort((a, b) => Number(a.normalized_usd_per_kg) - Number(b.normalized_usd_per_kg));
+      const middle = median(items.map(item => Number(item.normalized_usd_per_kg))) ?? 0;
+      const low = ordered[0], high = ordered.at(-1)!;
+      return { speciesId, name: low.species_name ?? speciesId, low, high, discount: middle ? (middle - Number(low.normalized_usd_per_kg)) / middle * 100 : 0 };
+    });
+  }, [rows, latestDate]);
+
+  const tradeTrend = useMemo(() => {
+    const latest = new Map<string, Snapshot<TradeData>>();
+    trade.filter(row => row.data.hs && Number.isFinite(Number(row.data.year)) && ["ALL", "0"].includes(String(row.data.partner_code ?? "ALL")) && row.data.status === "live").forEach(row => {
+      const key = `${row.country}|${row.data.hs}|${row.data.year}`;
+      if (!latest.has(key) || row.capturedAt > latest.get(key)!.capturedAt) latest.set(key, row);
+    });
+    const byYear = new Map<number, number>();
+    latest.forEach(row => byYear.set(Number(row.data.year), (byYear.get(Number(row.data.year)) ?? 0) + Number(row.data.value_usd ?? 0)));
+    return Array.from(byYear.entries()).sort(([a], [b]) => a - b).slice(-7).map(([year, value]) => ({ year, value }));
+  }, [trade]);
+
+  const roleCopy = roles.find(item => item[0] === role)!;
+  const formatQuantity = (quantity?: number | null) => quantity == null || !Number.isFinite(Number(quantity)) ? "规格待核" : Number(quantity) >= 1 ? `${Number(quantity).toFixed(Number(quantity) % 1 ? 1 : 0)}kg 装` : `${Math.round(Number(quantity) * 1000)}g 装`;
 
   return <main className={`live-screen role-${role}`}>
     <header className="screen-head">
@@ -119,25 +199,39 @@ export default function ScreenPage() {
       <div className="screen-status"><i /> 数据链路在线 · POWER BI READY<br/><small>{updated ? `更新于 ${updated.toLocaleTimeString("zh-CN")}` : "正在连接…"}</small></div>
     </header>
 
+    <nav className="screen-roles" aria-label="选择看板角色">
+      <div><small>当前视角</small><b>{roleCopy[1]}</b><span>{roleCopy[2]}</span></div>
+      {roles.map(([id, name, description]) => <button key={id} className={role === id ? "active" : ""} onClick={() => chooseRole(id)} aria-pressed={role === id}><b>{name}</b><small>{description}</small></button>)}
+    </nav>
+
     <div className="screen-quality">
       <span><i />最新数据日 {latestDate || "—"}</span>
       <b>有效价格 {latestRows.length} 条</b>
       <b>国家覆盖 {stats.countries}/5（今日）</b>
+      <em>质量等级 {qualitySummary.grade} · 在库率 {qualitySummary.stockRate == null ? "—" : `${qualitySummary.stockRate.toFixed(0)}%`} · 已核验来源 {verifiedTradeSources.length}</em>
       <strong>挂牌价 ≠ 成交价，仅供趋势参考</strong>
     </div>
-    <nav className="screen-role-switch" aria-label="角色视图"><span>当前视图</span>{["产能方","渠道商","投资者","研究者"].map(item=><button className={role===item?"active":""} onClick={()=>chooseRole(item)} key={item}>{item}</button>)}<small>{roleNote[role]}</small></nav>
 
     <section className="screen-kpis">
       <article><span>有效价格记录</span><b>{rows.length}</b><small>历史有效观察</small></article>
       <article><span>国家覆盖</span><b>{stats.countries}<em>/5（今日）</em></b><small>{countries.filter(([code])=>!latestRows.some(row=>row.country===code)).map(([,name])=>name).join("、")||"五国"}{stats.countries<5?"今日无有效价格":"今日均有有效价格"}</small></article>
       <article><span>菌种覆盖</span><b>{stats.species}</b><small>{speciesOptions.map(([, name]) => name).join("、") || "—"}</small></article>
       <article><span>渠道覆盖</span><b>{stats.platforms}</b><small>公开零售渠道</small></article>
-      <article className="range-kpi"><span>挂牌价格范围</span><b>${priceRange[0].toFixed(2)}—${priceRange[1].toFixed(2)}</b><small>USD/kg · 含不同规格包装折算</small></article>
+      <article className="range-kpi"><span>{comparableOnly ? "同规格价格范围" : "挂牌价格范围"}</span><b>${priceRange[0].toFixed(2)}—${priceRange[1].toFixed(2)}</b><small>USD/kg · {comparableOnly && dominantQuantity != null ? formatQuantity(dominantQuantity) : "已逐行标注包装规格"}</small></article>
+    </section>
+
+    <section className={`role-insights role-${role}`}>
+      <header><span>ROLE SIGNALS</span><b>{roleCopy[1]}决策提示</b></header>
+      {role === "buyer" && marketSignals.slice(0, 3).map(signal => <article key={signal.speciesId}><small>{signal.name}价格洼地</small><b>{signal.low.country_name ?? signal.low.country} · ${Number(signal.low.normalized_usd_per_kg).toFixed(2)}/kg</b><span>{formatQuantity(signal.low.normalized_quantity_kg)} · 较中位价低 {signal.discount.toFixed(0)}%</span></article>)}
+      {role === "supplier" && marketSignals.slice(0, 3).map(signal => <article key={signal.speciesId}><small>{signal.name}高价市场</small><b>{signal.high.country_name ?? signal.high.country} · ${Number(signal.high.normalized_usd_per_kg).toFixed(2)}/kg</b><span>用于发现潜在供给空间，需结合贸易占比核验</span></article>)}
+      {role === "investor" && <><article><small>贸易市场规模</small><b>{tradeOverview.total ? `$${(tradeOverview.total / 1_000_000).toFixed(2)}M` : "—"}</b><span>贸易口径，与零售挂牌价分开</span></article><article><small>中国来源占比</small><b>{tradeOverview.share == null ? "—" : `${tradeOverview.share.toFixed(1)}%`}</b><span>含镜像估算时以置信标签为准</span></article><article><small>数据质量</small><b>{qualitySummary.grade}</b><span>{verifiedTradeSources.length} 个已核验来源关系</span></article></>}
+      {role === "researcher" && <><article><small>价格样本</small><b>{rows.length} 条</b><span>最新批次 {latestDate || "—"}</span></article><article><small>日报汇总</small><b>{daily.length} 组</b><span>质量等级中位数 {qualitySummary.grade}</span></article><article><small>采集运行明细</small><b>暂未返回</b><span>runs/errors 当前为空，不展示虚假成功率</span></article></>}
     </section>
 
     <nav className="screen-filters" aria-label="数据筛选">
       <div><span>国家</span><button className={countryFilter === "ALL" ? "active" : ""} onClick={() => setCountryFilter("ALL")}>全部</button>{countries.map(([code, name]) => <button className={countryFilter === code ? "active" : ""} onClick={() => setCountryFilter(code)} key={code}>{name}</button>)}</div>
       <div><span>菌种</span><button className={speciesFilter === "ALL" ? "active" : ""} onClick={() => setSpeciesFilter("ALL")}>全部</button>{speciesOptions.map(([id, name]) => <button className={speciesFilter === id ? "active" : ""} onClick={() => setSpeciesFilter(id)} key={id}>{name}</button>)}</div>
+      <div><span>规格</span><button className={comparableOnly ? "active" : ""} onClick={() => setComparableOnly(value => !value)} disabled={dominantQuantity == null}>{comparableOnly ? `仅比较 ${formatQuantity(dominantQuantity)}` : "全部规格"}</button><small>同规格模式采用当日样本最多的包装规格，避免跨包装误判。</small></div>
     </nav>
 
     <section className="screen-grid">
@@ -147,6 +241,10 @@ export default function ScreenPage() {
           <div className={`screen-share-ring ${tradeOverview.share == null ? "empty" : ""}`} style={tradeOverview.share == null ? undefined : { background: `conic-gradient(#42e6b0 0 ${tradeOverview.share}%, #1b4d68 ${tradeOverview.share}% 100%)` }}><div><strong>{tradeOverview.share?.toFixed(1) ?? "—"}%</strong><span>中国金额占比</span></div></div>
           <div><span>2024 已确认贸易规模</span><strong>{tradeOverview.total?`$${(tradeOverview.total / 1_000_000).toFixed(2)}M`:"—"}</strong><small>来源：UN Comtrade 2024 进口数据及伙伴国镜像记录，HS 070951/070959/200310</small></div>
         </div>
+        {(role === "supplier" || role === "investor") && tradeTrend.length > 1 && <div className="trade-history">
+          <header><b>食用菌进口年度序列</b><small>贸易口径 · USD</small></header>
+          <div>{tradeTrend.map(point => { const max = Math.max(...tradeTrend.map(item => item.value), 1); return <span key={point.year}><i style={{height: `${Math.max(8, point.value / max * 100)}%`}} /><b>{point.year}</b><small>${(point.value / 1_000_000).toFixed(1)}M</small></span>; })}</div>
+        </div>}
         <p className="screen-source-note">中国金额占比 = 中亚五国自中国进口 / 自全球进口；缺少来源国分项的记录不推算占比。</p>
         <div className="screen-trade-countries">{tradeOverview.countries.map(country => <article key={country.code}>
           <header><div><b>{country.name}</b><small>{country.code} · {country.items.length} 个品类</small></div><div><em className={`screen-grade grade-${country.grade.replace("+", "plus")}`}>{country.grade}</em><small className={latestRows.some(row=>row.country===country.code)?"today-ok":"today-gap"}>{latestRows.some(row=>row.country===country.code)?"今日有价格":"今日无有效价格"}</small></div></header>
@@ -154,7 +252,7 @@ export default function ScreenPage() {
           <div className="screen-hs-list">{country.items.map(item => <div key={item.hs}><span><b>{item.product}</b><small>HS {item.hs}</small></span><strong>${Number(item.importerCifUsd ?? item.confirmedTradeUsd ?? 0).toLocaleString("en-US")}</strong><em>{item.confidence}</em></div>)}</div>
           <p>{country.items[0]?.confidenceBasis}</p>
         </article>)}</div>
-        <p className="trade-method">评级说明：A+ 为进口国公布金额、数量和来源国；A 为可靠的双向申报；B+ 为两个或以上伙伴国申报汇总；B 为单一可靠伙伴国申报。金额均为 2024 年美元值。</p>
+        <p className="trade-method">评级说明：A+ 为进口国公布金额、数量和来源国；A 为可靠的双向申报；B+ 为两个或以上伙伴国申报汇总；B 为单一可靠伙伴国申报。金额均为 2024 年美元值。优先采用进口国申报，缺失时采用中国及主要伙伴国出口镜像；已核验来源关系 {verifiedTradeSources.length} 个。</p>
       </article>
 
       <article className="screen-feed">
@@ -165,15 +263,15 @@ export default function ScreenPage() {
             <header><div><b>{group.name}</b><small>{group.code}</small></div><em>{group.rows.length} 条 · {group.speciesGroups.length} 菌种</em></header>
             {group.speciesGroups.length ? <div className="species-price-groups">{group.speciesGroups.map(speciesGroup => <article key={speciesGroup.speciesId}>
               <div className="species-group-head"><b>{speciesGroup.name}</b><span>{speciesGroup.products.length} SKU</span></div>
-              {speciesGroup.products.slice(0, 5).map(({ productId, latest, history }) => {
+              {speciesGroup.products.slice(0, 5).map(({ productId, latest, history }, productIndex) => {
                 const price = Number(latest.normalized_usd_per_kg);
                 const previous = history.length > 1 ? Number(history[history.length - 2].normalized_usd_per_kg) : null;
                 const tone = group.countryMedian == null ? "" : price <= group.countryMedian ? "price-low" : "price-high";
                 const max = Math.max(...history.map(item => Number(item.normalized_usd_per_kg)).filter(Number.isFinite), 1);
                 return <div className="species-price-row" key={productId}>
-                  <span title={latest.original_title}>{latest.city} · {latest.platform_name}<small>{latest.observation_date}</small></span>
+                  <span title={latest.original_title}>{latest.city} · {latest.platform_name}<small>{formatQuantity(latest.normalized_quantity_kg)} · {latest.in_stock === false ? "缺货" : "在库"}{latest.promotion_price != null ? " · 促销" : ""}</small></span>
                   <span className="mini-trend" aria-label="近七次价格趋势">{history.map((item, index) => <i key={`${item.observation_date}-${index}`} style={{height: `${Math.max(18, Number(item.normalized_usd_per_kg) / max * 100)}%`}} />)}</span>
-                  <em className={tone}>${price.toFixed(2)}{previous != null && previous !== price && <b>{price > previous ? "↑" : "↓"}</b>}<small>USD / 公斤</small></em>
+                  <em className={tone}>${price.toFixed(2)}{previous != null && previous !== price && <b>{price > previous ? "↑" : "↓"}</b>}<small>USD / 公斤 {productIndex === 0 ? "· 洼地" : productIndex === speciesGroup.products.length - 1 ? "· 高位" : ""}</small></em>
                 </div>;
               })}
             </article>)}</div> : <p className="country-collecting">今日暂无有效价格；历史评级仍保留，采集缺口已标注</p>}
