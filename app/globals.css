@@ -1007,3 +1007,22 @@ footer p, footer > span { font-size: 8px; }
 .decision-home .corp-primary{background:#103752;color:#fff}
 .decision-home .corp-secondary{color:#0f5b85}
 .data-center-block,.data-center-split>article{min-width:0}
+
+/* Site-wide customer readability baseline */
+.decision-action>div>span{color:#b9d8ea}
+.data-site .data-summary span,.data-site .data-summary small,.data-site .data-footnote,.data-site .price-grid small,.data-site .mirror-grid p,.data-site .mirror-grid strong small{color:#596a75}
+.saas-site .docs-layout th,.saas-site .sample-row.head{color:#fff}
+.expand-form button{background:#103f5b;color:#fff;font-weight:700}
+.reports-site .report-generator small,.reports-site .report-list article>div>small{color:#586f7e}
+.report-unavailable{color:#526b7a!important;font-weight:700}
+.insight-brief span{color:#506b7d}.insight-brief small{color:#526b7a}
+.data-summary span{color:#506a79}.data-summary small{color:#526a78}
+.mushroom-entry-grid>a{background:#fff;color:#17242d;border-color:#cdd9e0}
+.mushroom-entry-grid>a span{color:#17618d}.mushroom-entry-grid>a p{color:#526b7a}.mushroom-entry-grid>a b{color:#0f5b85}
+.solution-method>div:first-child>span{color:#bed8e7}
+.dashboard-title>a{background:#103f5b!important;color:#fff!important;border-color:#103f5b!important;font-weight:700}
+.coverage-gap-strip .gap{color:#a54825;border-color:#b56b4c;background:#fff5ef}
+.intel-side nav .active{color:#fff;background:#29475a}.intel-product small{color:#d3e0e7}.intel-hero p{color:#536b79}
+.screen-role-switch small,.screen-source-note{color:#b8d1df}.screen-role-switch span{color:#d7e6ed}
+.theme-row.head{color:#536b79}.theme-empty,.theme-source{color:#536b79}
+.market-filter-panel small,.market-filter-panel p{color:#536b79}

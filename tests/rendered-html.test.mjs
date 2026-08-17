@@ -28,7 +28,7 @@ test("server-renders the corporate website and public data center", async () => 
   assert.match(html, /href="\/privacy"/);
   assert.match(html, /href="\/terms"/);
   assert.match(html, /href="\/market"/);
-  assert.match(html, /\$6\.96M/);
+  assert.match(html, /\$6\.00M/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 
   const terminal = await render("/terminal");
