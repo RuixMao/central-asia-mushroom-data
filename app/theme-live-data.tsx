@@ -52,7 +52,7 @@ export function OpportunityRadar({compact=false}:{compact?:boolean}){
   return <section className={`opportunity-radar ${compact?"compact":"full"}`} aria-label="商机雷达">
     <header className="opportunity-radar-head"><div><span>OPPORTUNITY RADAR</span><h2>商机雷达</h2><p>将贸易规模、变化幅度、渠道覆盖和证据质量合并为验证优先级；机会分不是成交预测。</p></div>{compact&&<a href="/expand/radar">查看全部商机 →</a>}</header>
     <div className="opportunity-radar-grid">{visible.map((item,index)=><article key={item.id}>
-      <div className="radar-rank"><span>{String(index+1).padStart(2,"0")} · {item.country}</span><strong>{item.score}<small>/100</small></strong></div>
+      <div className="radar-rank"><span>{String(index+1).padStart(2,"0")} · {item.country}</span></div>
       <div className="radar-tags"><b>{item.status}</b><span>证据 {item.confidence}</span><span>覆盖 {item.coverage}%</span></div>
       <h3>{item.product}</h3><p>{item.signal}</p>
       <div className="radar-next"><span>建议下一步</span><b>{item.nextAction}</b></div>
