@@ -5,6 +5,8 @@
 @import "./typography-system.css";
 @import "./contrast-fixes.css";
 @import "./role-button-fix.css";
+@import "./terminal-brand.css";
+@import "./terminal-delivery.css";
 
 :root {
   --ink: #16191d;

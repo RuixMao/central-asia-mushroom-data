@@ -37,7 +37,10 @@ test("server-renders the corporate website and public data center", async () => 
   assert.match(terminalHtml, /中亚菌类数据终端/);
   assert.match(terminalHtml, /数据资产地图/);
   assert.match(terminalHtml, /每日食用菌细分品类价格终端/);
-  assert.match(terminalHtml, /当前有效观察/);
+  assert.match(terminalHtml, /筛选内有效报价/);
+  assert.match(terminalHtml, /近七次采集/);
+  assert.match(terminalHtml, /导出当前结果 CSV/);
+  assert.match(terminalHtml, /定制数据与 API/);
   assert.match(terminalHtml, /每日 SKU 明细/);
   assert.match(terminalHtml, /来源/);
 
