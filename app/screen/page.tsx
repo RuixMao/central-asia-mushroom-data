@@ -39,11 +39,13 @@ export default function ScreenPage() {
   const [error, setError] = useState("");
   const [countryFilter, setCountryFilter] = useState("ALL");
   const [speciesFilter, setSpeciesFilter] = useState("ALL");
-  const [role, setRole] = useState("产能方");
+  const [role, setRole] = useState("研究者");
 
   useEffect(() => {
     const queryRole=new URLSearchParams(window.location.search).get("role");
-    setRole(queryRole||localStorage.getItem("yinheng-role")||"产能方");
+    const allowed=["产能方","渠道商","投资者","研究者"];
+    const saved=queryRole||localStorage.getItem("screen_persona")||"研究者";
+    setRole(allowed.includes(saved)?saved:"研究者");
     let active = true;
     const load = async () => {
       try {
@@ -72,15 +74,15 @@ export default function ScreenPage() {
   ), [rows, countryFilter, speciesFilter]);
 
   const stats = useMemo(() => ({
-    countries: new Set(rows.map(row => row.country)).size,
+    countries: new Set(latestRows.map(row => row.country)).size,
     species: new Set(rows.map(row => row.species_id)).size,
     platforms: new Set(rows.map(row => row.platform_name)).size,
-  }), [rows]);
+  }), [rows, latestRows]);
 
   const countryGroups = useMemo(() => countries
     .filter(([code]) => countryFilter === "ALL" || countryFilter === code)
     .map(([code, name]) => {
-      const countryRows = filteredRows.filter(row => row.country === code);
+      const countryRows = filteredRows.filter(row => row.country === code && row.observation_date === latestDate);
       const countryMedian = median(countryRows.map(row => Number(row.normalized_usd_per_kg)).filter(Number.isFinite));
       const speciesGroups = Array.from(new Set(countryRows.map(row => row.species_id))).map(speciesId => {
         const speciesRows = countryRows.filter(row => row.species_id === speciesId);
@@ -94,7 +96,7 @@ export default function ScreenPage() {
         return { speciesId, name: speciesRows[0]?.species_name ?? speciesId, products };
       });
       return { code, name, rows: countryRows, countryMedian, speciesGroups };
-    }), [filteredRows, countryFilter]);
+    }), [filteredRows, countryFilter, latestDate]);
 
   const tradeOverview = useMemo(() => {
     const countryData = countries.map(([code, name]) => {
@@ -108,9 +110,10 @@ export default function ScreenPage() {
     const china = countryData.reduce((sum, country) => sum + country.china, 0);
     return { countries: countryData, total, china, share: total > 0 ? china / total * 100 : null };
   }, []);
-  const chooseRole=(next:string)=>{setRole(next);localStorage.setItem("yinheng-role",next);const url=new URL(window.location.href);url.searchParams.set("role",next);history.replaceState(null,"",url)};
+  const chooseRole=(next:string)=>{setRole(next);localStorage.setItem("screen_persona",next);const url=new URL(window.location.href);url.searchParams.set("role",next);history.replaceState(null,"",url)};
+  const roleNote:Record<string,string>={产能方:"优先查看五国价格、贸易量级与价格洼地",渠道商:"优先查看 SKU 明细与渠道；物流时效暂无可核验数据",投资者:"优先查看贸易规模、趋势与数据质量",研究者:"展示贸易、价格、渠道与全部数据口径"};
 
-  return <main className="live-screen">
+  return <main className={`live-screen role-${role}`}>
     <header className="screen-head">
       <div><span>INHEN CENTRAL ASIA INTELLIGENCE</span><h1>中亚菌类市场实时数据中枢</h1></div>
       <div className="screen-status"><i /> 数据链路在线 · POWER BI READY<br/><small>{updated ? `更新于 ${updated.toLocaleTimeString("zh-CN")}` : "正在连接…"}</small></div>
@@ -119,14 +122,14 @@ export default function ScreenPage() {
     <div className="screen-quality">
       <span><i />最新数据日 {latestDate || "—"}</span>
       <b>有效价格 {latestRows.length} 条</b>
-      <b>国家覆盖 {stats.countries}/5</b>
+      <b>国家覆盖 {stats.countries}/5（今日）</b>
       <strong>挂牌价 ≠ 成交价，仅供趋势参考</strong>
     </div>
-    <nav className="screen-role-switch" aria-label="角色视图"><span>当前视图</span>{["产能方","渠道商","投资者","研究者"].map(item=><button className={role===item?"active":""} onClick={()=>chooseRole(item)} key={item}>{item}</button>)}</nav>
+    <nav className="screen-role-switch" aria-label="角色视图"><span>当前视图</span>{["产能方","渠道商","投资者","研究者"].map(item=><button className={role===item?"active":""} onClick={()=>chooseRole(item)} key={item}>{item}</button>)}<small>{roleNote[role]}</small></nav>
 
     <section className="screen-kpis">
       <article><span>有效价格记录</span><b>{rows.length}</b><small>历史有效观察</small></article>
-      <article><span>国家覆盖</span><b>{stats.countries}<em>/5</em></b><small>中亚五国</small></article>
+      <article><span>国家覆盖</span><b>{stats.countries}<em>/5（今日）</em></b><small>{countries.filter(([code])=>!latestRows.some(row=>row.country===code)).map(([,name])=>name).join("、")||"五国"}{stats.countries<5?"今日无有效价格":"今日均有有效价格"}</small></article>
       <article><span>菌种覆盖</span><b>{stats.species}</b><small>{speciesOptions.map(([, name]) => name).join("、") || "—"}</small></article>
       <article><span>渠道覆盖</span><b>{stats.platforms}</b><small>公开零售渠道</small></article>
       <article className="range-kpi"><span>挂牌价格范围</span><b>${priceRange[0].toFixed(2)}—${priceRange[1].toFixed(2)}</b><small>USD/kg · 含不同规格包装折算</small></article>
@@ -142,10 +145,11 @@ export default function ScreenPage() {
         <div className="screen-title price-chart-title"><span>01</span><div><b>中亚五国菌类贸易与可信度</b><small>COUNTRY → HS CATEGORY → DATA GRADE</small></div></div>
         <div className="screen-trade-summary">
           <div className={`screen-share-ring ${tradeOverview.share == null ? "empty" : ""}`} style={tradeOverview.share == null ? undefined : { background: `conic-gradient(#42e6b0 0 ${tradeOverview.share}%, #1b4d68 ${tradeOverview.share}% 100%)` }}><div><strong>{tradeOverview.share?.toFixed(1) ?? "—"}%</strong><span>中国金额占比</span></div></div>
-          <div><span>2024 已确认贸易规模</span><strong>${(tradeOverview.total / 1_000_000).toFixed(2)}M</strong><small>覆盖中亚五国 · 8 个国家与品类组合</small></div>
+          <div><span>2024 已确认贸易规模</span><strong>{tradeOverview.total?`$${(tradeOverview.total / 1_000_000).toFixed(2)}M`:"—"}</strong><small>来源：UN Comtrade 2024 进口数据及伙伴国镜像记录，HS 070951/070959/200310</small></div>
         </div>
+        <p className="screen-source-note">中国金额占比 = 中亚五国自中国进口 / 自全球进口；缺少来源国分项的记录不推算占比。</p>
         <div className="screen-trade-countries">{tradeOverview.countries.map(country => <article key={country.code}>
-          <header><div><b>{country.name}</b><small>{country.code} · {country.items.length} 个品类</small></div><em className={`screen-grade grade-${country.grade.replace("+", "plus")}`}>{country.grade}</em></header>
+          <header><div><b>{country.name}</b><small>{country.code} · {country.items.length} 个品类</small></div><div><em className={`screen-grade grade-${country.grade.replace("+", "plus")}`}>{country.grade}</em><small className={latestRows.some(row=>row.country===country.code)?"today-ok":"today-gap"}>{latestRows.some(row=>row.country===country.code)?"今日有价格":"今日无有效价格"}</small></div></header>
           <div className="screen-country-total"><span>已确认金额</span><b>${country.total.toLocaleString("en-US")}</b><small>{country.share == null ? "—" : `其中中国占 ${country.share.toFixed(1)}%`}</small></div>
           <div className="screen-hs-list">{country.items.map(item => <div key={item.hs}><span><b>{item.product}</b><small>HS {item.hs}</small></span><strong>${Number(item.importerCifUsd ?? item.confirmedTradeUsd ?? 0).toLocaleString("en-US")}</strong><em>{item.confidence}</em></div>)}</div>
           <p>{country.items[0]?.confidenceBasis}</p>
@@ -172,7 +176,7 @@ export default function ScreenPage() {
                   <em className={tone}>${price.toFixed(2)}{previous != null && previous !== price && <b>{price > previous ? "↑" : "↓"}</b>}<small>USD / 公斤</small></em>
                 </div>;
               })}
-            </article>)}</div> : <p className="country-collecting">当前筛选下暂无有效价格</p>}
+            </article>)}</div> : <p className="country-collecting">今日暂无有效价格；历史评级仍保留，采集缺口已标注</p>}
           </section>)}
           {!rows.length && !error && <p className="screen-empty">等待五国自动化采集写入数据…</p>}
         </div>

@@ -7,8 +7,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const imageUrl = `${protocol}://${host}/og.png`;
-  const title = "因恒科技｜中亚数据与市场研究平台";
-  const description = "汇集区域宏观经济、产业、企业与市场信息，为金融机构、投资者和企业提供可信、及时、可执行的中亚市场研究支持。";
+  const title = "中亚食用菌出海服务平台｜行情研判与商业分析";
+  const description = "覆盖中亚五国食用菌贸易、零售价格与市场行情，为产能方、渠道商、投资者提供数据驱动的出海决策支持。";
 
   return {
     title,

@@ -1,5 +1,7 @@
 import ProductShell from "../product-shell";
 import { mirrorRecords } from "../data";
+import { InsightsLivePreview } from "../theme-live-data";
+export const metadata={title:"需求分析｜中亚食用菌出海服务平台"};
 
 const countries = [["KZ", "哈萨克斯坦"], ["UZ", "乌兹别克斯坦"], ["KG", "吉尔吉斯斯坦"], ["TJ", "塔吉克斯坦"], ["TM", "土库曼斯坦"]] as const;
 const money = (value: number) => value >= 1_000_000 ? `$${(value / 1_000_000).toFixed(2)}M` : `$${Math.round(value / 1_000).toLocaleString("en-US")}K`;
@@ -16,6 +18,7 @@ export default function Page() {
     <section className="country-research-grid">
       {countries.map(([code, name]) => { const rows = mirrorRecords.filter(row => row.countryCode === code); const total = rows.reduce((sum, row) => sum + Number(row.importerCifUsd ?? row.confirmedTradeUsd ?? 0), 0); const grade = rows[0]?.confidence ?? "B"; return <article key={code} className={code === "UZ" ? "featured" : ""}><header><span>{code}</span><em>{grade}</em></header><h3>{name}</h3><strong>{money(total)}</strong><p>{rows.length} 个已确认菌类贸易品类</p>{code === "UZ" && <small>已覆盖官方贸易基线与塔什干渠道价格</small>}<a href={`/terminal/${code}`}>查看国别研究 →</a></article>; })}
     </section>
+    <InsightsLivePreview/>
     <section className="detail-card-grid insight-entry-grid">
       <article><span>国别需求</span><h2>五国需求画像</h2><p>按国家查看贸易、价格和供应结构。</p><a href="/insights/country">进入国别分析 →</a></article>
       <article><span>贸易分析</span><h2>规模与来源结构</h2><p>查看 HS 品类金额、来源构成和可信度。</p><a href="/insights/trade">进入贸易分析 →</a></article>
