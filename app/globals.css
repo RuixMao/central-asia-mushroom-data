@@ -1026,3 +1026,5 @@ footer p, footer > span { font-size: 8px; }
 .screen-role-switch small,.screen-source-note{color:#b8d1df}.screen-role-switch span{color:#d7e6ed}
 .theme-row.head{color:#536b79}.theme-empty,.theme-source{color:#536b79}
 .market-filter-panel small,.market-filter-panel p{color:#536b79}
+.customer-service-grid{grid-template-columns:repeat(3,1fr);margin-bottom:48px}.customer-service-grid article{min-height:245px;display:flex;flex-direction:column}.customer-service-grid article>a{margin-top:auto}
+@media(max-width:900px){.customer-service-grid{grid-template-columns:1fr}}
