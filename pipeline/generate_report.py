@@ -7,7 +7,7 @@ from datetime import date,timedelta
 
 from openai import APIError, AuthenticationError, OpenAI
 from config import AI_API_KEY,AI_BASE_URL,AI_MODEL,TARGET_SPECIES
-from utils import get_site,post_to_site,today_str
+from utils import get_site,log,post_to_site,today_str
 
 COUNTRIES={"KZ":"哈萨克斯坦","UZ":"乌兹别克斯坦","KG":"吉尔吉斯斯坦","TJ":"塔吉克斯坦","TM":"土库曼斯坦"}
 FORMS={"fresh":"鲜品","chilled":"冷藏","frozen":"冷冻","dried":"干制","pickled":"腌渍","canned":"罐装","powder":"粉剂"}
