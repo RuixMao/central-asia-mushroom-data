@@ -92,7 +92,7 @@ def run():
  evidence=[]
  for index,doc in enumerate(documents):evidence.append({"id":f"S{index+1}","document_id":doc["id"],"source_type":doc["kind"],"国家":COUNTRIES.get(doc["country"],doc["country"]),"类型":doc["kind"],"标题":doc["title"],"发布机构":doc["publisher"],"发布日期":str(doc["publishedAt"])[:10],"事实摘要":doc["excerpt"],"url":doc["sourceUrl"],"retrieved":str(doc["retrievedAt"])[:10]})
  allowed={item["id"] for item in evidence}
-prompt=f"""你是因恒科技的中亚食用菌首席市场研究员。请写一份面向进口商、渠道商、投资人与经营管理层的中文市场日报。必须像严谨的机构研究简报：先给结论，再解释驱动因素、证据强弱、风险和可执行动作。只可使用下方价格、历史序列和证据包，不得自行补充新闻、政策、数字、来源、因果或预测。
+ prompt=f"""你是因恒科技的中亚食用菌首席市场研究员。请写一份面向进口商、渠道商、投资人与经营管理层的中文市场日报。必须像严谨的机构研究简报：先给结论，再解释驱动因素、证据强弱、风险和可执行动作。只可使用下方价格、历史序列和证据包，不得自行补充新闻、政策、数字、来源、因果或预测。
 {CUSTOMER_PAIN_GUIDANCE}
 日期：{today}
 价格表由系统确定性生成，正文不要抄写全部数字：
