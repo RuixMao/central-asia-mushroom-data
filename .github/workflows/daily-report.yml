@@ -29,10 +29,14 @@ jobs:
         run: |
           python - <<'PY'
           import os
+          import re
           from openai import OpenAI
 
+          raw_key = os.environ["AI_API_KEY"]
+          match = re.search(r"sk-[A-Za-z0-9_-]+", raw_key)
+          api_key = match.group(0) if match else raw_key.strip()
           client = OpenAI(
-              api_key=os.environ["AI_API_KEY"].strip(),
+              api_key=api_key,
               base_url=os.environ["AI_BASE_URL"],
           )
           response = client.chat.completions.create(
