@@ -3,6 +3,7 @@ import os
 import statistics
 import time
 import urllib.parse
+import threading
 import requests
 from config import SITE_URL, CRON_SECRET
 
@@ -17,6 +18,9 @@ def median(nums): return statistics.median(nums) if nums else None
 # 设置环境变量 PROXY_BASE（如 https://tm-proxy.xxx.workers.dev）后，
 # 这些域名的请求改经 CF Worker 中转出口；不设置则保持直连（本地正常）。
 PROXY_DOMAINS = ("gipertm.com", "asmanexpress.com")
+_LAST_REQUEST_BY_HOST = {}
+_REQUEST_LOCK = threading.Lock()
+MIN_REQUEST_INTERVAL = 1.5
 
 def _maybe_proxy(url, **kwargs):
     base = os.getenv("PROXY_BASE", "").strip().rstrip("/")
@@ -32,6 +36,12 @@ def safe_get(url, retries=3, backoff=2, **kwargs):
     timeout = kwargs.pop("timeout", 45 if os.getenv("PROXY_BASE", "").strip() and "?url=" in url else 25)
     for attempt in range(retries):
         try:
+            host = urllib.parse.urlsplit(url).netloc.lower()
+            with _REQUEST_LOCK:
+                wait = MIN_REQUEST_INTERVAL - (time.monotonic() - _LAST_REQUEST_BY_HOST.get(host, 0))
+                if wait > 0:
+                    time.sleep(wait)
+                _LAST_REQUEST_BY_HOST[host] = time.monotonic()
             response = requests.get(url, timeout=timeout, headers=headers, **kwargs)
             response.raise_for_status()
             return response

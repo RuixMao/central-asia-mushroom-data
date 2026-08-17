@@ -3,16 +3,20 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(pathlib.Path(__file__).parents[1] / "pipeline"))
 
-from adapters.olx import OlxAdapter
+from adapters.lochin import LochinAdapter
+from adapters.makro import MakroAdapter
+from adapters.olx import OlxAdapter, OlxSearchAdapter
 from adapters.somon import SomonAdapter
+from adapters.yukber import YukberAdapter
 
 ROOT = pathlib.Path(__file__).parent / "fixtures"
 
 
 class Response:
-    def __init__(self, text):
+    def __init__(self, text, url="https://example.test/"):
         self.text = text
         self.content = text.encode()
+        self.url = url
 
 
 def html_of(name):
@@ -70,6 +74,57 @@ class SomonAdapterTest(unittest.TestCase):
         row, error = collect(SomonAdapter, self.BASE, '<html><meta property="og:title" content="Грибы 0 c."/></html>')
         self.assertIsNone(row)
         self.assertEqual(error, "zero_price")
+
+
+class UzbekistanExpansionTest(unittest.TestCase):
+    COMMON = {"country": "UZ", "city": "Tashkent", "collection_point_id": "TASHKENT_POINT_01",
+              "currency": "UZS", "language": "ru", "package": "1 kg"}
+
+    def test_lochin_server_html(self):
+        config = {**self.COMMON, "platform": "lochin-uz", "platform_name": "Lochin",
+                  "platform_product_id": "7057", "url": "https://lochin.uz/product/7057",
+                  "title": "Грибы шампиньоны, вес", "marker": "Грибы шампиньоны, вес"}
+        html = "<html><title>Грибы шампиньоны, вес - Lochin</title><body><h1>Грибы шампиньоны, вес</h1><b>100,000 сум</b></body></html>"
+        row, error = collect(LochinAdapter, config, html)
+        self.assertIsNone(error)
+        self.assertEqual(row["current_price"], 100000)
+
+    def test_yukber_server_html(self):
+        config = {**self.COMMON, "platform": "yukber-uz", "platform_name": "Yukber",
+                  "platform_product_id": "YK1820", "url": "https://yukber.uz/uz/YK1820_uz",
+                  "title": "Qo'ziqorin Shampinyon 1kg"}
+        html = "<html><title>Qo'ziqorin Shampinyon 1kg</title><body><h1>Qo'ziqorin Shampinyon 1kg</h1><span>92,990 UZS</span></body></html>"
+        row, error = collect(YukberAdapter, config, html)
+        self.assertIsNone(error)
+        self.assertEqual(row["current_price"], 92990)
+
+    def test_olx_search_filters_growing_supplies(self):
+        config = {**self.COMMON, "platform": "olx-uz", "platform_name": "OLX.uz",
+                  "platform_product_id": "search", "url": "https://www.olx.uz/list/q-грибы/",
+                  "title": "Грибы", "package": ""}
+        html = """<div><div><a href='/d/obyavlenie/griby-veshenki-svezhie-1-kg-IDabc1.html'>
+        Грибы вешенки свежие 1 kg</a><span>25 000 сум</span></div></div>
+        <div><div><a href='/d/obyavlenie/semena-veshenki-IDabc2.html'>Семена грибов вешенки</a>
+        <span>15 000 сум</span></div></div>"""
+        with patch("adapters.olx.safe_get", return_value=Response(html, config["url"])):
+            rows, error = OlxSearchAdapter(config).collect_many()
+        self.assertIsNone(error)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["platform_product_id"], "IDabc1")
+
+    def test_makro_api_excludes_mushroom_flavoured_prepared_food(self):
+        class JsonResponse(Response):
+            def json(self):
+                return {"results": [
+                    {"id": 1, "title": "KUNCEVO OQ QO‘ZIQORINLI KARTOSHKA PYURESI 40GR", "newPrice": 8450},
+                    {"id": 2, "title": "Qo‘ziqorin shampinyon 500 g", "newPrice": 32000},
+                ]}
+        config = {**self.COMMON, "platform": "makro-uz", "platform_name": "Makro",
+                  "platform_product_id": "scan", "url": "https://makromarket.uz/catalog", "title": "catalog"}
+        with patch("adapters.makro.safe_get", return_value=JsonResponse("{}")):
+            rows, error = MakroAdapter(config).collect_many()
+        self.assertIsNone(error)
+        self.assertEqual([row["platform_product_id"] for row in rows], ["2"])
 
 
 if __name__ == "__main__":
