@@ -17,7 +17,13 @@ export type MirrorRecord = {
   hs: string;
   product: string;
   importerCifUsd: number | null;
-  chinaFobUsd: number;
+  chinaFobUsd: number | null;
+  officialQuantityKg?: number;
+  confirmedTradeUsd?: number;
+  confirmedQuantityKg?: number;
+  confirmedPartners?: string[];
+  confidence: "A+" | "A" | "B+" | "B";
+  confidenceBasis: string;
 };
 
 export type Opportunity = {
@@ -67,11 +73,14 @@ export const tradeRecords: TradeRecord[] = [
 ];
 
 export const mirrorRecords: MirrorRecord[] = [
-  { countryCode: "KZ", country: "哈萨克斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 1_027_970, chinaFobUsd: 3_688_137 },
-  { countryCode: "KG", country: "吉尔吉斯斯坦", hs: "070951", product: "鲜/冷双孢蘑菇", importerCifUsd: 40_376, chinaFobUsd: 31_321 },
-  { countryCode: "KG", country: "吉尔吉斯斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 228_842, chinaFobUsd: 64_386 },
-  { countryCode: "TJ", country: "塔吉克斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: null, chinaFobUsd: 278_116 },
-  { countryCode: "TM", country: "土库曼斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: null, chinaFobUsd: 230_076 },
+  { countryCode: "KZ", country: "哈萨克斯坦", hs: "070951", product: "鲜或冷藏蘑菇", importerCifUsd: 4_647_430, chinaFobUsd: 498_280, officialQuantityKg: 4_015_820, confidence: "A+", confidenceBasis: "进口国完整申报，含数量与来源国" },
+  { countryCode: "KZ", country: "哈萨克斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 1_353_310, chinaFobUsd: 1_099_830, officialQuantityKg: 1_627_780, confidence: "A+", confidenceBasis: "进口国完整申报，含数量与来源国" },
+  { countryCode: "UZ", country: "乌兹别克斯坦", hs: "070951", product: "鲜或冷藏蘑菇", importerCifUsd: 456_800, chinaFobUsd: null, officialQuantityKg: 197_396, confidence: "A+", confidenceBasis: "进口国完整申报，含数量与来源国" },
+  { countryCode: "UZ", country: "乌兹别克斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 70_810, chinaFobUsd: 10_400, officialQuantityKg: 20_080, confidence: "A+", confidenceBasis: "进口国完整申报，含数量与来源国" },
+  { countryCode: "KG", country: "吉尔吉斯斯坦", hs: "070951", product: "鲜或冷藏蘑菇", importerCifUsd: 288_150, chinaFobUsd: 288_150, officialQuantityKg: 135_714, confidence: "A+", confidenceBasis: "进口国完整申报，含数量与来源国" },
+  { countryCode: "KG", country: "吉尔吉斯斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 115_930, chinaFobUsd: 70_190, officialQuantityKg: 112_704, confidence: "A+", confidenceBasis: "进口国完整申报，含数量与来源国" },
+  { countryCode: "TJ", country: "塔吉克斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: null, chinaFobUsd: 278_116, confirmedTradeUsd: 286_590, confirmedQuantityKg: 263_264, confirmedPartners: ["中国", "哈萨克斯坦"], confidence: "B+", confidenceBasis: "两国对塔出口申报汇总" },
+  { countryCode: "TM", country: "土库曼斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: null, chinaFobUsd: 230_076, confirmedTradeUsd: 249_690, confirmedQuantityKg: 127_563, confirmedPartners: ["中国", "土耳其", "亚美尼亚"], confidence: "B+", confidenceBasis: "三国对土出口申报汇总" },
 ];
 
 export const opportunities: Opportunity[] = [

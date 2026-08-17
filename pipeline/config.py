@@ -13,7 +13,7 @@ UN_COMTRADE_API_KEY = os.environ.get("UN_COMTRADE_API_KEY", "")
 
 COUNTRIES = {
  "KZ":{"currency":"KZT","lang":"ru","reporter":398,"platforms":[("arbuz","https://arbuz.kz/ru/almaty/search?query={q}"),("carefood","https://carefood.kz/search/?q={q}"),("flagma_kz","https://flagma.kz/ru/products/q={q}/")]},
- "UZ":{"currency":"UZS","lang":"uz","reporter":860,"platforms":[("uzum","https://uzum.uz/ru/search?query={q}"),("korzinka","https://korzinka.uz/catalog/?q={q}"),("olx_uz","https://www.olx.uz/list/q-{q}/"),("tegen","https://tegen.uz/search?q={q}")]},
+ "UZ":{"currency":"UZS","lang":"uz","reporter":860,"platforms":[("uzum","https://uzum.uz/ru/search?query={q}"),("korzinka","https://korzinka.uz/catalog/?q={q}"),("makro","https://makromarket.uz/catalog"),("lochin","https://lochin.uz/search?q={q}"),("yukber","https://yukber.uz/uz/sabzovotlar"),("olx_uz","https://www.olx.uz/list/q-{q}/"),("tegen","https://tegen.uz/search?q={q}")]},
  "KG":{"currency":"KGS","lang":"ru","reporter":417,"platforms":[("globus","https://globus-online.kg/ru-kg/search?q={q}"),("omarket","https://market.o.kg/bishkek/search?q={q}"),("lalafo","https://lalafo.kg/kyrgyzstan/q-{q}")]},
  "TJ":{"currency":"TJS","lang":"ru","reporter":762,"platforms":[("zudbiyor","https://zudbiyor.tj/search?q={q}"),("magnit","https://magnit.tj/search?query={q}"),("somon","https://somon.tj/search/?q={q}")]},
  "TM":{"currency":"TMT","lang":"ru","reporter":795,"platforms":[("tm_market","https://www.goshmak.com/search?q={q}"),("flagma_tm","https://flagma-tm.com/ru/products/q={q}/")]},

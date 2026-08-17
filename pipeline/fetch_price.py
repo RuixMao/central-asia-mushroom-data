@@ -4,7 +4,10 @@ from adapters.globus import GlobusAdapter
 from adapters.omarket import OMarketAdapter
 from adapters.zudbiyor import ZudbiyorAdapter
 from adapters.magnit import MagnitAdapter
-from adapters.olx import OlxAdapter
+from adapters.olx import OlxSearchAdapter
+from adapters.lochin import LochinAdapter
+from adapters.makro import MakroAdapter
+from adapters.yukber import YukberAdapter
 from adapters.somon import SomonAdapter
 from adapters.kaspi import KaspiAdapter
 from adapters.yandex import YandexMarketAdapter
@@ -20,7 +23,13 @@ SOURCES=[
 (OMarketAdapter,{"platform":"omarket","platform_name":"O!Market","platform_product_id":"4450008b-61fc-4fb7-839f-c4bdd5669c5c","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://market.o.kg/ru/bishkek/produkty-pitanija/ovoschi-frukty/product/4450008b-61fc-4fb7-839f-c4bdd5669c5c/griby-shampinony-1kg","title":"Грибы Шампиньоны 300 г","package":"300 g","currency":"KGS","language":"ru"}),
 (ZudbiyorAdapter,{"platform":"zudbiyor","platform_name":"Zudbiyor","platform_product_id":"141","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://zudbiyor.tj/product/141","title":"Шампиньоны целые 1 кг","package":"1 kg","currency":"TJS","language":"ru"}),
 (MagnitAdapter,{"platform":"magnit-tj","platform_name":"Magnit.tj","platform_product_id":"18786","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://magnit.tj/product/show/18786","title":"Шампиньоны цена за 250 г","package":"250 g","currency":"TJS","language":"ru"}),
-(OlxAdapter,{"platform":"olx-uz","platform_name":"OLX.uz","platform_product_id":"shampinony-yaschikah-ID488Lu","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://www.olx.uz/d/obyavlenie/shampinony-v-yaschikah-otbornye-svezhie-rossiya-ID488Lu.html","title":"Шампиньоны в ящиках отборные свежие","package":"1 box","currency":"UZS","language":"ru"}),
+(OlxSearchAdapter,{"platform":"olx-uz","platform_name":"OLX.uz поиск","platform_product_id":"search-fresh-mushrooms","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://www.olx.uz/list/q-грибы-свежие/","title":"Свежие грибы","package":"","currency":"UZS","language":"ru"}),
+(LochinAdapter,{"platform":"lochin-uz","platform_name":"Lochin","platform_product_id":"7057","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://lochin.uz/product/7057","title":"Грибы шампиньоны, вес","marker":"Грибы шампиньоны, вес","package":"1 kg","currency":"UZS","language":"ru"}),
+(LochinAdapter,{"platform":"lochin-uz","platform_name":"Lochin","platform_product_id":"7508","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://lochin.uz/product/7508","title":"Грибы Вешенки, вес","marker":"Грибы Вешенки, вес","package":"1 kg","currency":"UZS","language":"ru"}),
+(LochinAdapter,{"platform":"lochin-uz","platform_name":"Lochin","platform_product_id":"712","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://lochin.uz/product/712","title":"Грибы Шампиньоны Сказка 1л","marker":"Грибы Шампиньоны Сказка 1л","package":"1 l","currency":"UZS","language":"ru"}),
+(YukberAdapter,{"platform":"yukber-uz","platform_name":"Yukber","platform_product_id":"YK1820","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://yukber.uz/uz/sabzovotlar/YK1820_uz","title":"Qo'ziqorin Shampinyon 1kg","package":"1 kg","currency":"UZS","language":"uz"}),
+(YukberAdapter,{"platform":"yukber-uz","platform_name":"Yukber","platform_product_id":"YK0143","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://yukber.uz/uz/YK0143_uz","title":"Qo'ziqorin veshenski 1kg","package":"1 kg","currency":"UZS","language":"uz"}),
+(MakroAdapter,{"platform":"makro-uz","platform_name":"Makro","platform_product_id":"catalog-scan","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://makromarket.uz/catalog","title":"Makro mushroom catalog","package":"","currency":"UZS","language":"uz"}),
 (SomonAdapter,{"platform":"somon","platform_name":"Somon.tj","platform_product_id":"15687107","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://somon.tj/adv/15687107_griby-shampinon/","title":"Грибы шампиньоны","package":"1 kg","currency":"TJS","language":"ru"}),
 (KaspiAdapter,{"platform":"kaspi-kz","platform_name":"Kaspi Магазин","platform_product_id":"search-shampinon","country":"KZ","city":"Almaty","collection_point_id":"ALMATY_POINT_01","url":"https://kaspi.kz/shop/search/?text=шампиньон","title":"Шампиньоны свежие 500 г","package":"500 g","currency":"KZT","language":"ru"}),
 (YandexMarketAdapter,{"platform":"yandex-uz","platform_name":"Yandex Market UZ","platform_product_id":"search-shampinon","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://market.yandex.uz/search?text=шампиньоны","title":"Шампиньоны свежие","package":"1 kg","currency":"UZS","language":"ru"}),

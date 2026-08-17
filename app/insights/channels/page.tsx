@@ -1,0 +1,3 @@
+import ProductShell from "../../product-shell";
+const channels=[["Kaspi","电商平台","哈萨克斯坦","公开商品页"],["Omarket","电商平台","吉尔吉斯斯坦","公开商品页"],["Globus","商超/零售","吉尔吉斯斯坦","公开商品页"],["Yandex Uzbekistan","电商平台","乌兹别克斯坦","公开商品页"],["Somon","分类信息","塔吉克斯坦","公开商品页"],["Gipertm","电商平台","土库曼斯坦","公开商品页"]];
+export default function Page(){return <ProductShell><main className="saas-main"><section className="saas-hero compact"><span>CHANNEL MAP</span><h1>中亚菌类渠道地图</h1><p>仅列出已纳入公开价格观察的渠道；覆盖品类以实际记录为准。</p></section><section className="sample-table">{channels.map(x=><div className="sample-row" key={x[0]}>{x.map(v=><span key={v}>{v}</span>)}</div>)}</section></main></ProductShell>}
