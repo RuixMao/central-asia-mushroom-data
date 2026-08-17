@@ -29,8 +29,8 @@ type Snapshot<T> = { id: string; country: string; data: T; capturedAt: string };
 type TradeData = { hs?: string; year?: number; value_usd?: number; partner_value_usd?: number; partner_code?: string | number; status?: string; reporting_basis?: string; estimate_lower_usd?: number; estimate_upper_usd?: number; coverage_pct?: number; confidence?: string; source_id?: string; source_role?: string; availability?: string };
 const API = "/api/powerbi?table=prices";
 const roles = [
-  ["buyer", "用户 / 买家", "比价、规格、库存"], ["supplier", "供应商 / 产能方", "价格机会、贸易空间"],
-  ["investor", "投资者", "规模、增速、集中度"], ["researcher", "研究者 / 分析师", "来源、口径、缺口"],
+  ["buyer", "采购与渠道", "比价、规格、库存"], ["supplier", "供应与生产", "价格机会、贸易空间"],
+  ["investor", "投资与决策", "规模、趋势、集中度"], ["researcher", "研究与分析", "来源、口径、可信度"],
 ] as const;
 type Role = typeof roles[number][0];
 const countries = [
@@ -86,8 +86,8 @@ export default function ScreenPage() {
           priceResponse.json(), tradeResponse.ok ? tradeResponse.json() : { records: [] }, dailyResponse.ok ? dailyResponse.json() : { records: [] },
         ]);
         if (active) { setRows(pricePayload.records ?? []); setTrade(tradePayload.records ?? []); setDaily(dailyPayload.records ?? []); setUpdated(new Date()); setError(""); }
-      } catch (reason) {
-        if (active) setError(reason instanceof Error ? reason.message : "数据连接失败");
+      } catch {
+        if (active) setError("部分数据暂时未能更新，请稍后查看");
       }
     };
     load();
@@ -196,7 +196,7 @@ export default function ScreenPage() {
   return <main className={`live-screen role-${role}`}>
     <header className="screen-head">
       <div><span>INHEN CENTRAL ASIA INTELLIGENCE</span><h1>中亚菌类市场实时数据中枢</h1></div>
-      <div className="screen-status"><i /> 数据链路在线 · POWER BI READY<br/><small>{updated ? `更新于 ${updated.toLocaleTimeString("zh-CN")}` : "正在连接…"}</small></div>
+      <div className="screen-status"><i /> 数据持续更新<br/><small>{updated ? `本页更新于 ${updated.toLocaleTimeString("zh-CN")}` : "正在获取最新数据"}</small></div>
     </header>
 
     <nav className="screen-roles" aria-label="选择看板角色">
@@ -208,24 +208,24 @@ export default function ScreenPage() {
       <span><i />最新数据日 {latestDate || "—"}</span>
       <b>有效价格 {latestRows.length} 条</b>
       <b>国家覆盖 {stats.countries}/5（今日）</b>
-      <em>质量等级 {qualitySummary.grade} · 在库率 {qualitySummary.stockRate == null ? "—" : `${qualitySummary.stockRate.toFixed(0)}%`} · 已核验来源 {verifiedTradeSources.length}</em>
-      <strong>挂牌价 ≠ 成交价，仅供趋势参考</strong>
+      <em>数据评级 {qualitySummary.grade} · 在库率 {qualitySummary.stockRate == null ? "—" : `${qualitySummary.stockRate.toFixed(0)}%`} · 核验来源 {verifiedTradeSources.length} 项</em>
+      <strong>市场挂牌参考价，不代表最终成交价</strong>
     </div>
 
     <section className="screen-kpis">
-      <article><span>有效价格记录</span><b>{rows.length}</b><small>历史有效观察</small></article>
+      <article><span>有效价格记录</span><b>{rows.length}</b><small>已纳入分析的价格样本</small></article>
       <article><span>国家覆盖</span><b>{stats.countries}<em>/5（今日）</em></b><small>{countries.filter(([code])=>!latestRows.some(row=>row.country===code)).map(([,name])=>name).join("、")||"五国"}{stats.countries<5?"今日无有效价格":"今日均有有效价格"}</small></article>
       <article><span>菌种覆盖</span><b>{stats.species}</b><small>{speciesOptions.map(([, name]) => name).join("、") || "—"}</small></article>
-      <article><span>渠道覆盖</span><b>{stats.platforms}</b><small>公开零售渠道</small></article>
+      <article><span>渠道覆盖</span><b>{stats.platforms}</b><small>可核验市场渠道</small></article>
       <article className="range-kpi"><span>{comparableOnly ? "同规格价格范围" : "挂牌价格范围"}</span><b>${priceRange[0].toFixed(2)}—${priceRange[1].toFixed(2)}</b><small>USD/kg · {comparableOnly && dominantQuantity != null ? formatQuantity(dominantQuantity) : "已逐行标注包装规格"}</small></article>
     </section>
 
     <section className={`role-insights role-${role}`}>
-      <header><span>ROLE SIGNALS</span><b>{roleCopy[1]}决策提示</b></header>
+      <header><span>关键市场信号</span><b>{roleCopy[1]}视角</b></header>
       {role === "buyer" && marketSignals.slice(0, 3).map(signal => <article key={signal.speciesId}><small>{signal.name}价格洼地</small><b>{signal.low.country_name ?? signal.low.country} · ${Number(signal.low.normalized_usd_per_kg).toFixed(2)}/kg</b><span>{formatQuantity(signal.low.normalized_quantity_kg)} · 较中位价低 {signal.discount.toFixed(0)}%</span></article>)}
-      {role === "supplier" && marketSignals.slice(0, 3).map(signal => <article key={signal.speciesId}><small>{signal.name}高价市场</small><b>{signal.high.country_name ?? signal.high.country} · ${Number(signal.high.normalized_usd_per_kg).toFixed(2)}/kg</b><span>用于发现潜在供给空间，需结合贸易占比核验</span></article>)}
-      {role === "investor" && <><article><small>贸易市场规模</small><b>{tradeOverview.total ? `$${(tradeOverview.total / 1_000_000).toFixed(2)}M` : "—"}</b><span>贸易口径，与零售挂牌价分开</span></article><article><small>中国来源占比</small><b>{tradeOverview.share == null ? "—" : `${tradeOverview.share.toFixed(1)}%`}</b><span>含镜像估算时以置信标签为准</span></article><article><small>数据质量</small><b>{qualitySummary.grade}</b><span>{verifiedTradeSources.length} 个已核验来源关系</span></article></>}
-      {role === "researcher" && <><article><small>价格样本</small><b>{rows.length} 条</b><span>最新批次 {latestDate || "—"}</span></article><article><small>日报汇总</small><b>{daily.length} 组</b><span>质量等级中位数 {qualitySummary.grade}</span></article><article><small>采集运行明细</small><b>暂未返回</b><span>runs/errors 当前为空，不展示虚假成功率</span></article></>}
+      {role === "supplier" && marketSignals.slice(0, 3).map(signal => <article key={signal.speciesId}><small>{signal.name}高价市场</small><b>{signal.high.country_name ?? signal.high.country} · ${Number(signal.high.normalized_usd_per_kg).toFixed(2)}/kg</b><span>提示潜在供给空间，建议结合贸易规模综合判断</span></article>)}
+      {role === "investor" && <><article><small>贸易市场规模</small><b>{tradeOverview.total ? `$${(tradeOverview.total / 1_000_000).toFixed(2)}M` : "—"}</b><span>贸易统计与零售挂牌价格分别计算</span></article><article><small>中国来源占比</small><b>{tradeOverview.share == null ? "—" : `${tradeOverview.share.toFixed(1)}%`}</b><span>估算数据均配有可信度标识</span></article><article><small>综合数据评级</small><b>{qualitySummary.grade}</b><span>已核验 {verifiedTradeSources.length} 项数据来源</span></article></>}
+      {role === "researcher" && <><article><small>价格样本</small><b>{rows.length} 条</b><span>最新数据日 {latestDate || "—"}</span></article><article><small>市场观察</small><b>{daily.length} 组</b><span>综合数据评级 {qualitySummary.grade}</span></article><article><small>来源透明度</small><b>{verifiedTradeSources.length} 项</b><span>贸易数据来源已核验并保留统计口径</span></article></>}
     </section>
 
     <nav className="screen-filters" aria-label="数据筛选">
@@ -257,7 +257,7 @@ export default function ScreenPage() {
 
       <article className="screen-feed">
         <div className="screen-title"><span>02</span><div><b>国家与菌种价格观察</b><small>COUNTRY → SPECIES → SKU</small></div></div>
-        {error && <p className="screen-error">数据连接异常：{error}</p>}
+        {error && <p className="screen-error">{error}</p>}
         <div className="country-price-groups">
           {countryGroups.map(group => <section className={`country-price-group ${group.rows.length ? "has-data" : ""}`} key={group.code}>
             <header><div><b>{group.name}</b><small>{group.code}</small></div><em>{group.rows.length} 条 · {group.speciesGroups.length} 菌种</em></header>
@@ -274,13 +274,13 @@ export default function ScreenPage() {
                   <em className={tone}>${price.toFixed(2)}{previous != null && previous !== price && <b>{price > previous ? "↑" : "↓"}</b>}<small>USD / 公斤 {productIndex === 0 ? "· 洼地" : productIndex === speciesGroup.products.length - 1 ? "· 高位" : ""}</small></em>
                 </div>;
               })}
-            </article>)}</div> : <p className="country-collecting">今日暂无有效价格；历史评级仍保留，采集缺口已标注</p>}
+            </article>)}</div> : <p className="country-collecting">今日暂无可核验价格，历史数据仍可用于趋势参考</p>}
           </section>)}
-          {!rows.length && !error && <p className="screen-empty">等待五国自动化采集写入数据…</p>}
+          {!rows.length && !error && <p className="screen-empty">正在获取中亚五国最新市场数据…</p>}
         </div>
       </article>
     </section>
 
-    <footer className="screen-footer"><span>数据源：Cloudflare D1 · 每 60 秒自动刷新 · 数据版本 {latestDate || "—"}</span><Link href="/">返回因恒科技主页</Link><a href={API} target="_blank" rel="noreferrer">Power BI 数据接口 →</a></footer>
+    <footer className="screen-footer"><span>公开市场与贸易统计资料 · 页面定时更新 · 数据日期 {latestDate || "—"}</span><Link href="/">返回因恒科技主页</Link></footer>
   </main>;
 }
