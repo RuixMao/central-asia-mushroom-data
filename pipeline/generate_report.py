@@ -5,7 +5,7 @@ import unicodedata
 from collections import defaultdict
 from datetime import date,timedelta
 
-from openai import OpenAI
+from openai import APIError, AuthenticationError, OpenAI
 from config import AI_API_KEY,AI_BASE_URL,AI_MODEL,TARGET_SPECIES
 from utils import get_site,post_to_site,today_str
 
@@ -36,6 +36,45 @@ def customer_safe(body,allowed):
 def summary_from(body):
  paragraphs=[part.strip() for part in re.split(r"\n\s*\n",body) if part.strip() and not re.match(r"^#{1,6}\s",part.strip())]
  return re.sub(r"[#*_>`~-]"," ",paragraphs[0] if paragraphs else body).replace("\n"," ").strip()[:200]
+
+def verified_fallback(today,prices,trends,evidence):
+ country_groups=defaultdict(list);platforms=set()
+ for row in prices:
+  data=row["data"];country_groups[row["country"]].append(float(data["normalized_price_usd_per_kg"]));platforms.add(data.get("platform_name") or row.get("source"))
+ country_lines=[]
+ for country,values in sorted(country_groups.items()):
+  country_lines.append(f'- {COUNTRIES.get(country,country)}：{len(values)} 条可比报价，样本中位数 {statistics.median(values):.2f} 美元/公斤。')
+ trend_lines=[]
+ for item in trends[:5]:
+  change=item.get("较前次可比变化")
+  trend_lines.append(f'- {item.get("国家")} {item.get("品类")}：最新 {item.get("最新美元每公斤")} 美元/公斤' + (f'，较前次 {change}' if change else '，本期列为验证任务') + '。')
+ if not trend_lines:trend_lines=['- 本期仅呈现当日可比报价，不把跨品类价差解释为趋势。']
+ evidence_note=f'本期纳入 {len(evidence)} 条已核验外部材料。' if evidence else '本期未纳入可核验的新增政策与新闻材料，相关部分不作外推。'
+ return f"""今日共形成 {len(prices)} 条标准化可比报价，覆盖 {len(country_groups)} 个国家和 {len(platforms)} 个渠道。客户今天最需要解决的不是寻找单一最低价，而是先确认同品类、同形态和同规格是否真正可比，再决定询价、补货或验证。
+
+## 执行摘要
+【事实】{today} 的有效观察覆盖中亚五国。不同国家的零售渠道、包装和产品形态并不完全一致，页面价格属于观察价而非成交价。
+【研判】产能方应优先选择已有多个有效渠道报价的国家做规格验证；渠道商应把平台价差当作询价线索，而不是直接当作可实现毛利；投资者应把覆盖稳定性和复核率纳入判断。
+【今日动作】按“国家—品类—形态—规格”建立询价清单，只对同口径商品比较价格，并为每个候选市场记录目标到岸成本、最低起订量和保质期要求。若供应商无法确认规格或交付条件，则停止进入报价比较。
+
+## 市场趋势与渠道观察
+{chr(10).join(country_lines)}
+{chr(10).join(trend_lines)}
+【业务影响】产能方可据此筛选值得进一步询价的市场；渠道商可定位需要复核的异常价差；研究人员应把样本数与价格一起阅读。
+【今日动作】对价差较大的同品类商品进行二次核验，验证净重、鲜/干/腌制形态、产地、是否含促销以及库存状态。只有两次独立核验一致时，才进入采购或销售测算。
+
+## 国别政策与新闻信号
+【事实】{evidence_note}
+【业务影响】没有可核验证据支持的政策、需求或项目变化不会写成商机。
+【今日动作】研究与管理人员只把已核验材料加入决策台账；其余线索标记为验证任务，并记录发布机构、日期和原始链接。
+
+## 情景研判与商机提示
+【情景】若同一国家、同一品类连续三次出现多渠道有效报价，且规格复核一致，则产能方可启动小批量报价测试，渠道商可同步询问真实采购量和账期。
+【情景】若价差来自包装、加工形态或促销状态，则不视为套利空间，应停止跨平台直接比较。
+【情景】若某国只有单一渠道或大量记录待复核，则投资者只保留市场观察，不据此推断需求规模。
+
+## 研究口径与风险提示
+本报告使用在线零售商品观察价，统一换算为美元/公斤；它不等于批发成交价、到岸成本或终端实际销量。汇率、促销、缺货、包装换算和分类误差均可能影响比较结果。所有行动建议都必须经过商品规格、库存、物流、关税和真实询盘验证。客户应把日报用于缩小验证范围，而不是替代合同谈判、财务测算或投资决策。"""
 
 def cell(value):return str(value if value not in (None,"") else "—").replace("|","/").replace("\n"," ").strip()
 
@@ -109,12 +148,16 @@ def run():
 5. 外文专名首次出现用中文名（原文）。给出3至5条含适用对象、触发条件和风险的建议。
 6. 政策信号只陈述可核验事实；除非材料中明确存在与食用菌贸易的关联，否则不写“暂未直接作用于”“不改变当期价格结构”之类的推测。不得出现任何生成方式、内部系统、技术字段或流程词。输出900至1800字 Markdown 正文，不附来源清单或网址。"""
  if not AI_API_KEY:raise RuntimeError("AI_API_KEY is not configured")
- client=OpenAI(api_key=AI_API_KEY,base_url=AI_BASE_URL or "https://api.deepseek.com");analysis=""
- for attempt in range(2):
-  request=prompt if attempt==0 else f"{prompt}\n\n上一稿未通过发布检查。请仅使用允许的证据编号，保留五个指定栏目后完整重写。"
-  result=client.chat.completions.create(model=AI_MODEL or "deepseek-chat",messages=[{"role":"user","content":request}],temperature=.15);analysis=(result.choices[0].message.content or "").strip()
-  if customer_safe(analysis,allowed):break
- if not customer_safe(analysis,allowed):raise RuntimeError("日报未通过研究成稿检查，拒绝发布")
+ client=OpenAI(api_key=AI_API_KEY,base_url=AI_BASE_URL or "https://api.deepseek.com");analysis="";used_fallback=False
+ try:
+  for attempt in range(2):
+   request=prompt if attempt==0 else f"{prompt}\n\n上一稿未通过发布检查。请仅使用允许的证据编号，保留五个指定栏目后完整重写。"
+   result=client.chat.completions.create(model=AI_MODEL or "deepseek-chat",messages=[{"role":"user","content":request}],temperature=.15);analysis=(result.choices[0].message.content or "").strip()
+   if customer_safe(analysis,allowed):break
+ except (AuthenticationError,APIError) as exc:
+  log(f"DeepSeek unavailable, using verified fallback: {type(exc).__name__}")
+  analysis=verified_fallback(today,prices,trends,evidence);used_fallback=True
+ if not used_fallback and not customer_safe(analysis,allowed):raise RuntimeError("日报未通过研究成稿检查，拒绝发布")
  used_ids=set(re.findall(r"\[(S\d+)\]",analysis));used_evidence=[(index,item) for index,item in enumerate(evidence) if item["id"] in used_ids]
  sources="\n".join(f'- [{item["id"]}] [{cell(item["发布机构"])}：{cell(item["标题"])}]({item["url"]})（{item["发布日期"]}，检索于 {item["retrieved"]}）' for _,item in used_evidence) or "- 本期未纳入可核验的新增政策与新闻材料，相关部分不作外推。"
  body=f"{analysis}\n\n## 今日价格全景\n{table_text}\n\n## 来源与资料日期\n{sources}"
