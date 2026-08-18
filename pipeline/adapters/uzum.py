@@ -7,8 +7,10 @@ Uzum 全站对非白名单出口 IP 返回验证码(captcha_smart),本地直连�
   - 渲染后检测验证码 → 返回 render_blocked(captcha),不尝试破解
   - 渲染成功后按商品卡片解析标题 + сум 价格 + 稳定商品 ID
   - 无结果/被拦截一律返回明确 gap,不写 0 元或虚构价格
+  - UZUM_DEBUG=1 时打印渲染页片段(诊断商品卡选择器)
 """
 import hashlib
+import os
 import re
 
 from bs4 import BeautifulSoup
@@ -29,6 +31,15 @@ class UzumAdapter(RenderedProductAdapter):
         if error:
             return [], error
         html, body = rendered
+        # 调试:UZUM_DEBUG=1 时打印渲染页片段(诊断商品卡选择器用)
+        if os.getenv("UZUM_DEBUG", "0") == "1":
+            print(f"[uzum-debug] url={self.config['url']}")
+            print(f"[uzum-debug] body_len={len(body or '')} html_len={len(html or '')}")
+            print(f"[uzum-debug] captcha_match={bool(CAPTCHA.search(body or ''))}")
+            import re as _re
+            cards = _re.findall(r'(?:data-testid|class)="[^"]*(?:product|card|item)[^"]*"', html or "")
+            print(f"[uzum-debug] card_markers={cards[:10]}")
+            print(f"[uzum-debug] body_head={ (body or '')[:500] }")
         if CAPTCHA.search(body or ""):
             return [], "render_blocked"
         rows = self.parse_rendered_many(html, body)
