@@ -140,6 +140,9 @@ def rates():
 #   rendered:    只跑渲染源(独立 workflow 用)
 #   all:         全部(手动补采用)
 RENDERED_PLATFORMS = {"kaspi-kz", "yandex-uz", "uzum-uz"}
+# 长期无产出的平台(面议 B2B / 无蘑菇数据),日常模式跳过避免空跑,
+# 仅在 expanded/all 模式或显式指定 PLATFORM 时采集(降频不删除)。
+LOW_FREQUENCY_PLATFORMS = {"flagma-kz", "flagma-uz", "flagma-kg", "flagma-tj", "flagma-tm", "makro-uz"}
 COLLECTION_MODE = os.getenv("COLLECTION_MODE", "static").strip().lower()
 
 def run():
@@ -150,6 +153,9 @@ def run():
   is_rendered=config["platform"] in RENDERED_PLATFORMS
   if COLLECTION_MODE=="static" and is_rendered:continue
   if COLLECTION_MODE=="rendered" and not is_rendered:continue
+  # 低频平台:日常(static)跳过,显式指定 platform 或 all/rendered 才跑
+  if config["platform"] in LOW_FREQUENCY_PLATFORMS and COLLECTION_MODE=="static" and not wanted_platform:
+   continue
   active_configs.append(config)
   rows,error=Adapter(config).collect_many()
   if config.get("query_term"):

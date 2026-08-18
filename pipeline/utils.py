@@ -14,10 +14,11 @@ def log(message): print(f"[{dt.datetime.now().isoformat(timespec='seconds')}] {m
 def today_str(): return dt.date.today().isoformat()
 def median(nums): return statistics.median(nums) if nums else None
 
-# TM 电商源在 GitHub Actions（美国数据中心 IP）被目标站防火墙拒绝。
-# 设置环境变量 PROXY_BASE（如 https://tm-proxy.xxx.workers.dev）后，
-# 这些域名的请求改经 CF Worker 中转出口；不设置则保持直连（本地正常）。
-PROXY_DOMAINS = ("gipertm.com", "asmanexpress.com")
+# 数据中心出口 IP 被目标站防火墙/反爬拒绝的域名(本地直连正常、CI 必挂)。
+# 设置环境变量 PROXY_BASE(如 https://tm-proxy.xxx.workers.dev)后,
+# 这些域名的请求改经 CF Worker 中转出口;不设置则保持直连(本地正常)。
+# gipertm/asmanexpress = TM 站防火墙;olx.uz = 数据中心 IP 反爬(2026-08 实测)
+PROXY_DOMAINS = ("gipertm.com", "asmanexpress.com", "olx.uz")
 _LAST_REQUEST_BY_HOST = {}
 _REQUEST_LOCK = threading.Lock()
 MIN_REQUEST_INTERVAL = 1.5
