@@ -38,6 +38,16 @@ def summary_from(body):
  paragraphs=[part.strip() for part in re.split(r"\n\s*\n",body) if part.strip() and not re.match(r"^#{1,6}\s",part.strip())]
  return re.sub(r"[#*_>`~-]"," ",paragraphs[0] if paragraphs else body).replace("\n"," ").strip()[:200]
 
+def clean_analysis(body):
+ lines=body.strip().splitlines()
+ while lines and not lines[0].strip():lines.pop(0)
+ if lines and re.match(r"^#\s+.*日报\s*$",lines[0].strip()):lines.pop(0)
+ while lines and not lines[0].strip():lines.pop(0)
+ if lines and re.match(r"^\*\*日期[:：].+\*\*$",lines[0].strip()):lines.pop(0)
+ while lines and not lines[0].strip():lines.pop(0)
+ if lines and lines[0].strip()=="## 导读":lines.pop(0)
+ return "\n".join(lines).strip()
+
 def verified_fallback(today,prices,trends,evidence):
  country_groups=defaultdict(list);platforms=set()
  for row in prices:
@@ -152,14 +162,14 @@ def run():
  try:
   for attempt in range(2):
    request=prompt if attempt==0 else f"{prompt}\n\n上一稿未通过发布检查。请仅使用允许的证据编号，保留五个指定栏目，以连贯、克制的机构研究语言完整重写。"
-   result=client.chat.completions.create(model=AI_MODEL or "deepseek-v4-flash",messages=[{"role":"user","content":request}],temperature=.15,max_tokens=5000,extra_body={"thinking":{"type":"disabled"}});analysis=(result.choices[0].message.content or "").strip()
+   result=client.chat.completions.create(model=AI_MODEL or "deepseek-v4-flash",messages=[{"role":"user","content":request}],temperature=.15,max_tokens=5000,extra_body={"thinking":{"type":"disabled"}});analysis=clean_analysis(result.choices[0].message.content or "")
    if customer_safe(analysis,allowed):break
  except (AuthenticationError,APIError) as exc:
   log(f"DeepSeek unavailable, using verified fallback: {type(exc).__name__}")
-  analysis=verified_fallback(today,prices,trends,evidence);used_fallback=True
+  analysis=clean_analysis(verified_fallback(today,prices,trends,evidence));used_fallback=True
  if not used_fallback and not customer_safe(analysis,allowed):
   log("模型稿未通过研究成稿检查，改用已核验研究模板")
-  analysis=verified_fallback(today,prices,trends,evidence);used_fallback=True
+  analysis=clean_analysis(verified_fallback(today,prices,trends,evidence));used_fallback=True
  if not customer_safe(analysis,allowed):raise RuntimeError("日报未通过研究成稿检查，拒绝发布")
  used_ids=set(re.findall(r"\[(S\d+)\]",analysis));used_evidence=[(index,item) for index,item in enumerate(evidence) if item["id"] in used_ids]
  sources="\n".join(f'- [{item["id"]}] [{cell(item["发布机构"])}：{cell(item["标题"])}]({item["url"]})（{item["发布日期"]}，检索于 {item["retrieved"]}）' for _,item in used_evidence) or "- 本期未纳入可核验的新增政策与新闻材料，相关部分不作外推。"
