@@ -111,14 +111,24 @@ def _pct_change(cur, prev):
     return round((cur - prev) / prev * 100, 1)
 
 
-def render_markdown(result, label, prev_result=None):
-    """渲染指数报告。prev_result 为 7 天前同口径结果(用于周环比)。"""
+def render_markdown(result, label, prev_result=None, month_result=None):
+    """渲染指数报告。
+
+    - prev_result: 7 天前同口径结果(周环比)
+    - month_result: 30 天前同口径结果(月环比,数据积累满足后自动出现;None 则整列隐藏)
+    """
+    has_month = month_result is not None
     lines = [f"## 五国食用菌零售价格指数({label})",
              "",
              f"基准国: {COUNTRY_NAMES.get(result['base_country'], result['base_country'])} = 100 | 口径: 有效报价每公斤 USD 中位价",
-             "",
-             "| 国家 | 综合中位价(USD/kg) | 指数 | 周环比 | 覆盖菌种数 |",
-             "|---|---|---|---|---|"]
+             ""]
+    # 表头:月环比列仅在满足条件时出现(钩子自动触发)
+    if has_month:
+        lines += ["| 国家 | 综合中位价(USD/kg) | 指数 | 周环比 | 月环比 | 覆盖菌种数 |",
+                  "|---|---|---|---|---|---|"]
+    else:
+        lines += ["| 国家 | 综合中位价(USD/kg) | 指数 | 周环比 | 覆盖菌种数 |",
+                  "|---|---|---|---|---|"]
     for c in ("KZ", "UZ", "KG", "TJ", "TM"):
         if c in result["country_median"]:
             idx = result["index"].get(c, "-") if result["index"] else "-"
@@ -130,13 +140,24 @@ def render_markdown(result, label, prev_result=None):
             prev_n = sum(v for (cc, s), v in prev_result.get("counts", {}).items() if cc == c) if prev_result else 0
             chg = _pct_change(cur, prev) if (cur_n >= MIN_SAMPLE_FOR_CHANGE and prev_n >= MIN_SAMPLE_FOR_CHANGE) else None
             chg_str = f"{chg:+.1f}%" if chg is not None else "-"
-            lines.append(f"| {COUNTRY_NAMES[c]} | {cur:.2f} | {idx} | {chg_str} | {cov} |")
+            if has_month:
+                m_prev = month_result["country_median"].get(c) if month_result else None
+                m_n = sum(v for (cc, s), v in month_result.get("counts", {}).items() if cc == c) if month_result else 0
+                m_chg = _pct_change(cur, m_prev) if (cur_n >= MIN_SAMPLE_FOR_CHANGE and m_n >= MIN_SAMPLE_FOR_CHANGE) else None
+                m_str = f"{m_chg:+.1f}%" if m_chg is not None else "-"
+                lines.append(f"| {COUNTRY_NAMES[c]} | {cur:.2f} | {idx} | {chg_str} | {m_str} | {cov} |")
+            else:
+                lines.append(f"| {COUNTRY_NAMES[c]} | {cur:.2f} | {idx} | {chg_str} | {cov} |")
+    notes = [""]
     if prev_result is not None:
-        lines += ["", f"> 周环比基准: {prev_result.get('_day', '更早')} 有数据日(同口径中位价对比)。"]
+        notes.append(f"> 周环比基准: {prev_result.get('_day', '更早')} 有数据日(同口径中位价对比)。")
+    if has_month:
+        notes.append(f"> 月环比基准: {month_result.get('_day', '更早')} 有数据日(数据积累满 30 天后自动显示)。")
+    lines += notes
     lines += ["",
               "> 注:综合指数=该国覆盖菌种中位价的再中位;覆盖菌种数不同时,",
               "> 跨国家合计数仅作参考,应以下方「菌种 × 国家」明细为准。"]
-    # 菌种明细(含菌种级指数与周环比)
+    # 菌种明细(含菌种级指数、周环比、月环比[钩子])
     lines += ["", "### 菌种 × 国家 中位价(USD/kg)与菌种指数",
               "", "| 菌种 | " + " | ".join(f"{COUNTRY_NAMES[c]}价/指数" for c in ("KZ", "UZ", "KG", "TJ", "TM")) + " |",
               "|---|" + "---|" * 5]
@@ -157,6 +178,12 @@ def render_markdown(result, label, prev_result=None):
                     parts += f"({si})"
                 if chg is not None:
                     parts += f"{chg:+.1f}%"
+                if has_month:
+                    m_prev = month_result["median_by_species"].get((c, sp)) if month_result else None
+                    m_n = month_result.get("counts", {}).get((c, sp), 0) if month_result else 0
+                    m_chg = _pct_change(cur, m_prev) if (cur_n >= MIN_SAMPLE_FOR_CHANGE and m_n >= MIN_SAMPLE_FOR_CHANGE) else None
+                    if m_chg is not None:
+                        parts += f"月{m_chg:+.1f}%"
                 cells.append(parts)
             else:
                 cells.append("-")
@@ -164,16 +191,20 @@ def render_markdown(result, label, prev_result=None):
     lines += ["",
               f"> 口径说明:①仅计入有效(valid)报价,每公斤 USD 中位价;②菌种指数以该菌种",
               f"> 哈萨克斯坦价=100(哈缺该菌种时以最低价国为参照);③周环比为同口径中位价",
-              f"> 对比,单日样本 < {MIN_SAMPLE_FOR_CHANGE} 条不显示(防小样本噪声)。"]
+              f"> 对比,单日样本 < {MIN_SAMPLE_FOR_CHANGE} 条不显示(防小样本噪声);",
+              "> ④月环比在数据积累满 30 天后自动出现(当前数据不足,暂不显示)。"]
     return "\n".join(lines)
 
 
-def build_report(days=7, date_str=None, week_offset=7):
+def build_report(days=7, date_str=None, week_offset=7, month_offset=30):
     """拉取窗口内数据,输出 (markdown, json, stats)。
 
     - 当前指数 = 窗口内最近有数据的一天
     - 周环比 = 对比 week_offset 天前(默认 7 天)同口径;不足则返回 None 不伪造
-    - days 默认 7(数据只积累到近 7 天,拉 30 天徒增请求且无收益)
+    - 月环比 = 钩子机制:探测 month_offset 天前(默认 30 天)是否有数据,
+      有则自动计算月环比并显示;无则整列隐藏。数据积累满足条件后
+      无需改代码自动触发。
+    - days 默认 7(当前数据积累不足,拉更多天徒增请求)
     """
     today = date.today()
     entries_by_day = {}
@@ -188,7 +219,7 @@ def build_report(days=7, date_str=None, week_offset=7):
     latest_day = max(entries_by_day)
     latest = compute_index(entries_by_day[latest_day])
     latest["_day"] = latest_day
-    # 环比基准:优先取 week_offset 天前;数据积累不足时退化为窗口内最早
+    # 周环比基准:优先取 week_offset 天前;数据积累不足时退化为窗口内最早
     # 有数据的一天(诚实标注实际间隔,不伪造 7 天前)
     sorted_days = sorted(entries_by_day.keys())
     target = today - timedelta(days=week_offset)
@@ -202,12 +233,25 @@ def build_report(days=7, date_str=None, week_offset=7):
     prev = compute_index(entries_by_day[prev_day]) if prev_day else None
     if prev is not None:
         prev["_day"] = prev_day
-    md = render_markdown(latest, f"{latest_day}", prev_result=prev)
+    # 月环比钩子:探测 month_offset 天前有数据即自动触发(积累满足后无需改代码)
+    month_prev_day = None
+    month_prev = None
+    if month_offset > 0:
+        m_day = (today - timedelta(days=month_offset)).isoformat()
+        m_recs = fetch_prices(date_str=m_day)
+        m_entries = _valid_entries(m_recs)
+        if m_entries:
+            month_prev_day = m_day
+            month_prev = compute_index(m_entries)
+            month_prev["_day"] = m_day
+    md = render_markdown(latest, f"{latest_day}", prev_result=prev, month_result=month_prev)
     all_entries = [e for es in entries_by_day.values() for e in es]
     stats = {"days": len(entries_by_day), "latest_day": latest_day,
-             "prev_day": prev_day, "valid_entries": len(all_entries),
+             "prev_day": prev_day, "month_prev_day": month_prev_day,
+             "valid_entries": len(all_entries),
              "countries": sorted({e[0] for e in all_entries})}
-    return md, {"latest": latest, "prev": prev, "by_day": entries_by_day}, stats
+    return md, {"latest": latest, "prev": prev, "month_prev": month_prev,
+                "by_day": entries_by_day}, stats
 
 
 if __name__ == "__main__":

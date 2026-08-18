@@ -58,6 +58,31 @@ def test_render_markdown_has_table():
     assert "周环比" in md
 
 
+def test_month_change_hook_hidden_without_data():
+    """无 30 天前数据时,月环比列整列隐藏(钩子不触发)。"""
+    entries = [("KZ", "button_mushroom", 4.0), ("UZ", "button_mushroom", 3.0)]
+    md = render_markdown(compute_index(entries), "2026-08-18", month_result=None)
+    # 表头行(第一行表格)不应含月环比列;但口径说明里会提及"月环比"文案
+    header_line = [l for l in md.splitlines() if l.startswith("| 国家")][0]
+    assert "月环比" not in header_line
+    assert "周环比" in header_line
+
+
+def test_month_change_hook_shown_with_data():
+    """有 30 天前数据且样本充足时,月环比列自动出现并显示涨跌幅(钩子触发)。"""
+    cur = [("KZ", "button_mushroom", 4.0), ("KZ", "button_mushroom", 4.2), ("KZ", "button_mushroom", 3.8),
+           ("UZ", "button_mushroom", 3.0), ("UZ", "button_mushroom", 3.1), ("UZ", "button_mushroom", 2.9)]
+    month = [("KZ", "button_mushroom", 3.0), ("KZ", "button_mushroom", 3.1), ("KZ", "button_mushroom", 2.9),
+             ("UZ", "button_mushroom", 2.0), ("UZ", "button_mushroom", 2.1), ("UZ", "button_mushroom", 1.9)]
+    m_prev = compute_index(month)
+    m_prev["_day"] = "2026-07-19"
+    md = render_markdown(compute_index(cur), "2026-08-18", month_result=m_prev)
+    header_line = [l for l in md.splitlines() if l.startswith("| 国家")][0]
+    assert "月环比" in header_line
+    # KZ 双孢菇中位 4.0 vs 3.0 → +33.3%(国家级综合中位价同样是 4.0 vs 3.0)
+    assert "+33.3%" in md
+
+
 if __name__ == "__main__":
     import traceback
     failed = 0
