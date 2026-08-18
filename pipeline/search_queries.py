@@ -1,7 +1,17 @@
 """中亚五国食用菌多语检索词矩阵。
 
-本地语言和俄语都是真实的检索任务，language 不只是入库标签。
-检索结果会保留 query_language/query_term/query_species，便于评估每个词的产出。
+本地语言和俄语都是真实的检索任务,language 不只是入库标签。
+检索结果会保留 query_language/query_term/query_species,便于评估每个词的产出。
+
+词源标注(2026-08-18 人工核实):
+  - native:本地语言原生词(如哈语 саңырауқұлақ、吉语 козу карын、塔语 занбӯруғ)
+  - loan:俄语/国际借词,当地电商实际常用(如 шампьон/вешенка/шиитаке/эноки/эринги)
+  - russian:俄语词
+
+用途:
+  - loan/russian 词召回率高(电商主流),native 词用于发现本地商家
+  - 哈萨克语 саңырауқұлақ 是 native 总称,搜索会命中"蘑菇形电极"等非食品,
+    调用方必须配合食品分类过滤(见 taxonomy NON_FOOD / Kaspi 适配器)
 """
 
 from dataclasses import dataclass
@@ -13,98 +23,101 @@ class SearchQuery:
     species_id: str
     language: str
     term: str
+    term_origin: str = "russian"  # native / loan / russian
 
 
 # 每国均含本地语言和俄语。外来菌种名保留当地平台实际使用的借词写法。
+# term 为 (词, 词源),origin 标记 native/loan/russian。
 COUNTRY_SEARCH_TERMS = {
     "KZ": {
         "kk": {
-            "mushrooms": ("саңырауқұлақ",),
-            "button_mushroom": ("шампиньон",),
-            "oyster_mushroom": ("вешенка",),
-            "shiitake": ("шиитаке",),
-            "enoki": ("эноки",),
-            "king_oyster_mushroom": ("эринги",),
+            "mushrooms": (("саңырауқұлақ", "native"),),
+            "button_mushroom": (("шампиньон", "loan"),),
+            "oyster_mushroom": (("вешенка", "loan"),),
+            "shiitake": (("шиитаке", "loan"),),
+            "enoki": (("эноки", "loan"),),
+            "king_oyster_mushroom": (("эринги", "loan"),),
         },
         "ru": {
-            "mushrooms": ("грибы",),
-            "button_mushroom": ("шампиньоны",),
-            "oyster_mushroom": ("вешенки",),
-            "shiitake": ("шиитаке",),
-            "enoki": ("эноки",),
-            "king_oyster_mushroom": ("эринги",),
+            "mushrooms": (("грибы", "russian"),),
+            "button_mushroom": (("шампиньоны", "russian"),),
+            "oyster_mushroom": (("вешенки", "russian"),),
+            "shiitake": (("шиитаке", "russian"),),
+            "enoki": (("эноки", "russian"),),
+            "king_oyster_mushroom": (("эринги", "russian"),),
         },
     },
     "UZ": {
         "uz": {
-            "mushrooms": ("qo'ziqorin", "qo‘ziqorin"),
-            "button_mushroom": ("shampinyon", "sampinyon"),
-            "oyster_mushroom": ("veshenka",),
-            "shiitake": ("shiitake",),
-            "enoki": ("enoki",),
-            "king_oyster_mushroom": ("eringi",),
+            "mushrooms": (("qo'ziqorin", "native"), ("qo‘ziqorin", "native")),
+            "button_mushroom": (("shampinyon", "loan"), ("sampinyon", "loan")),
+            "oyster_mushroom": (("veshenka", "loan"),),
+            "shiitake": (("shiitake", "loan"),),
+            "enoki": (("enoki", "loan"),),
+            "king_oyster_mushroom": (("eringi", "loan"),),
         },
         "ru": {
-            "mushrooms": ("грибы",),
-            "button_mushroom": ("шампиньоны",),
-            "oyster_mushroom": ("вешенки",),
-            "shiitake": ("шиитаке",),
-            "enoki": ("эноки",),
-            "king_oyster_mushroom": ("эринги",),
+            "mushrooms": (("грибы", "russian"),),
+            "button_mushroom": (("шампиньоны", "russian"),),
+            "oyster_mushroom": (("вешенки", "russian"),),
+            "shiitake": (("шиитаке", "russian"),),
+            "enoki": (("эноки", "russian"),),
+            "king_oyster_mushroom": (("эринги", "russian"),),
         },
     },
     "KG": {
         "ky": {
-            "mushrooms": ("козу карын",),
-            "button_mushroom": ("шампиньондор",),
-            "oyster_mushroom": ("вешенка",),
-            "shiitake": ("шиитаке",),
-            "enoki": ("эноки",),
-            "king_oyster_mushroom": ("эринги",),
+            "mushrooms": (("козу карын", "native"),),
+            "button_mushroom": (("шампиньондор", "loan"),),
+            "oyster_mushroom": (("вешенка", "loan"),),
+            "shiitake": (("шиитаке", "loan"),),
+            "enoki": (("эноки", "loan"),),
+            "king_oyster_mushroom": (("эринги", "loan"),),
         },
         "ru": {
-            "mushrooms": ("грибы",),
-            "button_mushroom": ("шампиньоны",),
-            "oyster_mushroom": ("вешенки",),
-            "shiitake": ("шиитаке",),
-            "enoki": ("эноки",),
-            "king_oyster_mushroom": ("эринги",),
+            "mushrooms": (("грибы", "russian"),),
+            "button_mushroom": (("шампиньоны", "russian"),),
+            "oyster_mushroom": (("вешенки", "russian"),),
+            "shiitake": (("шиитаке", "russian"),),
+            "enoki": (("эноки", "russian"),),
+            "king_oyster_mushroom": (("эринги", "russian"),),
         },
     },
     "TJ": {
-        "tg": {
-            "mushrooms": ("занбӯруғ",),
-            "button_mushroom": ("шампиньон",),
-            "oyster_mushroom": ("вешенка",),
-            "shiitake": ("шиитаке",),
-            "enoki": ("эноки",),
-            "king_oyster_mushroom": ("эринги",),
-        },
+        # 塔吉克电商以俄语标题为主:俄语词优先、塔语词补充
         "ru": {
-            "mushrooms": ("грибы",),
-            "button_mushroom": ("шампиньоны",),
-            "oyster_mushroom": ("вешенки",),
-            "shiitake": ("шиитаке",),
-            "enoki": ("эноки",),
-            "king_oyster_mushroom": ("эринги",),
+            "mushrooms": (("грибы", "russian"),),
+            "button_mushroom": (("шампиньоны", "russian"),),
+            "oyster_mushroom": (("вешенки", "russian"),),
+            "shiitake": (("шиитаке", "russian"),),
+            "enoki": (("эноки", "russian"),),
+            "king_oyster_mushroom": (("эринги", "russian"),),
+        },
+        "tg": {
+            "mushrooms": (("занбӯруғ", "native"),),
+            "button_mushroom": (("шампиньон", "loan"),),
+            "oyster_mushroom": (("вешенка", "loan"),),
+            "shiitake": (("шиитаке", "loan"),),
+            "enoki": (("эноки", "loan"),),
+            "king_oyster_mushroom": (("эринги", "loan"),),
         },
     },
     "TM": {
         "tk": {
-            "mushrooms": ("kömelek", "komelek"),
-            "button_mushroom": ("gelin kömelek", "şampinýon"),
-            "oyster_mushroom": ("weşenka kömelegi",),
-            "shiitake": ("şiitake",),
-            "enoki": ("enoki",),
-            "king_oyster_mushroom": ("eringi",),
+            "mushrooms": (("kömelek", "native"), ("komelek", "native")),
+            "button_mushroom": (("gelin kömelek", "native"), ("şampinýon", "loan")),
+            "oyster_mushroom": (("weşenka kömelegi", "native"),),
+            "shiitake": (("şiitake", "loan"),),
+            "enoki": (("enoki", "loan"),),
+            "king_oyster_mushroom": (("eringi", "loan"),),
         },
         "ru": {
-            "mushrooms": ("грибы",),
-            "button_mushroom": ("шампиньоны",),
-            "oyster_mushroom": ("вешенки",),
-            "shiitake": ("шиитаке",),
-            "enoki": ("эноки",),
-            "king_oyster_mushroom": ("эринги",),
+            "mushrooms": (("грибы", "russian"),),
+            "button_mushroom": (("шампиньоны", "russian"),),
+            "oyster_mushroom": (("вешенки", "russian"),),
+            "shiitake": (("шиитаке", "russian"),),
+            "enoki": (("эноки", "russian"),),
+            "king_oyster_mushroom": (("эринги", "russian"),),
         },
     },
 }
@@ -114,6 +127,7 @@ def iter_country_queries(country, species_ids=None, include_variants=False):
     """生成稳定、去重的检索任务。
 
     默认每个语言/菌种只取一个主词；只有平台证明需要拼写变体时才开启全部变体。
+    语言顺序按 COUNTRY_SEARCH_TERMS 定义(塔吉克:俄语在前,塔语在后)。
     """
     wanted = set(species_ids or ())
     seen = set()
@@ -122,9 +136,9 @@ def iter_country_queries(country, species_ids=None, include_variants=False):
             if wanted and species_id not in wanted:
                 continue
             selected = terms if include_variants else terms[:1]
-            for term in selected:
+            for term, origin in selected:
                 key = (language, term.casefold())
                 if key in seen:
                     continue
                 seen.add(key)
-                yield SearchQuery(country, species_id, language, term)
+                yield SearchQuery(country, species_id, language, term, term_origin=origin)
