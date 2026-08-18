@@ -1,7 +1,8 @@
 name: Customer Daily Report
 on:
   schedule:
-    - cron: '30 3 * * *'
+    # Beijing 10:00 / Central Asia 07:00-08:00.
+    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       validate_only:
@@ -29,6 +30,41 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r pipeline/requirements.txt
+      - name: Confirm today's production prices are available
+        if: ${{ inputs.validate_only != true }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          today = datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
+          site_url = os.environ["SITE_URL"].rstrip("/")
+          with urllib.request.urlopen(f"{site_url}/api/prices", timeout=60) as response:
+              records = json.load(response).get("records", [])
+
+          today_records = [
+              row for row in records
+              if row.get("price", {}).get("observationDate") == today
+          ]
+          if not today_records:
+              raise SystemExit(f"No production price records are available for {today}; report publication stopped.")
+
+          countries = sorted({
+              row.get("product", {}).get("country")
+              for row in today_records
+              if row.get("product", {}).get("country")
+          })
+          expected = {"KZ", "UZ", "KG", "TJ", "TM"}
+          missing = sorted(expected - set(countries))
+          print(f"Today's production prices: {len(today_records)} records; countries: {', '.join(countries)}")
+          if missing:
+              print(f"Countries without a valid public price today: {', '.join(missing)}; the report must retain the gap explicitly.")
+          PY
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
       - name: Validate DeepSeek V4 Flash connection
         if: ${{ inputs.validate_only == true }}
         run: |
