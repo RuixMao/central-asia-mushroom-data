@@ -26,7 +26,12 @@ class RenderedProductAdapter:
     body=page.locator("body").inner_text(timeout=10000);html=page.content();browser.close()
    if re.search(r"captcha|верификац|подтвердите, что вы не робот",body,re.I):return None,"render_blocked"
    return (html,body),None
-  except Exception:return None,"render_failed"
+  except Exception as exc:
+   # 记录异常详情(类型+信息)供 CI 诊断,不吞掉线索
+   import traceback,sys
+   detail=f"{type(exc).__name__}: {str(exc)[:200]}"
+   print(f"[render-debug] {url[:80]} -> render_failed: {detail}",file=sys.stderr)
+   return None,"render_failed"
  def collect(self):
   rendered,error=self.render(self.config["url"])
   if error:return None,error
