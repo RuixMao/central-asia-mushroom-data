@@ -95,10 +95,10 @@ class TestAsmanAdapter(unittest.TestCase):
         self.assertEqual(err, "price_missing")
 
     def test_classify_ambiguous_komelek(self):
-        # 泛称 komelek -> unknown（诚实：不强行归为双孢菇）
+        # 泛称 komelek -> ambiguous(诚实:不强行归为双孢菇,但确认为蘑菇待核)
         c = classify("Eyran komelek 1000 gr")
         self.assertIsNone(c["species_id"])
-        self.assertEqual(c["status"], "unknown")
+        self.assertEqual(c["status"], "ambiguous")
 
     def test_parse_package_1000gr(self):
         p = parse_package("Eyran komelek 1000 gr")

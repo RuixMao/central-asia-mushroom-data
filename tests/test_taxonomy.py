@@ -6,7 +6,7 @@ class TaxonomyTest(unittest.TestCase):
   cases={"Грибы Эноки 300 г":"enoki","Грибы Вешенки":"oyster_mushroom","Грибы shiitake":"shiitake","Шампиньоны":"button_mushroom","королевская вешенка":"king_oyster_mushroom","杏鲍菇 300g":"king_oyster_mushroom","veshenki fresh":"oyster_mushroom"}
   for title,want in cases.items():self.assertEqual(classify(title)["species_id"],want)
  def test_uncertain(self):
-  self.assertEqual(classify("Грибы")["status"],"unknown")
+  self.assertEqual(classify("Грибы")["status"],"ambiguous")
   self.assertEqual(classify("Смесь шиитаке и вешенки")["status"],"mixed_species")
   self.assertEqual(classify("Шампиньоны",description="вешенка")["status"],"review_required")
  def test_forms(self):
