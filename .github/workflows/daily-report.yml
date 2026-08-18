@@ -42,7 +42,11 @@ jobs:
 
           today = datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
           site_url = os.environ["SITE_URL"].rstrip("/")
-          with urllib.request.urlopen(f"{site_url}/api/prices", timeout=60) as response:
+          request = urllib.request.Request(
+              f"{site_url}/api/prices",
+              headers={"User-Agent": "Yinheng-Daily-Report/1.0", "Accept": "application/json"},
+          )
+          with urllib.request.urlopen(request, timeout=60) as response:
               records = json.load(response).get("records", [])
 
           today_records = [
