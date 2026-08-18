@@ -12,14 +12,13 @@ class LochinAdapter(ProductAdapter):
     """Lochin supermarket product page adapter.
 
     Lochin exposes the product name and current UZS price in server-rendered
-    HTML.  Weighted fresh products are configured as 1 kg because Lochin's
-    ``вес`` catalogue unit is the kilogram; packaged products keep the
-    explicit size from their title/configuration.
+    HTML. ``вес``只表示称重销售；页面未明确计价单位时不得默认按1kg换算。
     """
 
     def parse(self, response):
         soup = BeautifulSoup(response.text, "html.parser")
-        title = soup.title.get_text(" ", strip=True) if soup.title else ""
+        heading = soup.find("h1")
+        title = heading.get_text(" ", strip=True) if heading else (soup.title.get_text(" ", strip=True) if soup.title else "")
         title = re.sub(r"\s+-\s+Lochin\s*$", "", title, flags=re.I).strip()
         if not title:
             return None, "title_missing"
@@ -34,5 +33,5 @@ class LochinAdapter(ProductAdapter):
             return None, "price_missing"
         match = prices[0]
         price = float(match.group(1).replace(" ", "").replace(",", ""))
-        return {**self.config, "original_title": title,
+        return {**self.config, "original_title": title, "description": scoped,
                 "current_price": price, "raw_price_text": match.group(0)}, None

@@ -2,7 +2,8 @@ import re
 from bs4 import BeautifulSoup
 from .base import ProductAdapter
 
-# Somon.tj：商品页标题价格形如 "Грибы шампиньоны 10 c."（10 сомони/кг）
+# Somon.tj：商品页标题价格形如 "Грибы шампиньоны 10 c."。
+# 价格单位是索莫尼，但广告未必披露重量，不能默认解释为每公斤。
 SOMONI_PRICE = re.compile(r"(\d[\d\s]{1,12}(?:[.,]\d{1,2})?)\s*c\.", re.I)
 
 
@@ -27,4 +28,7 @@ class SomonAdapter(ProductAdapter):
         price = float(match.group(1).replace(" ", "").replace(",", "."))
         if price <= 0:
             return None, "zero_price"
-        return {**self.config, "original_title": title, "current_price": price, "raw_price_text": match.group(0)}, None
+        description_meta = soup.find("meta", attrs={"name": "description"}) or soup.find("meta", property="og:description")
+        description = (description_meta.get("content") if description_meta else "") or soup.get_text(" ", strip=True)
+        return {**self.config, "original_title": title, "description": description[:2000],
+                "current_price": price, "raw_price_text": match.group(0)}, None

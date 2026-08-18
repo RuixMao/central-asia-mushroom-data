@@ -33,11 +33,12 @@ CUSTOMER_PAIN_GUIDANCE="""
 
 def customer_safe(body,allowed):
  normalized=unicodedata.normalize("NFKC",body);refs=set(re.findall(r"\[(S\d+)\]",normalized))
- return 500<=len(normalized)<=3200 and "```" not in normalized and "中亚菌类市场研究日报｜" not in normalized and not FORBIDDEN.search(normalized) and all(normalized.count(section)==1 for section in SECTIONS) and refs<=allowed
+ return 350<=len(normalized)<=3200 and "```" not in normalized and "中亚菌类市场研究日报｜" not in normalized and not FORBIDDEN.search(normalized) and all(normalized.count(section)==1 for section in SECTIONS) and refs<=allowed
 
 def summary_from(body):
  paragraphs=[part.strip() for part in re.split(r"\n\s*\n",body) if part.strip() and not re.match(r"^#{1,6}\s",part.strip())]
- return re.sub(r"[#*_>`~-]"," ",paragraphs[0] if paragraphs else body).replace("\n"," ").strip()[:200]
+ plain=re.sub(r"[#*_>`~-]"," ",paragraphs[0] if paragraphs else body).replace("\n"," ").strip()
+ return re.split(r"(?<=[。！？])\s*",plain)[0][:160]
 
 def clean_analysis(body):
  lines=body.strip().splitlines()
@@ -112,16 +113,16 @@ def build_signals(prices,live,today_date):
   channels={r["data"].get("platform_name") or r.get("source") for r in rows}
   if len(channels)<2:continue
   values=[float(r["data"]["normalized_price_usd_per_kg"]) for r in rows];low=min(values);high=max(values);spread=(high/low-1)*100 if low else 0
-  if spread<15:continue
+  if spread<15 or spread>100:continue
   sample=rows[0];d=sample["data"]
   signals.append({"状态":"待核验","类型":"同规格渠道价差","国家":COUNTRIES.get(sample["country"],sample["country"]),"品类":d.get("species_zh") or d.get("species_id"),"形态":FORMS.get(d.get("product_form"),d.get("product_form")),"规格":d.get("package_display"),"渠道":"、".join(sorted(channels)),"最新美元每公斤":f"{low:.2f}–{high:.2f}","变化":f"价差 {spread:.1f}%","判断":f'同规格多渠道挂牌价差 {spread:.1f}%，可转为批量询价线索，但尚不能视为利润空间。',"证据":f'{len(channels)} 个独立渠道、同日同规格报价。',"停止条件":"净重、产地、等级、促销或库存状态不一致"})
  return signals
 
 def decision_fallback(today,signals,evidence):
  actionable=[item for item in signals if item["状态"]=="可行动"];verify=[item for item in signals if item["状态"]=="待核验"]
- conclusion=(f"今日识别出 {len(actionable)} 条达到询价验证门槛的价格信号。" if actionable else "今日没有新增可执行价格信号，不建议依据单日挂牌价调整采购或产能安排。")
+ conclusion=(f"今天发现 {len(actionable)} 项值得立即核实的价格变化。" if actionable else "今天没有发现需要立即调整采购、报价或产能计划的市场变化，建议维持现有安排。")
  lines=[f'- **{item["状态"]}｜{item["国家"]}·{item["品类"]}**：{item["判断"]} 证据：{item["证据"]}' for item in (actionable+verify)[:5]] or ["- 今日未出现同商品连续报价变化或同规格多渠道价差，维持观察。"]
- return f"""{conclusion} 本期只保留同一商品的连续变化和同国家、同品类、同形态、同规格的渠道比较；不可比样本不进入商业判断。
+ return f"""本期只比较页面明确标注重量、形态一致的商品；规格来源不清或价差异常的记录不进入市场判断。
 ## 今日结论
 - {conclusion}
 - 零售挂牌价只用于筛选询价对象，不能直接视为成交价、需求或利润。
@@ -146,7 +147,7 @@ def run():
  if not revision and any(today in str(report.get("title", "")) for report in existing):
   print(f"{today} 日报已存在，跳过重复生成")
   return
- live=[r for r in snapshots if r.get("data",{}).get("status")=="live" and r.get("data",{}).get("normalized_price_usd_per_kg") is not None]
+ live=[r for r in snapshots if r.get("data",{}).get("status")=="live" and r.get("data",{}).get("normalized_price_usd_per_kg") is not None and r.get("data",{}).get("package_source") in {"page_title","page_structured_data"}]
  prices=[r for r in live if r["data"].get("observed_at")==today]
  if not prices:raise RuntimeError(f"{today} 没有标准化可比价格，拒绝生成误导性日报")
  # 同一商品同日去重，避免重复运行把样本量放大。
@@ -207,7 +208,7 @@ def run():
 成稿要求：
 1. 页面标题另行显示。先写50至90字导读；随后恰好使用“今日结论”“可执行信号”“验证清单”“商业边界”“数据口径”五个二级标题。正文500至1200字；没有新增信号时宁可短写，不得凑篇幅。
 2. “今日结论”最多3条，只回答今天出现了什么、是否达到行动门槛、客户现在应做或不应做什么。严禁逐国罗列报价、中位数和渠道数。
-3. “可执行信号”逐条写明国家、品类、形态、规格、渠道、变化或价差、证据强度、商业意义和停止条件。若结构化商业信号为空，明确写“今日无新增可执行信号”，不得制造商机。
+3. “可执行信号”逐条写明国家、品类、形态、规格、渠道、变化或价差、证据强度、商业意义和停止条件。若结构化商业信号为空，写“今天没有发现需要立即调整采购、报价或产能计划的市场变化”，不得使用“可执行价格信号”等内部研究术语，也不得制造商机。
 4. 政策或新闻事实必须引用 [S1] 形式的证据编号，且只能使用证据包存在的编号。没有材料时简洁说明“本期未纳入可核验的新材料”，不要逐国重复。
 5. 零售趋势只使用有效日期数不少于3的同口径序列；不足3期的品类可用“年度进口单价参考（贸易口径）”描述年度走势，并注明其不是零售价；两种依据均不足的品类不写趋势。禁止出现“历史序列不足”“暂不判断”“数据不足”“无法判断”等表述。
 6. “验证清单”必须是业务人员可执行的询价字段与通过门槛，包括在售/促销状态、净重、等级、产地、最小订货量、报价有效期、物流、损耗、税费和渠道费用；不得使用“持续关注”“加强合作”等空话。

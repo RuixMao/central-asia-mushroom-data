@@ -13,7 +13,8 @@ class YukberAdapter(ProductAdapter):
 
     def parse(self, response):
         soup = BeautifulSoup(response.text, "html.parser")
-        title = soup.title.get_text(" ", strip=True) if soup.title else ""
+        heading = soup.find("h1")
+        title = heading.get_text(" ", strip=True) if heading else (soup.title.get_text(" ", strip=True) if soup.title else "")
         title = re.sub(r"\s+", " ", title).strip()
         if not title:
             return None, "title_missing"
@@ -26,5 +27,5 @@ class YukberAdapter(ProductAdapter):
         # to the recommendations carousel.
         match = matches[0]
         price = float(match.group(1).replace(" ", "").replace(",", ""))
-        return {**self.config, "original_title": title,
+        return {**self.config, "original_title": title, "description": text[:2000],
                 "current_price": price, "raw_price_text": match.group(0)}, None
