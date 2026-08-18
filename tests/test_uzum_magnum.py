@@ -51,24 +51,33 @@ def test_uzum_dedupes_same_product():
     rows = _rows(adapter, html)
     assert len(rows) == 1  # 同一商品 ID 去重
 
-def test_magnum_parses_product():
-    html = """
-    <html><body>
-      <div class="product">
-        <a href="/product/shampinony-1kg"><h3>Шампиньоны свежие 1 кг</h3></a>
-        <span>1 890 ₸</span>
-      </div>
-    </body></html>
-    """
-    adapter = MagnumAdapter({"url": "https://magnum.kz/", "platform": "magnum-kz", "currency": "KZT"})
-    rows = _rows(adapter, html)
+def test_magnum_parses_product(monkeypatch):
+    from adapters import magnum as mm
+    # 模拟 Strapi /api/products 响应(含蘑菇商品)
+    fake = type("R", (), {"json": lambda self: {"data": [
+        {"id": 7001, "attributes": {"name": "ШАМПИНЬОНЫ СВЕЖИЕ 1 КГ",
+                                     "final_price": 1890, "start_price": 2100,
+                                     "translation_kaz": "Саңырауқұлақ"}}
+    ], "meta": {"pagination": {"total": 1}}}})
+    monkeypatch.setattr(mm, "safe_get", lambda url, **kw: fake())
+    adapter = mm.MagnumAdapter({"url": "https://magnum.kz/catalog", "platform": "magnum-kz", "currency": "KZT", "city": "almaty"})
+    rows, err = adapter.collect_many()
+    assert err is None
     assert len(rows) == 1
     assert rows[0]["current_price"] == 1890
-    assert rows[0]["platform_product_id"].startswith("magnum-")
+    assert rows[0]["regular_price"] == 2100
+    assert rows[0]["platform_product_id"] == "magnum-7001"
 
-def test_magnum_empty_page_honest_gap():
-    adapter = MagnumAdapter({"url": "https://magnum.kz/", "platform": "magnum-kz", "currency": "KZT"})
-    rows = _rows(adapter, "<html><body>Каталог скидок</body></html>")
+
+def test_magnum_empty_page_honest_gap(monkeypatch):
+    from adapters import magnum as mm
+    fake = type("R", (), {"json": lambda self: {"data": [
+        {"id": 7002, "attributes": {"name": "Молоко 900 мл", "final_price": 585, "translation_kaz": "Сүт"}}
+    ], "meta": {"pagination": {"total": 1}}}})
+    monkeypatch.setattr(mm, "safe_get", lambda url, **kw: fake())
+    adapter = mm.MagnumAdapter({"url": "https://magnum.kz/catalog", "platform": "magnum-kz", "currency": "KZT", "city": "almaty"})
+    rows, err = adapter.collect_many()
+    assert err == "no_mushroom_products"
     assert rows == []
 
 

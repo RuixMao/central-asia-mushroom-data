@@ -55,7 +55,7 @@ SOURCES=[
 (UzumAdapter,{"platform":"uzum-uz","platform_name":"Uzum","platform_product_id":"search-mushrooms-ru","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://uzum.uz/ru/search?query=грибы","title":"Грибы","package":"","currency":"UZS","language":"ru","query_language":"ru","query_term":"грибы","query_species":"mushrooms"}),
 (UzumAdapter,{"platform":"uzum-uz","platform_name":"Uzum","platform_product_id":"search-mushrooms-uz","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://uzum.uz/uz/search?query=qo%27ziqorin","title":"Qo'ziqorin","package":"","currency":"UZS","language":"uz","query_language":"uz","query_term":"qo'ziqorin","query_species":"mushrooms"}),
 # Magnum(哈萨克连锁商超):Nuxt SPA,商品异步加载,渲染框架待 CI 逆向 API
-(MagnumAdapter,{"platform":"magnum-kz","platform_name":"Magnum","platform_product_id":"catalog-mushrooms","country":"KZ","city":"Almaty","collection_point_id":"ALMATY_POINT_01","url":"https://magnum.kz/","title":"Грибы","package":"","currency":"KZT","language":"ru","query_language":"ru","query_term":"грибы","query_species":"mushrooms"}),
+(MagnumAdapter,{"platform":"magnum-kz","platform_name":"Magnum","platform_product_id":"catalog-mushrooms","country":"KZ","city":"Almaty","collection_point_id":"ALMATY_POINT_01","url":"https://magnum.kz/catalog?city=almaty","title":"Грибы","package":"","currency":"KZT","language":"ru","query_language":"ru","query_term":"грибы","query_species":"mushrooms"}),
 (GiperAdapter,{"platform":"gipertm","platform_name":"Giper.tm","platform_product_id":"201768","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://gipertm.com/catalog/product/201768","title":"Gelinkömelek (şampinýon) Tokaýçy 800 gr","package":"800 g","currency":"TMT","language":"tk"}),
 (GiperAdapter,{"platform":"gipertm","platform_name":"Giper.tm","platform_product_id":"207977","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://gipertm.com/catalog/product/207977","title":"Esmo marinadlanan şampinýon kömelekleri 400 gr","package":"400 g","currency":"TMT","language":"tk"}),
 (GiperAdapter,{"platform":"gipertm","platform_name":"Giper.tm","platform_product_id":"205866","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://gipertm.com/catalog/product/205866","title":"Şampinon kömelekleri Ra-Ra kesilen 400 gr","package":"400 g","currency":"TMT","language":"tk"}),
@@ -139,7 +139,7 @@ def rates():
 #   static(默认):只跑静态源,日常 5 分钟内完成
 #   rendered:    只跑渲染源(独立 workflow 用)
 #   all:         全部(手动补采用)
-RENDERED_PLATFORMS = {"kaspi-kz", "yandex-uz", "uzum-uz", "magnum-kz"}
+RENDERED_PLATFORMS = {"kaspi-kz", "yandex-uz", "uzum-uz"}
 COLLECTION_MODE = os.getenv("COLLECTION_MODE", "static").strip().lower()
 
 def run():
