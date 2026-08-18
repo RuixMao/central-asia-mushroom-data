@@ -4,8 +4,11 @@ Magnum 是 Nuxt SPA:静态页只有导航,商品列表由前端异步加载,
 本地无法直接定位其数据 API(常见路径已探测 404)。
 策略:渲染型框架,渲染成功但无商品 → no_mushroom_products(诚实 gap);
 待 CI 环境逆向 API 后补充 JSON 通道。不做猜测抓取。
+
+MAGNUM_DEBUG=1 时打印渲染页片段(诊断 Nuxt API / 商品卡结构)。
 """
 import hashlib
+import os
 import re
 
 from bs4 import BeautifulSoup
@@ -25,6 +28,14 @@ class MagnumAdapter(RenderedProductAdapter):
         if error:
             return [], error
         html, body = rendered
+        if os.getenv("MAGNUM_DEBUG", "0") == "1":
+            print(f"[magnum-debug] url={self.config['url']}")
+            print(f"[magnum-debug] body_len={len(body or '')} html_len={len(html or '')}")
+            print(f"[magnum-debug] body_head={ (body or '')[:400] }")
+            # 找 XHR/Nuxt 数据线索
+            import re as _re
+            apis = set(_re.findall(r'["\'](/api/[^"\']+|https?://[^"\']*(?:api|graphql)[^"\']*)["\']', html or ""))
+            print(f"[magnum-debug] api_hints={list(apis)[:8]}")
         rows = self.parse_rendered_many(html, body)
         if not rows:
             return [], "no_mushroom_products"

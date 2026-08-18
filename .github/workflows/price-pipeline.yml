@@ -35,6 +35,11 @@ on:
         required: false
         type: boolean
         default: false
+      magnum_debug:
+        description: 打印 Magnum 渲染页诊断片段(逆向 Nuxt API)
+        required: false
+        type: boolean
+        default: false
 jobs:
   prices:
     runs-on: ubuntu-latest
@@ -65,6 +70,7 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           COLLECTION_MODE: ${{ inputs.collection_mode }}
           UZUM_DEBUG: ${{ inputs.uzum_debug && '1' || '0' }}
+          MAGNUM_DEBUG: ${{ inputs.magnum_debug && '1' || '0' }}
           PROXY_BASE: ${{ secrets.PROXY_BASE }}
           WB_DESTS_JSON: ${{ secrets.WB_DESTS_JSON }}
       - name: Build daily summaries
