@@ -201,14 +201,21 @@ def run():
    post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":country,"source":platform,"data":{"status":"gap","reason":reason,"observed_at":today}})
   for query in query_runs:
    country=next((c["country"] for c in active_configs if c["platform"]==query["platform"]),"")
-   post_to_site("/api/ingest/snapshot",{"metric":"search_query_health","country":country,"source":query["platform"],"data":{**query,"observed_at":today}})
+   try:
+    post_to_site("/api/ingest/snapshot",{"metric":"search_query_health","country":country,"source":query["platform"],"data":{**query,"observed_at":today}})
+   except RuntimeError as exc:
+    # health 数据是辅助诊断型,API 拒绝时降级为日志,不阻塞主采集
+    log(f"search_query_health 写入失败(降级): {exc}")
   platform_configs={c["platform"]:c for c in active_configs}
   for platform,config in platform_configs.items():
    count=sum(1 for it in items if it["platform"]==platform)
    valid_count=sum(1 for it in items if it["platform"]==platform and it["validation_status"]=="valid")
    health_status="live" if valid_count else ("needs_review" if count else "gap")
    platform_queries=[q for q in query_runs if q["platform"]==platform]
-   post_to_site("/api/ingest/snapshot",{"metric":"source_health","country":config["country"],"source":platform,"data":{"status":health_status,"candidate_count":count,"valid_count":valid_count,"needs_review_count":count-valid_count,"reason":platform_errors.get(platform),"search_coverage":{"languages":sorted({q["language"] for q in platform_queries}),"query_count":len(platform_queries),"successful_query_count":sum(q["status"]=="live" for q in platform_queries)},"observed_at":today}})
+   try:
+    post_to_site("/api/ingest/snapshot",{"metric":"source_health","country":config["country"],"source":platform,"data":{"status":health_status,"candidate_count":count,"valid_count":valid_count,"needs_review_count":count-valid_count,"reason":platform_errors.get(platform),"search_coverage":{"languages":sorted({q["language"] for q in platform_queries}),"query_count":len(platform_queries),"successful_query_count":sum(q["status"]=="live" for q in platform_queries)},"observed_at":today}})
+   except RuntimeError as exc:
+    log(f"source_health 写入失败(降级): {exc}")
  valid_items=[it for it in items if it["validation_status"]=="valid"]
  summary={"candidates":len(items),"valid":len(valid_items),"needs_review":len(items)-len(valid_items),
           "valid_by_country":dict(sorted(Counter(it["country"] for it in valid_items).items())),

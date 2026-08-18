@@ -2,7 +2,7 @@ import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-or
 
 export const dataSnapshots = sqliteTable("data_snapshots", {
   id: text("id").primaryKey(),
-  metric: text("metric", { enum: ["trade", "price", "price_retail", "logistics"] }).notNull(),
+  metric: text("metric", { enum: ["trade", "price", "price_retail", "logistics", "search_query_health", "source_health"] }).notNull(),
   country: text("country", { enum: ["KZ", "UZ", "KG", "TJ", "TM"] }).notNull(),
   data: text("data", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
   source: text("source").notNull(),
