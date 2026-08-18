@@ -15,6 +15,16 @@ const forbidden=/https?:\/\/|(?:price|observed|source)\s*[_-]\s*(?:usd|local|cny
 const sections=["核心观点","市场变化与驱动","商业含义","关注事项","数据口径与风险"];
 const customerSafe=(body:string,allowed:Set<string>)=>{const normalized=body.normalize("NFKC"),refs=[...normalized.matchAll(/\[(S\d+)\]/g)].map(match=>match[1]);return normalized.length>=900&&normalized.length<=4200&&!normalized.includes("```")&&!normalized.includes("中亚菌类价格日报｜")&&!forbidden.test(normalized)&&sections.every(section=>normalized.split(section).length===2)&&refs.every(ref=>allowed.has(ref))};
 const summaryFrom=(body:string)=>plain(body.split(/\n\s*\n/).find(block=>block.trim()&&!/^#{1,6}\s/.test(block.trim()))??body).slice(0,200);
+const cleanAnalysis=(body:string)=>{
+ const lines=body.trim().split(/\r?\n/);
+ while(lines.length&&!lines[0].trim())lines.shift();
+ if(lines.length&&/^#\s+.*日报\s*$/.test(lines[0].trim()))lines.shift();
+ while(lines.length&&!lines[0].trim())lines.shift();
+ if(lines.length&&/^\*\*日期[:：].+\*\*$/.test(lines[0].trim()))lines.shift();
+ while(lines.length&&!lines[0].trim())lines.shift();
+ if(lines[0]?.trim()==="## 导读")lines.shift();
+ return lines.join("\n").trim();
+};
 const packageLabel=(value:number|null,unit:string|null)=>value&&unit?`${Number(value.toFixed(3))} ${unit}`:"规格待核验";
 const escapeCell=(value:unknown)=>String(value??"—").replace(/\|/g,"/").replace(/\r?\n/g," ").trim();
 
@@ -43,7 +53,7 @@ export async function POST(){
   const request=attempt?`${prompt}\n\n上一稿未通过发布检查。请仅使用允许的证据编号，保留五个指定栏目，以连贯、克制的机构研究语言完整重写。`:prompt;
   const response=await fetch(`${(process.env.AI_BASE_URL||"https://api.deepseek.com").replace(/\/$/,"")}/chat/completions`,{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${apiKey}`},body:JSON.stringify({model:process.env.AI_MODEL||"deepseek-chat",messages:[{role:"user",content:request}],temperature:.15,stream:false})});
   if(!response.ok){console.error("Report generation failed",response.status,(await response.text()).slice(0,500));if(attempt===1)return Response.json({error:"日报生成失败，请稍后重试"},{status:502});continue}
-  const result=await response.json() as {choices?:Array<{message?:{content?:string}}>};analysis=result.choices?.[0]?.message?.content?.trim()??"";if(customerSafe(analysis,allowed))break;
+  const result=await response.json() as {choices?:Array<{message?:{content?:string}}>};analysis=cleanAnalysis(result.choices?.[0]?.message?.content??"");if(customerSafe(analysis,allowed))break;
  }
  if(!customerSafe(analysis,allowed))return Response.json({error:"日报未通过研究成稿检查，请重新生成"},{status:502});
  const usedIds=new Set([...analysis.matchAll(/\[(S\d+)\]/g)].map(match=>match[1])),usedEvidence=evidence.filter(item=>usedIds.has(item.id));
