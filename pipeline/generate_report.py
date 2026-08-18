@@ -158,7 +158,10 @@ def run():
  except (AuthenticationError,APIError) as exc:
   log(f"DeepSeek unavailable, using verified fallback: {type(exc).__name__}")
   analysis=verified_fallback(today,prices,trends,evidence);used_fallback=True
- if not used_fallback and not customer_safe(analysis,allowed):raise RuntimeError("日报未通过研究成稿检查，拒绝发布")
+ if not used_fallback and not customer_safe(analysis,allowed):
+  log("模型稿未通过研究成稿检查，改用已核验研究模板")
+  analysis=verified_fallback(today,prices,trends,evidence);used_fallback=True
+ if not customer_safe(analysis,allowed):raise RuntimeError("日报未通过研究成稿检查，拒绝发布")
  used_ids=set(re.findall(r"\[(S\d+)\]",analysis));used_evidence=[(index,item) for index,item in enumerate(evidence) if item["id"] in used_ids]
  sources="\n".join(f'- [{item["id"]}] [{cell(item["发布机构"])}：{cell(item["标题"])}]({item["url"]})（{item["发布日期"]}，检索于 {item["retrieved"]}）' for _,item in used_evidence) or "- 本期未纳入可核验的新增政策与新闻材料，相关部分不作外推。"
  body=f"{analysis}\n\n## 今日价格全景\n{table_text}\n\n## 来源与资料日期\n{sources}"
