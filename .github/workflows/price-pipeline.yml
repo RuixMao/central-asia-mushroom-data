@@ -30,6 +30,11 @@ on:
           - static
           - rendered
           - all
+      uzum_debug:
+        description: 打印 Uzum 渲染页诊断片段(调试商品卡选择器)
+        required: false
+        type: boolean
+        default: false
 jobs:
   prices:
     runs-on: ubuntu-latest
@@ -55,6 +60,7 @@ jobs:
           COLLECTION_POINT: ${{ inputs.collection_point }}
           DRY_RUN: ${{ inputs.dry_run }}
           COLLECTION_MODE: ${{ inputs.collection_mode }}
+          UZUM_DEBUG: ${{ inputs.uzum_debug && '1' || '0' }}
           PROXY_BASE: ${{ secrets.PROXY_BASE }}
           WB_DESTS_JSON: ${{ secrets.WB_DESTS_JSON }}
       - name: Build daily summaries
