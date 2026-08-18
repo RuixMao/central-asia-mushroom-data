@@ -231,6 +231,14 @@ def run():
  used_ids=set(re.findall(r"\[(S\d+)\]",analysis));used_evidence=[(index,item) for index,item in enumerate(evidence) if item["id"] in used_ids]
  sources="\n".join(f'- [{item["id"]}] [{cell(item["发布机构"])}：{cell(item["标题"])}]({item["url"]})（{item["发布日期"]}，检索于 {item["retrieved"]}）' for _,item in used_evidence) or "- 本期未纳入可核验的新增政策与新闻材料，相关部分不作外推。"
  body=f"{analysis}\n\n## 今日价格全景\n{table_text}\n\n## 来源与资料日期\n{sources}"
+ # 价格指数章节:拉取近 7 天有效报价生成五国指数,失败不影响日报主体(降级为注释)
+ try:
+  from price_index import build_report,render_markdown
+  md_index,_,_stats=build_report(days=7)
+  if md_index:
+   body=body.replace("\n## 来源与资料日期",f"\n\n{md_index}\n\n## 来源与资料日期")
+ except Exception as exc:
+  log(f"price_index unavailable, skipping index section: {type(exc).__name__}")
  title=f"中亚菌类市场研究日报｜{today}"
  result=post_to_site("/api/ingest/report",{"title":title,"type":"daily","summary":summary_from(body),"body":body,"country":"KZ","aiGenerated":True,"sources":[{"evidence_id":item["id"],"document_id":item["document_id"],"source_type":item["source_type"],"title":item["标题"],"url":item["url"],"publisher":item["发布机构"],"published_at":item["发布日期"],"retrieved_at":item["retrieved"]} for _,item in used_evidence]})
  post_to_site("/api/ingest/revalidate",{})
