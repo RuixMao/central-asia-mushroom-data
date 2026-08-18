@@ -97,7 +97,7 @@ export const opportunities: Opportunity[] = [
     marketUsd: 4_193_266,
     change: 31.8,
     signal: "进口依赖粗估约87%，本地零售价格带稳定，适合验证冷链到岸成本。",
-    nextAction: "向阿拉木图3家渠道获取同规格周度成交价，并核算喀什冷链线路。",
+    nextAction: "关注阿拉木图同规格成交价与喀什冷链到岸成本，评估报价空间。",
     metrics: [
       { label: "市场规模", value: 84, note: "2024年进口额419万美元" },
       { label: "增长动能", value: 44, note: "较2023年反弹31.8%，两年趋势仍偏弱" },
@@ -118,7 +118,7 @@ export const opportunities: Opportunity[] = [
     marketUsd: 535_916,
     change: 117.8,
     signal: "2024年进口额同比翻倍，两年增长449%，但缺少来源国和当地价格证据。",
-    nextAction: "补采比什凯克批发市场价格、来源国结构和月度进口节奏。",
+    nextAction: "关注比什凯克批发价、来源国结构与进口节奏，判断供需稳定性。",
     metrics: [
       { label: "市场规模", value: 46, note: "2024年进口额53.6万美元" },
       { label: "增长动能", value: 100, note: "同比增长117.8%，触发高增长信号" },
@@ -139,7 +139,7 @@ export const opportunities: Opportunity[] = [
     marketUsd: 456_804,
     change: -6.5,
     signal: "相比2022年仍处于高位，塔什干零售挂牌价约6万–7.8万苏姆/kg。",
-    nextAction: "补齐净重、批发成交价和进口来源国，验证高零售价是否可转化为毛利。",
+    nextAction: "核对净重口径、批发成交价与来源国结构，评估零售价格对应的渠道空间。",
     metrics: [
       { label: "市场规模", value: 44, note: "2024年进口额45.7万美元" },
       { label: "增长动能", value: 77, note: "低基数高速增长，最近一年回落6.5%" },
@@ -160,7 +160,7 @@ export const opportunities: Opportunity[] = [
     marketUsd: 228_842,
     change: 76.0,
     signal: "进口增长明显，但中吉两侧镜像差异71.9%，暂不计算中国份额。",
-    nextAction: "先核对HS版本、贸易方向和转口路径，再开展渠道报价。",
+    nextAction: "关注 HS 口径、贸易方向与转口路径，确认市场规模的可比性。",
     metrics: [
       { label: "市场规模", value: 32, note: "2024年进口额22.9万美元" },
       { label: "增长动能", value: 90, note: "同比增长76%" },
@@ -181,7 +181,7 @@ export const opportunities: Opportunity[] = [
     marketUsd: 1_027_970,
     change: -37.5,
     signal: "市场连续收缩且镜像差异72.1%，优先查明口径而非扩大投入。",
-    nextAction: "复核中哈贸易口径、转口链路及CIF/FOB差异，暂不进入机会榜。",
+    nextAction: "关注贸易口径、转口链路及 CIF/FOB 差异，审慎评估市场信号。",
     metrics: [
       { label: "市场规模", value: 58, note: "2024年进口额103万美元" },
       { label: "增长动能", value: 5, note: "同比下降37.5%，两年下降76.7%" },

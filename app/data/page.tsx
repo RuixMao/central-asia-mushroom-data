@@ -13,7 +13,7 @@ export default function DataCenterPage(){
   const latestTrade=tradeRecords.filter(row=>row.y2024!=null).sort((a,b)=>Number(b.y2024)-Number(a.y2024)).slice(0,6);
   const signals=opportunities.filter(item=>item.status!=="暂缓").slice(0,3);
   return <ProductShell><main className="saas-main data-center-page">
-    <section className="saas-hero compact"><span>DATA CENTER</span><h1>中亚食用菌数据中心</h1><p>集中查看五国贸易规模、本土供给、市场价格、品类、渠道与进入条件，快速定位目标市场和下一步行动。</p></section>
+    <section className="saas-hero compact"><span>DATA CENTER</span><h1>中亚食用菌数据中心</h1><p>集中查看五国贸易规模、本土供给、市场价格、品类、渠道与进入条件，快速定位目标市场和关键验证条件。</p></section>
 
     <section className="data-center-kpis">
       <article><span>已确认贸易规模</span><strong>{money(total)}</strong><small>2024 年；UN Comtrade 与伙伴国镜像</small></article>
@@ -31,7 +31,7 @@ export default function DataCenterPage(){
 
     <section className="data-center-block"><header><div><span>04 · PRODUCT SCAN</span><h2>新品类与产品形态</h2><p>查看已进入中亚公开渠道的品类、规格和产品形态。</p></div><a href="/market/scan">进入品类扫描 →</a></header><div className="data-chip-list">{Array.from(new Set(priceObservations.map(row=>row.product))).map(name=><span key={name}>{name}</span>)}</div></section>
 
-    <section className="data-center-block"><header><div><span>05 · SIGNALS</span><h2>需求信号与下一步行动</h2><p>结合贸易变化与价格观察，识别值得进一步核验的市场机会。</p></div><a href="/opportunities">查看全部商机 →</a></header><div className="data-signal-grid">{signals.map(item=><article key={item.id}><small>{item.country} · HS {item.hs}</small><h3>{item.product}</h3><strong>{item.status}</strong><p>{item.signal}</p><b>下一步：{item.nextAction}</b></article>)}</div></section>
+    <section className="data-center-block"><header><div><span>05 · SIGNALS</span><h2>需求信号与决策参考</h2><p>结合贸易变化与价格观察，识别值得进一步核验的市场机会。</p></div><a href="/opportunities">查看全部商机 →</a></header><div className="data-signal-grid">{signals.map(item=><article key={item.id}><small>{item.country} · HS {item.hs}</small><h3>{item.product}</h3><strong>{item.status}</strong><p>{item.signal}</p><b>建议关注：{item.nextAction}</b></article>)}</div></section>
 
     <section className="data-center-split">
       <article><span>06 · CHANNELS</span><h2>当地销售渠道</h2><p>按国家、平台和覆盖品类寻找适合进一步接洽的市场渠道。</p><a href="/insights/channels">查看渠道地图 →</a></article>

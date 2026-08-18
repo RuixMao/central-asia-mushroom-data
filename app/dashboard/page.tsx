@@ -9,5 +9,5 @@ const services = [
 export default function CustomerServicePage(){return <ProductShell><main className="saas-main dashboard-page">
   <section className="dashboard-title"><div><span>CLIENT SERVICES</span><h1>客户服务</h1><p>选择数据、研究或合作服务，获取与您目标市场相匹配的支持。</p></div><a href="/expand/contact">联系商务团队</a></section>
   <section className="dashboard-grid customer-service-grid">{services.map(item=><article key={item.title}><div><span>{item.tag}</span><h2>{item.title}</h2></div><p>{item.copy}</p><a href={item.href}>{item.cta} →</a></article>)}</section>
-  <section className="page-cta"><div><span>NEXT STEP</span><h2>已有明确国家与产品？</h2><p>提交规格、产能和目标市场，我们将据此确认可提供的数据与研究范围。</p></div><a href="/expand/contact">提交具体需求 →</a></section>
+  <section className="page-cta"><div><span>SERVICE REQUEST</span><h2>已有明确国家与产品？</h2><p>提交规格、产能和目标市场，我们将据此确认可提供的数据与研究范围。</p></div><a href="/expand/contact">提交具体需求 →</a></section>
 </main></ProductShell>}

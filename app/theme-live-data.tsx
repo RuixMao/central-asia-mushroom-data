@@ -57,7 +57,7 @@ export function OpportunityRadar({compact=false}:{compact?:boolean}){
       <div className="radar-tags"><b>{item.status}</b><span>证据 {item.confidence}</span><span>覆盖 {item.coverage}%</span></div>
       <h3>{item.product}</h3><p>{item.signal}</p>
       <div className="radar-progress" aria-label="验证进度">{stages.map((stage,stageIndex)=><span className={stageIndex===0?"done":stageIndex===1&&item.coverage>=70?"active":""} key={stage}>{stage}</span>)}</div>
-      <div className="radar-next"><span>建议下一步</span><b>{item.nextAction}</b></div>
+      <div className="radar-next"><span>决策关注点</span><b>{item.nextAction}</b></div>
       <footer><span>HS {item.hs}</span><span>市场规模 {money(item.marketUsd)}</span><span>{item.change>0?"+":""}{item.change}%</span></footer>
       {!compact&&<div className="radar-actions"><a href={`/countries/${item.countryCode.toLowerCase()}`}>查看市场证据</a><button type="button" onClick={()=>window.print()}>打印机会卡</button><a href="/expand/contact">申请进一步验证</a></div>}
     </article>)}</div>
