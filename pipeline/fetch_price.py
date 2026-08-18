@@ -20,6 +20,8 @@ from adapters.arbuz import ArbuzAdapter
 from adapters.catalog_search import CatalogSearchAdapter
 from adapters.wildberries import WildberriesAdapter
 from adapters.flagma import FlagmaAdapter
+from adapters.uzum import UzumAdapter
+from adapters.magnum import MagnumAdapter
 from config import TARGET_SPECIES
 from search_queries import iter_country_queries
 from taxonomy import classify,normalize_price,parse_package
@@ -49,6 +51,11 @@ SOURCES=[
 (KaspiAdapter,{"platform":"kaspi-kz","platform_name":"Kaspi Магазин","platform_product_id":"search-shampinon","country":"KZ","city":"Almaty","collection_point_id":"ALMATY_POINT_01","url":"https://kaspi.kz/shop/search/?text=шампиньон","title":"Шампиньоны свежие 500 г","package":"500 g","currency":"KZT","language":"ru"}),
 (YandexMarketAdapter,{"platform":"yandex-uz","platform_name":"Yandex Market UZ","platform_product_id":"search-shampinon","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://market.yandex.uz/search?text=шампиньоны","title":"Шампиньоны свежие","package":"1 kg","currency":"UZS","language":"ru"}),
 (GiperAdapter,{"platform":"gipertm","platform_name":"Giper.tm","platform_product_id":"200763","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://gipertm.com/catalog/product/200763","title":"Gelinkömelek (şampinýon) Tokaýçy 300 gr","package":"300 g","currency":"TMT","language":"tk"}),
+# Uzum(乌兹别克最大电商):渲染型,本地验证码拦截,CI 代理下可达
+(UzumAdapter,{"platform":"uzum-uz","platform_name":"Uzum","platform_product_id":"search-mushrooms-ru","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://uzum.uz/ru/search?query=грибы","title":"Грибы","package":"","currency":"UZS","language":"ru","query_language":"ru","query_term":"грибы","query_species":"mushrooms"}),
+(UzumAdapter,{"platform":"uzum-uz","platform_name":"Uzum","platform_product_id":"search-mushrooms-uz","country":"UZ","city":"Tashkent","collection_point_id":"TASHKENT_POINT_01","url":"https://uzum.uz/uz/search?query=qo%27ziqorin","title":"Qo'ziqorin","package":"","currency":"UZS","language":"uz","query_language":"uz","query_term":"qo'ziqorin","query_species":"mushrooms"}),
+# Magnum(哈萨克连锁商超):Nuxt SPA,商品异步加载,渲染框架待 CI 逆向 API
+(MagnumAdapter,{"platform":"magnum-kz","platform_name":"Magnum","platform_product_id":"catalog-mushrooms","country":"KZ","city":"Almaty","collection_point_id":"ALMATY_POINT_01","url":"https://magnum.kz/","title":"Грибы","package":"","currency":"KZT","language":"ru","query_language":"ru","query_term":"грибы","query_species":"mushrooms"}),
 (GiperAdapter,{"platform":"gipertm","platform_name":"Giper.tm","platform_product_id":"201768","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://gipertm.com/catalog/product/201768","title":"Gelinkömelek (şampinýon) Tokaýçy 800 gr","package":"800 g","currency":"TMT","language":"tk"}),
 (GiperAdapter,{"platform":"gipertm","platform_name":"Giper.tm","platform_product_id":"207977","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://gipertm.com/catalog/product/207977","title":"Esmo marinadlanan şampinýon kömelekleri 400 gr","package":"400 g","currency":"TMT","language":"tk"}),
 (GiperAdapter,{"platform":"gipertm","platform_name":"Giper.tm","platform_product_id":"205866","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://gipertm.com/catalog/product/205866","title":"Şampinon kömelekleri Ra-Ra kesilen 400 gr","package":"400 g","currency":"TMT","language":"tk"}),
@@ -125,11 +132,24 @@ for code,dest in wb_dests.items():
 
 def rates():
  r=safe_get("https://fxapi.app/api/usd.json",retries=2);return r.json()["rates"],r.json().get("timestamp")
+
+# ── 渲染/静态分离 ────────────────────────────────────────────────────────
+# 渲染型平台(CatalogSearchAdapter 子类等需要真实浏览器)耗时是静态源的 5-10 倍。
+# COLLECTION_MODE 控制日常主链路不跑渲染任务(时间可控),渲染源走独立低频 workflow:
+#   static(默认):只跑静态源,日常 5 分钟内完成
+#   rendered:    只跑渲染源(独立 workflow 用)
+#   all:         全部(手动补采用)
+RENDERED_PLATFORMS = {"kaspi-kz", "yandex-uz", "uzum-uz", "magnum-kz"}
+COLLECTION_MODE = os.getenv("COLLECTION_MODE", "static").strip().lower()
+
 def run():
  fx,fx_time=rates();items=[];errors=[];active_configs=[];seen_products=set();query_runs=[];wanted_platform=os.getenv("PLATFORM","").strip();wanted_point=os.getenv("COLLECTION_POINT","").strip();dry_run=os.getenv("DRY_RUN","false").lower()=="true"
  for Adapter,config in SOURCES:
   if wanted_platform and config["platform"]!=wanted_platform:continue
   if wanted_point and config["collection_point_id"]!=wanted_point:continue
+  is_rendered=config["platform"] in RENDERED_PLATFORMS
+  if COLLECTION_MODE=="static" and is_rendered:continue
+  if COLLECTION_MODE=="rendered" and not is_rendered:continue
   active_configs.append(config)
   rows,error=Adapter(config).collect_many()
   if config.get("query_term"):
