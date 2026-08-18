@@ -200,7 +200,7 @@ def run():
    country=next((c["country"] for _,c in SOURCES if c["platform"]==platform),"")
    post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":country,"source":platform,"data":{"status":"gap","reason":reason,"observed_at":today}})
   for query in query_runs:
-   country=next((c["country"] for _,c in active_configs if c["platform"]==query["platform"]),"")
+   country=next((c["country"] for c in active_configs if c["platform"]==query["platform"]),"")
    post_to_site("/api/ingest/snapshot",{"metric":"search_query_health","country":country,"source":query["platform"],"data":{**query,"observed_at":today}})
   platform_configs={c["platform"]:c for c in active_configs}
   for platform,config in platform_configs.items():
