@@ -1,10 +1,23 @@
 import hashlib,re
+from urllib.parse import quote,urlsplit,urlunsplit
+def _normalize_url(url):
+ """非 ASCII URL 规范化：path/query 中的本地语言字符自动百分号编码。
+ Playwright 的 page.goto 对未编码的西里尔/本地语言字符直接抛异常 → render_failed
+ （1 秒内失败，非 45s 超时）。适配器配置里的 URL 可能含 грибы 等原文。"""
+ try:
+  parts=urlsplit(url)
+  if not parts.scheme:return url
+  path=quote(parts.path,safe="/%:@=")
+  query=quote(parts.query,safe="=&%+/?~")
+  return urlunsplit((parts.scheme,parts.netloc,path,query,parts.fragment))
+ except Exception:return url
 class RenderedProductAdapter:
  def __init__(self,config):self.config=config
  def render(self,url):
   try:from playwright.sync_api import sync_playwright,TimeoutError as PlaywrightTimeout
   except ImportError:return None,"render_dependency_missing"
   try:
+   url=_normalize_url(url)
    with sync_playwright() as p:
     browser=p.chromium.launch(headless=True);page=browser.new_page(locale="ru-RU",user_agent="Mozilla/5.0 YinhengMarketResearch/1.0")
     page.goto(url,wait_until="domcontentloaded",timeout=45000)

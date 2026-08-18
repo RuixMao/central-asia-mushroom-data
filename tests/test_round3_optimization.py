@@ -46,3 +46,24 @@ def test_classify_honey_fungus_local():
     # 蜜环菌本地语言词(塔吉克语/哈萨克语)可识别
     assert classify("Занбӯруғи асал 1 кг")["species_id"] == "honey_fungus"
     assert classify("Бал саңырауқұлағы 500 г")["species_id"] == "honey_fungus"
+
+
+def test_normalize_url_cyrillic_query():
+    from adapters.render import _normalize_url
+    # 西里尔 query(uzum 配置原文 грибы)→ 百分号编码
+    out = _normalize_url("https://uzum.uz/ru/search?query=грибы")
+    assert "грибы" not in out and "query=%D0%B3" in out
+
+
+def test_normalize_url_no_double_encoding():
+    from adapters.render import _normalize_url
+    # 已编码 URL 不双重编码
+    out = _normalize_url("https://kaspi.kz/shop/search/?text=%D1%88%D0%B0")
+    assert "%D1%88" in out and "%25D1" not in out
+
+
+def test_normalize_url_path_equals_kept():
+    from adapters.render import _normalize_url
+    # path 段带 = 参数(flagma 风格)不把 = 编码掉
+    out = _normalize_url("https://flagma.kz/ru/products/q=саңырауқұлақ/")
+    assert "q=" in out and "q%3D" not in out
