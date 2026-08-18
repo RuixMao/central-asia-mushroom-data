@@ -1,13 +1,13 @@
 import re
 
 SPECIES={
- "button_mushroom":["шампиньон","шампиньондор","champignon","button mushroom","gelin kömelek","şampinýon","şampinon","şampinjon","şampion","champinjon","shampinyon","sampinyon","shampinion","双孢菇"],"oyster_mushroom":["вешенк","veshenka","veshenki","weşenka kömelegi","устричный гриб","oyster mushroom","平菇"],
- "enoki":["эноки","enoki","enokitake","金针菇"],"shiitake":["шиитаке","shiitake","siitake","sitake","香菇"],"king_oyster_mushroom":["королевская вешенка","king oyster mushroom","king trumpet mushroom","эринги","eringi","杏鲍菇"],
+ "button_mushroom":["шампиньон","шампиньондор","шампин.","шампин","champignon","button mushroom","gelin kömelek","şampinýon","şampinon","şampinjon","şampion","champinjon","shampinyon","sampinyon","shampinion","双孢菇"],"oyster_mushroom":["вешенк","veshenka","veshenki","weşenka kömelegi","устричный гриб","oyster mushroom","平菇"],
+ "enoki":["эноки","enoki","enokitake","金针菇"],"shiitake":["шиитаке","шиитаки","shiitake","siitake","sitake","香菇"],"king_oyster_mushroom":["королевская вешенка","king oyster mushroom","king trumpet mushroom","эринги","eringi","杏鲍菇"],
  "shimeji":["шимиджи","shimeji","shimeji"],"wood_ear":["муэр","wood ear","древесный гриб","ағаш саңырауқұлағы"],"snow_fungus":["серебряное ухо","snow fungus"],
- "morel":["сморчок","morel"],"matsutake":["мацутакэ","matsutake"],"porcini":["белый гриб","боровик","porcini","ақ саңырауқұлақ"],
+ "morel":["сморчок","morel"],"matsutake":["мацутакэ","matsutake"],"porcini":["белый гриб","гриб белый","боровик","подосиновик","подосиновики","красноголовик","porcini","ақ саңырауқұлақ"],
  "chanterelle":["лисичк","chanterelle"],"straw_mushroom":["вольвариелла","straw mushroom"],"honey_fungus":["опёнок","опенок","опята","honey mushroom","honey fungus","занбӯруғи асал","бал саңырауқұлағы"],
  "suillus":["маслёнок","масленок","маслята","suillus"],"truffle":["трюфель","truffle"]}
-AMBIGUOUS=["грибы","mushrooms","саңырауқұлақ","козу карын","занбӯруғ","qo‘ziqorin","qo'ziqorin","золотые нити","древесные грибы","лесные грибы","kömelek","gömelek","komelek","вешенкалар","шампиньондар"]
+AMBIGUOUS=["грибы","mushrooms","саңырауқұлақ","козу карын","занбӯруғ","qo‘ziqorin","qo'ziqorin","золотые нити","древесные грибы","лесные грибы","kömelek","gömelek","komelek","kömelekler","kömelekli","komelekler","komelekli","вешенкалар","шампиньондар"]
 EXCLUDE_ONLY=["грибной соус","mushroom sauce","mushroom flavour","蘑菇味","мицелий","грибница","семена гриб","споры гриб","ящик для грибов","увлажнитель","оборудование для гриб","субстрат","компост для гриб","набор для выращивания","электрод","светильник","лампа","игрушк","декор","саңырауқұлақ тәрізді","электр"]
 FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","сушён","сухие","сухой","сухая","dried","хушккарда"]),("pickled",["марин","pickled","marinadlanan"]),("canned",["консерв","canned","konserw"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]
 
@@ -26,7 +26,20 @@ def _hits(text):
   kept.append(match)
  return [(sid,term) for sid,term,_,_ in kept]
 
+def _fix_mojibake(text):
+    """修复 UTF-8 双重编码乱码(mojibake),幂等。
+
+    现象:采集端把 UTF-8 字节再按 Latin-1 解码,ö(0xF6)变成 Ã¶(0xC3 0xB6)。
+    修复:latin-1 重新编码 → utf-8 解码。已正确编码的文本不受影响(幂等)。
+    """
+    try:
+        fixed = text.encode("latin-1").decode("utf-8")
+        return fixed if fixed != text else text
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
+
 def classify(title,description="",category="",language="",image_metadata=None):
+ title=_fix_mojibake(title);description=_fix_mojibake(description);category=_fix_mojibake(category)
  title_l=title.lower().replace("ё","е");description_l=description.lower().replace("ё","е");category_l=category.lower().replace("ё","е")
  if any(x in " ".join((title_l,description_l,category_l)) for x in EXCLUDE_ONLY):
   return {"species_id":None,"product_form":"prepared_food","classification_status":"excluded","status":"excluded","confidence":1.0,"evidence":[{"field":"title","rule":"excluded"}],"reasons":["non-mushroom retail product"]}
