@@ -21,6 +21,15 @@ on:
         description: Validate without writing
         type: boolean
         default: false
+      collection_mode:
+        description: static(默认,日常) / rendered(渲染源) / all(全量)
+        required: false
+        type: choice
+        default: static
+        options:
+          - static
+          - rendered
+          - all
 jobs:
   prices:
     runs-on: ubuntu-latest
@@ -45,6 +54,8 @@ jobs:
           PLATFORM: ${{ inputs.platform }}
           COLLECTION_POINT: ${{ inputs.collection_point }}
           DRY_RUN: ${{ inputs.dry_run }}
+          COLLECTION_MODE: ${{ inputs.collection_mode }}
+          PROXY_BASE: ${{ secrets.PROXY_BASE }}
           WB_DESTS_JSON: ${{ secrets.WB_DESTS_JSON }}
       - name: Build daily summaries
         if: ${{ inputs.dry_run != true }}
