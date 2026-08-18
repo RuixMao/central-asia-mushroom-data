@@ -1,10 +1,14 @@
 """Uzum.uz(乌兹别克斯坦最大电商)适配器。
 
-Uzum 全站对非白名单出口 IP 返回验证码(captcha_smart),本地直连不可用;
-在 GitHub Actions(有 PROXY_BASE / 白名单出口)下走渲染通道可达。
+实测结论(2026-08-18,CI ubuntu-latest + 渲染验证):
+  - Uzum 全站对数据中心出口 IP(本地与 GitHub Actions)均返回验证码页:
+    body 为 "Подтвердите, что запросы отправляли вы, а не робот"
+  - 渲染成功(html 15KB),但页面无商品数据;API(api.uzum.uz)返回 403/404 封闭
+  - 结论:公开通道被反爬完全封闭,符合"不绕过验证码"约束 → 保持 render_blocked
+  - 适配器代码/解析逻辑(商品卡+сум 价格+稳定 ID)已就绪,待住宅 IP/官方 API 开放后启用
 
 策略(遵循"不绕过验证码"约束):
-  - 渲染后检测验证码 → 返回 render_blocked(captcha),不尝试破解
+  - 渲染后检测验证码(含 Uzum 实际句式)→ 返回 render_blocked,不尝试破解
   - 渲染成功后按商品卡片解析标题 + сум 价格 + 稳定商品 ID
   - 无结果/被拦截一律返回明确 gap,不写 0 元或虚构价格
   - UZUM_DEBUG=1 时打印渲染页片段(诊断商品卡选择器)
@@ -18,7 +22,11 @@ from bs4 import BeautifulSoup
 from .render import RenderedProductAdapter
 
 UZS_PRICE = re.compile(r"(\d[\d\s,.]{1,15})\s*(?:сум|UZS)", re.I)
-CAPTCHA = re.compile(r"captcha|проверка|подтвердите, что вы не робот", re.I)
+# Uzum 实际验证码句式:"Подтвердите, что запросы отправляли вы, а не робот"
+CAPTCHA = re.compile(
+    r"captcha|проверка|подтвердите, что вы не робот|запросы отправляли вы|а не робот",
+    re.I,
+)
 
 
 class UzumAdapter(RenderedProductAdapter):
