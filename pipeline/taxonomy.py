@@ -9,7 +9,7 @@ SPECIES={
  "suillus":["маслёнок","масленок","маслята","suillus"],"truffle":["трюфель","truffle"]}
 AMBIGUOUS=["грибы","mushrooms","qo‘ziqorin","qo'ziqorin","золотые нити","древесные грибы","лесные грибы","kömelek","gömelek","komelek"]
 EXCLUDE_ONLY=["грибной соус","mushroom sauce","mushroom flavour","蘑菇味","мицелий","грибница","семена гриб","споры гриб","ящик для грибов","увлажнитель","оборудование для гриб","субстрат","компост для гриб","набор для выращивания"]
-FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","сушён","сухие","сухой","сухая","dried"]),("pickled",["марин","pickled","marinadlanan"]),("canned",["консерв","canned","konserw"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]
+FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","сушён","сухие","сухой","сухая","dried","хушккарда"]),("pickled",["марин","pickled","marinadlanan"]),("canned",["консерв","canned","konserw"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]
 
 def _hits(text):
  matches=[]
@@ -42,6 +42,8 @@ def classify(title,description="",category="",language="",image_metadata=None):
 
 def parse_package(text):
  s=text.lower().replace(",",".");evidence=None;count=1
+ if re.search(r"\d+(?:\.\d+)?\s*(?:l|л|литр)\b",s):
+  return {"package_value":None,"package_unit":None,"package_count":None,"normalized_quantity_kg":None,"parse_status":"volume_not_mass","evidence":None,"value":None,"unit":None,"quantity_kg":None}
  m=re.search(r"(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|кг|gr|g|гр|г)\b",s)
  if m:count=int(m.group(1));value=float(m.group(2));unit=m.group(3);evidence=m.group(0)
  else:
