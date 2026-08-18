@@ -2,7 +2,7 @@
 import sys, pathlib
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "pipeline"))
 
-from price_index import _valid_entries, compute_index, render_markdown
+from price_index import _valid_entries, compute_index, render_markdown, _pct_change
 
 
 def _rec(country, species, status, local_kg, rate):
@@ -37,6 +37,15 @@ def test_compute_index():
     assert abs(result["index"]["KZ"] - 100.0) < 1e-6
     assert abs(result["index"]["UZ"] - (4.0 / 4.5 * 100)) < 0.2
     assert result["median_by_species"][("KZ", "button_mushroom")] == 4.5
+    # 菌种级指数:KZ 双孢菇=100
+    assert abs(result["species_index"]["button_mushroom"]["KZ"] - 100.0) < 1e-6
+    assert result["species_index"]["button_mushroom"]["UZ"] > 0
+
+
+def test_pct_change():
+    assert _pct_change(4.5, 4.0) == 12.5
+    assert _pct_change(4.0, None) is None
+    assert _pct_change(4.0, 0) is None
 
 
 def test_render_markdown_has_table():
@@ -45,6 +54,8 @@ def test_render_markdown_has_table():
     assert "双孢菇" in md
     assert "哈萨克斯坦" in md
     assert "|" in md
+    # 环比列存在
+    assert "周环比" in md
 
 
 if __name__ == "__main__":
