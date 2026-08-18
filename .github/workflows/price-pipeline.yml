@@ -45,7 +45,11 @@ jobs:
           python-version: '3.12'
       - run: pip install -r pipeline/requirements.txt
       - name: Install Chromium for rendered sources
-        if: ${{ inputs.platform == 'kaspi-kz' || inputs.platform == '' }}
+        # 渲染型平台(kaspi/yandex/uzum/magnum)都需要 Chromium:
+        # - platform 指定渲染平台(如 uzum-uz)时必装
+        # - 全量(platform 为空)或 rendered/all 模式必装
+        # - 仅静态平台(platform 指定静态源)时跳过,省 CI 时间
+        if: ${{ inputs.collection_mode != 'static' || inputs.platform == 'kaspi-kz' || inputs.platform == 'yandex-uz' || inputs.platform == 'uzum-uz' || inputs.platform == 'magnum-kz' || inputs.platform == '' }}
         run: python -m playwright install --with-deps chromium
       - name: Run deterministic pipeline tests
         run: python -m unittest discover -s tests -p 'test_*.py'
