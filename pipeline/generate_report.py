@@ -12,8 +12,8 @@ from utils import get_site,log,post_to_site,today_str
 
 COUNTRIES={"KZ":"哈萨克斯坦","UZ":"乌兹别克斯坦","KG":"吉尔吉斯斯坦","TJ":"塔吉克斯坦","TM":"土库曼斯坦"}
 FORMS={"fresh":"鲜品","chilled":"冷藏","frozen":"冷冻","dried":"干制","pickled":"腌渍","canned":"罐装","powder":"粉剂"}
-SECTIONS=("【核心摘要】","今日关键事件","风险提示","行动建议")
-FORBIDDEN=re.compile(r"https?://|(?:price|observed|source)\s*[_-]\s*(?:usd|local|cny|at|url)|\b(?:AI|API|JSON|LLM|GPT|ChatGPT|DeepSeek|SQL|D1|null|live|gap|prompt|price_retail)\b|人工智能|大模型|语言模型|模型生成|智能生成|自动生成|机器生成|算法生成|数据库|字段|代码|键值|请求|响应|自动采集|采集管线|采集|抓取|爬虫|入库|接口|算法|历史序列不足|暂不判断|暂不提供|暂未直接|数据不足|无足够数据|样本不足|样本量|判断不了|无法判断|不判断涨跌",re.I)
+SECTIONS=("执行摘要 Executive Summary","关键事件与政策解读","价格与趋势研判","风险与机会","行动建议")
+FORBIDDEN=re.compile(r"https?://|(?:price|observed|source)\s*[_-]\s*(?:usd|local|cny|at|url)|\b(?:AI|API|JSON|LLM|GPT|ChatGPT|DeepSeek|SQL|D1|null|live|gap|prompt|price_retail)\b|人工智能|大模型|语言模型|模型生成|智能生成|自动生成|机器生成|算法生成|数据库|字段|代码|键值|请求|响应|自动采集|采集管线|采集|抓取|爬虫|入库|接口|算法",re.I)
 # 品类 → HS 编码（用于把 UN Comtrade 年度进口单价映射到报告品类）
 SPECIES_HS={"button_mushroom":"070951","oyster_mushroom":"070959","shiitake":"070959","king_oyster_mushroom":"070959","enoki":"070959","wood_ear":"070959","snow_fungus":"070959","morel":"070959","matsutake":"070959","porcini":"070959","chanterelle":"070959","straw_mushroom":"070959","honey_fungus":"070959","suillus":"070959","truffle":"070959","mixed_mushrooms":"070959","unknown":"070959"}
 
@@ -30,7 +30,7 @@ CUSTOMER_PAIN_GUIDANCE="""
 
 def customer_safe(body,allowed):
  normalized=unicodedata.normalize("NFKC",body);refs=set(re.findall(r"\[(S\d+)\]",normalized))
- return 300<=len(normalized)<=750 and "```" not in normalized and "中亚菌类市场研究日报｜" not in normalized and not FORBIDDEN.search(normalized) and all(normalized.count(section)==1 for section in SECTIONS) and refs<=allowed
+ return 700<=len(normalized)<=2200 and "```" not in normalized and "中亚菌类市场研究日报｜" not in normalized and not FORBIDDEN.search(normalized) and all(normalized.count(section)==1 for section in SECTIONS) and refs<=allowed
 
 def summary_from(body):
  paragraphs=[part.strip() for part in re.split(r"\n\s*\n",body) if part.strip() and not re.match(r"^#{1,6}\s",part.strip())]
@@ -115,27 +115,59 @@ def build_signals(prices,live,today_date):
   signals.append({"状态":"待核验","类型":"同规格渠道价差","国家":COUNTRIES.get(sample["country"],sample["country"]),"品类":d.get("species_zh") or d.get("species_id"),"形态":FORMS.get(d.get("product_form"),d.get("product_form")),"规格":d.get("package_display"),"渠道":"、".join(sorted(channels)),"最新美元每公斤":f"{low:.2f}–{high:.2f}","变化":f"价差 {spread:.1f}%","判断":f'同规格多渠道挂牌价差 {spread:.1f}%，可转为批量询价线索，但尚不能视为利润空间。',"证据":f'{len(channels)} 个独立渠道、同日同规格报价。',"停止条件":"净重、产地、等级、促销或库存状态不一致"})
  return signals
 
-def decision_fallback(today,signals,evidence):
- actionable=[item for item in signals if item["状态"]=="可行动"];verify=[item for item in signals if item["状态"]=="待核验"]
- key_line=(f"- **价格告警：**发现 {len(actionable)} 项达到立即核验门槛的同商品变化。" if actionable else "- **价格判断：**今日没有达到调整采购、报价或产能计划门槛的新增变化。")
- event_lines=[f'- **{item["国家"]}·{item["品类"]}：**{item["判断"]} 依据为{item["证据"]}' for item in (actionable+verify)[:3]] or ["- 今日未出现达到告警门槛的同商品价格异动；本期也未纳入可核验的政策、海关、物流或认证突发材料。"]
- return f"""## 【核心摘要】
-{key_line}
-- **决策边界：**零售挂牌价仅用于筛选询价对象，不能直接视为成交价、需求或利润。
-- **当前动作：**在取得批量报价、净重、税费和物流报价前，维持现有采购与备货安排。
+def build_market_facts(prices):
+ groups=defaultdict(list)
+ for row in prices:
+  d=row["data"];groups[(row["country"],d.get("species_id"),d.get("product_form"))].append(row)
+ facts=[];dispersions=[]
+ for (country,species_id,form),rows in groups.items():
+  values=[float(r["data"]["normalized_price_usd_per_kg"]) for r in rows];med=statistics.median(values)
+  facts.append({"国家":COUNTRIES.get(country,country),"品类":TARGET_SPECIES.get(species_id,{}).get("zh",species_id),"形态":FORMS.get(form,form),"中位价USD/kg":round(med,2),"样本量":len(values),"最低":round(min(values),2),"最高":round(max(values),2)})
+  if len(values)>=2 and min(values)>0 and max(values)/min(values)>=2:
+   low=min(rows,key=lambda r:float(r["data"]["normalized_price_usd_per_kg"]));high=max(rows,key=lambda r:float(r["data"]["normalized_price_usd_per_kg"]))
+   dispersions.append({"国家":COUNTRIES.get(country,country),"品类":TARGET_SPECIES.get(species_id,{}).get("zh",species_id),"形态":FORMS.get(form,form),"低价USD/kg":round(min(values),2),"低价规格":low["data"].get("package_display"),"低价渠道":low["data"].get("platform_name") or low.get("source"),"高价USD/kg":round(max(values),2),"高价规格":high["data"].get("package_display"),"高价渠道":high["data"].get("platform_name") or high.get("source"),"倍数":round(max(values)/min(values),1),"样本量":len(values),"判定":"规格或渠道溢价待核验，不得解释为批发套利空间","置信度":"中"})
+ return {"分国家品类形态统计":facts,"同国同品类异常离散":sorted(dispersions,key=lambda x:x["倍数"],reverse=True)}
 
-## 今日关键事件
-{chr(10).join(event_lines)}
+def decision_fallback(today,signals,evidence,market_facts,trends):
+ anomalies=market_facts["同国同品类异常离散"]
+ top=anomalies[0] if anomalies else None
+ if top:
+  headline=f'**{top["国家"]}{top["品类"]}同日零售报价离散度达 {top["倍数"]} 倍，不构成可直接交易的跨境价差。**依据：{top["低价渠道"]} {top["低价规格"]} 为 {top["低价USD/kg"]:.2f} USD/kg，{top["高价渠道"]} {top["高价规格"]} 为 {top["高价USD/kg"]:.2f} USD/kg（n={top["样本量"]}）。行动含义：先核验商品等级、产地、促销和真实在售状态，再决定是否发起批量询价。（置信度：中）'
+ else:headline="**当日未触发同国同品类两倍以上异常价差。**现有零售样本适合作为消费端价格线索，不足以形成批发定价结论。（置信度：中）"
+ sample_lines=[]
+ for item in sorted(market_facts["分国家品类形态统计"],key=lambda x:(-x["样本量"],x["国家"]))[:5]:sample_lines.append(f'- {item["国家"]}·{item["品类"]}·{item["形态"]}：中位价 {item["中位价USD/kg"]:.2f} USD/kg（n={item["样本量"]}）' + ("，样本不足，仅作参考价。" if item["样本量"]<3 else "。"))
+ trend_line=next((f'哈萨克斯坦零售综合中位价较上一可比日变动 {item["较前次可比变化"]}；需结合样本构成复核，不能直接解释为市场涨跌。' for item in trends if item["国家"]=="哈萨克斯坦" and item.get("较前次可比变化")),"现有同口径连续序列尚未形成可用于交易判断的新增趋势。")
+ evidence_line="本期无可核验新增政策、海关、物流或认证事件；政策面处于无事件窗口，不因信息面调整既定出货安排。" if not evidence else f"本期纳入 {len(evidence)} 条已核验材料；仅被正文引用的事件构成决策依据。"
+ return f"""## 执行摘要 Executive Summary
 
-## 风险提示
-- **价格误判风险：**包装、加工形态、促销或渠道定位不同，可能造成虚假价差；规格不一致时停止比较。
-- **潜在损失：**未取得真实询盘和完整到岸成本即备货，可能导致毛利高估、库存积压或清关成本失控。
-- **土库曼斯坦：海关透明度低，许可获取难度高，谨慎进入。**
+- {headline}
+- **趋势判断：**{trend_line}行动含义：报价策略保持原口径，等待同规格连续样本确认。（置信度：低）
+- **样本边界：**当日有效零售报价覆盖四国，土库曼斯坦无有效报价；多数“国家×品类×形态”样本量低于3，禁止输出指数型交易结论。（置信度：高）
+- **信息面：**{evidence_line}（置信度：高）
+
+## 关键事件与政策解读
+
+{evidence_line}这意味着今日风险变量主要来自价格样本与渠道差异，而非已确认的政策冲击。**土库曼斯坦海关透明度低、许可获取难度高，谨慎进入。**
+
+## 价格与趋势研判
+
+{chr(10).join(sample_lines)}
+
+⚠ {headline}
+
+{trend_line}报告中的挂牌价均为下游零售观察价，不等同于批发成交价、FOB、CIF或到岸成本。
+
+## 风险与机会
+
+- **价格误判风险：**小包装、进口精品定位或促销状态可能放大折算单价。若未经规格复核直接倒推批发利润，可能造成报价失真和备货积压。
+- **样本构成风险：**单日 n<3 的国家或品类只列参考价；不可用其推断国家行情强弱。
+- **机会线索：**异常离散度可转化为渠道核价任务，但只有取得同规格批量报价、最小起订量和报价有效期后，才升级为试单候选。
 
 ## 行动建议
-1. **外贸负责人：**先确认在售与促销状态、净重、等级、产地、最小订货量和报价有效期；任一核心规格不一致即暂缓询价。
-2. **采购负责人：**取得同规格批量报价后补齐运输、损耗、税费和渠道费用；成本项不完整，不进入利润测算。
-3. **企业负责人：**只有同一商品连续三次有效观察，或同规格获得两个独立渠道确认，才考虑小批量试单。"""
+
+1. **外贸负责人：**针对最高离散品类向两个渠道索取同规格、同等级批量报价；净重、产地或促销状态不一致即停止比较。
+2. **采购负责人：**在批量报价基础上补齐物流、损耗、关税、认证和渠道费用，形成到岸成本；任一成本项缺失，不进入毛利测算。
+3. **企业负责人：**暂不依据零售高价扩大备货。待同规格获得两个独立渠道确认，且连续覆盖不少于三个有效观察日后，再决定小批量试单。"""
 
 def cell(value):return str(value if value not in (None,"") else "—").replace("|","/").replace("\n"," ").strip()
 
@@ -156,6 +188,7 @@ def run():
   latest_prices.setdefault(key,row)
  prices=list(latest_prices.values())
  signals=build_signals(prices,live,today_date)
+ market_facts=build_market_facts(prices)
  table=["| 国家 | 品类（中文/原文） | 渠道（中文/原名） | 形态与规格 | 当地挂牌价 | 折合美元/公斤 | 观察日期 |","|---|---|---|---|---:|---:|---|"]
  for row in prices:
   d=row["data"];table.append(f'| {COUNTRIES.get(row["country"],row["country"])} | {cell(d.get("species_zh"))}（{cell(d.get("original_title"))}） | 当地零售渠道（{cell(d.get("platform_name") or row.get("source"))}） | {FORMS.get(d.get("product_form"),d.get("product_form") or "形态待核验")}；{cell(d.get("package_display"))} | {cell(d.get("price_local"))} {cell(d.get("currency"))} | {float(d["normalized_price_usd_per_kg"]):.2f} | {today} |')
@@ -201,32 +234,33 @@ def run():
 {table_text}
 同口径零售历史序列：{json.dumps(trends,ensure_ascii=False)}
 结构化商业信号（正文判断只能从这里选择，不得把其他价差写成机会）：{json.dumps(signals,ensure_ascii=False)}
+确定性市场统计与异常离散（必须分析，不得忽略）：{json.dumps(market_facts,ensure_ascii=False)}
 年度进口单价参考（贸易口径，UN Comtrade）：{json.dumps(annual_ref,ensure_ascii=False)}
 已核验政策/新闻/宏观证据包：{json.dumps([{k:v for k,v in item.items() if k not in ('url','retrieved')} for item in evidence],ensure_ascii=False)}
 
 成稿要求：
-1. 正文严格控制在300至600个汉字左右，不写标题或日期导语；恰好使用“【核心摘要】”“今日关键事件”“风险提示”“行动建议”四个二级标题。
-2. “【核心摘要】”列3至5条最重要结论，客户只读本节即可决定今天维持、核验、暂缓还是行动；重要信息使用 Markdown 加粗。
-3. “今日关键事件”只写当日新增的政策/海关、通关、运价、认证、市场突发、重大新闻和达到门槛的价格异动。没有新增事件时用一句话明确说明，不得用普通报价凑数。
-4. 价格异动必须写明国家、品类、形态、规格、渠道、变化、证据强度、商业影响和停止条件；只能从结构化商业信号中选择。零售趋势仅使用有效日期数不少于3的同口径序列。
-5. 政策或新闻事实必须引用 [S1] 形式的证据编号，且只能使用证据包已有编号；没有材料时不得补写。
-6. “风险提示”把每项风险单独加粗，并明确可能造成的损失。必须区分挂牌价、成交价、到岸成本、需求和利润；没有真实询盘、批量报价和完整成本时，不得给出利润、需求增长或扩产结论。
-7. 只要报告涉及土库曼斯坦，必须原样写入“**风险：海关透明度低，许可获取难度高，谨慎进入。**”；涉及鸡枞，必须写入“**鸡枞仅华人小众圈层，不建议作为主力出口。**”。
-8. “行动建议”写1至3条，每条明确责任角色、国家/品类、具体动作、通过门槛和停止条件。不得使用“持续关注”“加强合作”“把握机遇”等空话。
-9. 不得出现任何生成方式、内部系统、技术字段或流程词。输出标准 Markdown 正文，不附来源清单或网址。"""
+1. 正文写700至1600字，恰好使用“执行摘要 Executive Summary”“关键事件与政策解读”“价格与趋势研判”“风险与机会”“行动建议”五个二级标题；专业度对标券商研报与大宗商品日报。
+2. 执行摘要不超过5条，每条严格采用“判断｜依据｜行动含义｜置信度”逻辑，必须引用当日具体数字或事件，禁止模板化结论。
+3. 必须分析“确定性市场统计与异常离散”中的每个两倍以上价差，说明规格、形态、渠道和样本因素；异常不能静默删除，也不能直接解释为套利或批发机会。
+4. 所有中位价和比较均标注 n=；n<3 只称“参考价”，禁止输出指数型结论。鲜、干、冷冻、盐渍不得混算。零售挂牌价必须明确为下游消费信号，不得冒充批发价、FOB、CIF或到岸成本。
+5. 政策或新闻事实必须引用 [S1] 形式的证据编号。无新增事件时说明“无事件窗口”的商业含义，不得用通用背景填充。
+6. 风险和机会必须具体到国家、品类、触发条件、潜在损失与规避动作；每条关键判断标注高/中/低置信度。
+7. 行动建议按外贸负责人、采购负责人、企业负责人分层，每条引用当日数据依据并写清通过门槛和停止条件。
+8. 涉及土库曼斯坦写明其海关透明度低、许可获取难度高，谨慎进入；涉及鸡枞写明其仅适合华人小众圈层，不建议作为主力出口。
+9. 不得虚构批发价、物流价、政策、来源、利润或需求。输出标准 Markdown 正文，不附重复的价格明细表、指数表或网址，后续章节会确定性附加。"""
  if not AI_API_KEY:raise RuntimeError("AI_API_KEY is not configured")
  client=OpenAI(api_key=AI_API_KEY,base_url=AI_BASE_URL or "https://api.deepseek.com");analysis="";used_fallback=False
  try:
   for attempt in range(2):
-   request=prompt if attempt==0 else f"{prompt}\n\n上一稿未通过发布检查。请仅使用允许的证据编号，严格保留四个指定栏目，以300至600字、结论前置的B端商务简报风格完整重写。"
+   request=prompt if attempt==0 else f"{prompt}\n\n上一稿未通过发布检查。请仅使用允许的证据编号，严格保留五个指定栏目；用当日具体数字完整重写，禁止输出通用验证模板。"
    result=client.chat.completions.create(model=AI_MODEL or "deepseek-v4-flash",messages=[{"role":"user","content":request}],temperature=.15,max_tokens=5000,extra_body={"thinking":{"type":"disabled"}});analysis=clean_analysis(result.choices[0].message.content or "")
    if customer_safe(analysis,allowed):break
  except (AuthenticationError,APIError) as exc:
   log(f"DeepSeek unavailable, using verified fallback: {type(exc).__name__}")
-  analysis=clean_analysis(decision_fallback(today,signals,evidence));used_fallback=True
+   analysis=clean_analysis(decision_fallback(today,signals,evidence,market_facts,trends));used_fallback=True
  if not used_fallback and not customer_safe(analysis,allowed):
   log("模型稿未通过研究成稿检查，改用已核验研究模板")
-  analysis=clean_analysis(decision_fallback(today,signals,evidence));used_fallback=True
+  analysis=clean_analysis(decision_fallback(today,signals,evidence,market_facts,trends));used_fallback=True
  if not customer_safe(analysis,allowed):raise RuntimeError("日报未通过研究成稿检查，拒绝发布")
  used_ids=set(re.findall(r"\[(S\d+)\]",analysis));used_evidence=[(index,item) for index,item in enumerate(evidence) if item["id"] in used_ids]
  sources="\n".join(f'- [{item["id"]}] [{cell(item["发布机构"])}：{cell(item["标题"])}]({item["url"]})（{item["发布日期"]}，检索于 {item["retrieved"]}）' for _,item in used_evidence) or "- 本期未纳入可核验的新增政策与新闻材料，相关部分不作外推。"
