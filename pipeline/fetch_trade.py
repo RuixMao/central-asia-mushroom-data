@@ -109,29 +109,47 @@ def run():
                 })
                 log(f"trade estimate {country} {hs} {year} basis={basis} confidence={confidence}")
                 time.sleep(1.5)
-    # 月度数据（尽力而为）：UN Comtrade 部分国家/产品提供月度序列，
-    # 采最近 24 个月，用作月度价格参考；接口不支持时自动跳过（不影响年度主链路）。
+    # 月度数据：滚动采集最近 36 个完整月份，避免年份硬编码失效。
+    # 进口国未申报时，同时采中国对该国的月度出口镜像，保留申报方口径。
     try:
+        current = dt.date.today().replace(day=1)
+        periods = []
+        year, month = current.year, current.month
+        for _ in range(36):
+            month -= 1
+            if month == 0:
+                year -= 1; month = 12
+            periods.append(f"{year}{month:02d}")
         for country, cfg in COUNTRIES.items():
             for hs in HS_CODES:
-                url = f"https://comtradeapi.un.org/data/v1/get/C/M/HS?period=202401-202512&reporterCode={cfg['reporter']}&flowCode=M&partnerCode=0&cmdCode={hs}&partner2Code=0&customsCode=C00&motCode=0&maxRecords=500"
                 headers = {"Ocp-Apim-Subscription-Key": UN_COMTRADE_API_KEY} if UN_COMTRADE_API_KEY else {}
-                rows = _fetch(url, headers)
-                if not rows:
-                    log(f"trade monthly gap {country} {hs}")
+                written = 0
+                for offset in range(0, len(periods), 12):
+                    batch = ",".join(periods[offset:offset + 12])
+                    importer_url = ("https://comtradeapi.un.org/data/v1/get/C/M/HS"
+                                    f"?period={batch}&reporterCode={cfg['reporter']}&flowCode=M&partnerCode=0"
+                                    f"&cmdCode={hs}&partner2Code=0&customsCode=C00&motCode=0&maxRecords=500")
+                    mirror_url = ("https://comtradeapi.un.org/data/v1/get/C/M/HS"
+                                  f"?period={batch}&reporterCode=156&flowCode=X&partnerCode={cfg['reporter']}"
+                                  f"&cmdCode={hs}&partner2Code=0&customsCode=C00&motCode=0&maxRecords=500")
+                    importer_rows = _fetch(importer_url, headers)
+                    mirror_rows = _fetch(mirror_url, headers)
+                    for partner_code, basis, source, rows in (
+                        ("ALL", "importer_official", "UN Comtrade（进口国月度申报）", importer_rows),
+                        ("CN", "exporter_mirror", "UN Comtrade（中国月度出口镜像）", mirror_rows),
+                    ):
+                        for row in rows:
+                            period = str(row.get("period") or "")
+                            if len(period) != 6:continue
+                            post_to_site("/api/ingest/snapshot", {"metric": "trade", "country": country, "source": source,
+                                "data": {"hs": hs, "year": period[:4], "month": period[-2:], "period": period,
+                                         "partner_code": partner_code, "value_usd": row.get("primaryValue"),
+                                         "net_weight_kg": row.get("netWgt"), "unit_price_usd_kg": _unit_price(row),
+                                         "reporting_basis": basis, "period_type": "monthly",
+                                         "status": "live" if _value(row) is not None else "gap"}})
+                            written += 1
                     time.sleep(1.5)
-                    continue
-                for row in rows:
-                    period = row.get("period")
-                    unit = _unit_price(row)
-                    if not period or unit is None:
-                        continue
-                    post_to_site("/api/ingest/snapshot", {"metric": "trade", "country": country, "source": "UN Comtrade",
-                                                          "data": {"hs": hs, "year": period[:4], "month": period[-2:],
-                                                                   "value_usd": row.get("primaryValue"),
-                                                                   "net_weight_kg": row.get("netWgt"),
-                                                                   "unit_price_usd_kg": unit,
-                                                                   "period_type": "monthly", "status": "live"}})
+                log(f"trade monthly {country} {hs}: {written} rows")
                 time.sleep(1.5)
     except Exception as exc:
         log(f"trade monthly skipped: {exc}")

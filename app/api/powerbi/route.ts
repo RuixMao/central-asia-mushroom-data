@@ -38,6 +38,7 @@ export async function GET(request: Request) {
       normalized_price_per_kg: price.normalizedPricePerKg,
       normalized_usd_per_kg: price.normalizedPricePerKg && price.usdRateLocalPerUsd ? price.normalizedPricePerKg / price.usdRateLocalPerUsd : null,
       price_usd_per_package: price.priceUsd, in_stock: price.inStock, validation_status: price.validationStatus,
+      sanity_outlier: price.sanityOutlier, sanity_reason: price.sanityReason,
     }));
   } else if (table === "daily") {
     const rows = await getDb().select().from(dailyPriceSummaries).orderBy(desc(dailyPriceSummaries.date)).limit(5000);

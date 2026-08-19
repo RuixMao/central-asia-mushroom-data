@@ -25,6 +25,13 @@ def test_valid_entries_filter():
     assert entries == [("KZ", "button_mushroom", 4.0)], f"got {entries}"
 
 
+def test_all_needs_review_group_has_no_aggregate():
+    entries = _valid_entries([_rec("KG", "button_mushroom", "needs_review", 3750, 87.54)])
+    result = compute_index(entries)
+    assert entries == []
+    assert "KG" not in result["country_median"]
+
+
 def test_compute_index():
     entries = [
         ("KZ", "button_mushroom", 4.0), ("KZ", "button_mushroom", 5.0),  # KZ 中位 4.5

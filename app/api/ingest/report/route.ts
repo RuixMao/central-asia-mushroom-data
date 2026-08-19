@@ -4,7 +4,7 @@ import { getDb } from "../../../../db";
 import { reportSources, reports } from "../../../../db/schema";
 
 const countries = new Set(["KZ", "UZ", "KG", "TJ", "TM"]);
-const types = new Set(["daily", "weekly", "monthly"]);
+const types = new Set(["daily", "weekly", "monthly", "quarterly", "annual"]);
 const supersededSlugs = new Set(["2026-08-13-中亚菌类市场研究日报-2026-08-13-dc3459"]);
 const authorized = (request: Request) => Boolean(process.env.CRON_SECRET) && request.headers.get("x-cron-secret") === process.env.CRON_SECRET;
 const slugify = (title: string) => `${new Date().toISOString().slice(0,10)}-${title.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]+/g,"-").replace(/^-|-$/g,"").slice(0,48)}-${crypto.randomUUID().slice(0,6)}`;

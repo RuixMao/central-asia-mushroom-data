@@ -1,0 +1,21 @@
+name: Official Holiday Event Calendar
+on:
+  schedule:
+    # 每年年初写入当年官方日历；年度文件发布后也可手动重跑。
+    - cron: '15 2 2 1 *'
+  workflow_dispatch:
+jobs:
+  calendar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r pipeline/requirements.txt
+      - run: python -m unittest tests.test_event_calendar
+      - name: Collect official holiday calendar
+        run: python pipeline/fetch_event_calendar.py
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}

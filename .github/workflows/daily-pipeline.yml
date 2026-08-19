@@ -28,6 +28,12 @@ jobs:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           UN_COMTRADE_API_KEY: ${{ secrets.UN_COMTRADE_API_KEY }}
+      - name: Fetch daily FX history
+        continue-on-error: true
+        run: python pipeline/fetch_fx.py
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
       - name: Fetch Uzbekistan official trade benchmark
         continue-on-error: true
         run: python pipeline/fetch_uz_official_trade.py

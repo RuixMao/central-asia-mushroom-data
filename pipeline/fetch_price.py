@@ -5,6 +5,7 @@ from collections import Counter
 from pathlib import Path
 from urllib.parse import quote
 from review import review_record
+from sanity import apply_sanity_validation, review_sanity_outliers
 from product_dimensions import describe_product
 from adapters.globus import GlobusAdapter
 from adapters.omarket import OMarketAdapter
@@ -195,7 +196,10 @@ def run():
    dimensions=describe_product(row["original_title"],category["product_form"],norm["value"],norm["unit"],row)
    item={**row,**dimensions,"product_url":row.pop("url"),"original_language":row.pop("language"),"species_id":category["species_id"],"product_form":category["product_form"],"classification_status":category["status"],"classification_confidence":category["confidence"],"classification_evidence":category["evidence"],"observed_at":now,"observation_date":today_str(),"package_value":norm["value"],"package_unit":norm["unit"],"package_source":package_source,"package_conversion_basis":norm.get("conversion_basis"),"normalized_quantity_kg":norm["quantity_kg"],"normalized_price_per_kg":norm["price_per_kg"],"price_usd":round(row["current_price"]/local_per_usd,2),"usd_rate_local_per_usd":local_per_usd,"fx_source":"fxapi.app","fx_timestamp":fx_time,"in_stock":row.get("in_stock"),"source_type":row.pop("source_type","server_html")}
    review=review_record(item)
-   items.append({**item,"validation_status":review["validation_status"],"review_decision":review["decision"],"review_reasons":review["reasons"],"review_actions":review["actions"]})
+   normalized_usd_per_kg=round(norm["price_per_kg"]/local_per_usd,2) if norm.get("price_per_kg") is not None else None
+   sanity_review=apply_sanity_validation(review,category["species_id"],row["country"],normalized_usd_per_kg)
+   items.append({**item,**sanity_review,"normalized_price_usd_per_kg":normalized_usd_per_kg})
+ auto_reviewed=review_sanity_outliers(items)
  if items and not dry_run:
   payload={"items":items}
   post_to_site("/api/ingest/prices",payload)
@@ -211,11 +215,11 @@ def run():
  if not dry_run:
   today=today_str()
   for it in items:
-   if it["validation_status"]!="valid":continue
+   if it["validation_status"]=="rejected":continue
    labels=TARGET_SPECIES.get(it["species_id"],{})
-   normalized_usd_per_kg=round(it["normalized_price_per_kg"]/it["usd_rate_local_per_usd"],2)
+   normalized_usd_per_kg=it.get("normalized_price_usd_per_kg")
    package_display=f'{it["package_value"]:g} {it["package_unit"]}' if it.get("package_value") and it.get("package_unit") else ""
-   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":it["country"],"source":it["platform"],"data":{"product_key":f'{it["platform"]}:{it["collection_point_id"]}:{it["platform_product_id"]}',"species_id":it["species_id"],"species_zh":labels.get("zh",it["species_id"]),"species_foreign":labels.get("ru") or labels.get("en"),"original_title":it["original_title"],"original_language":it["original_language"],"discovery":{"query_language":it.get("query_language"),"query_term":it.get("query_term"),"query_species":it.get("query_species")},"product_form":it["product_form"],"product_shape":it["product_shape"],"processing_state":it["processing_state"],"packaging_type":it["packaging_type"],"brand":it.get("brand"),"origin_country":it.get("origin_country"),"package_display":package_display,"package_source":it["package_source"],"package_conversion_basis":it.get("package_conversion_basis"),"platform_id":it["platform"],"platform_name":it["platform_name"],"status":"live","price_local":it["current_price"],"price_usd":it["price_usd"],"normalized_price_usd_per_kg":normalized_usd_per_kg,"currency":it["currency"],"observed_at":today,"retrieved_at":it["observed_at"],"source_url":it["product_url"]}})
+   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":it["country"],"source":it["platform"],"data":{"product_key":f'{it["platform"]}:{it["collection_point_id"]}:{it["platform_product_id"]}',"species_id":it["species_id"],"species_zh":labels.get("zh",it["species_id"]),"species_foreign":labels.get("ru") or labels.get("en"),"original_title":it["original_title"],"original_language":it["original_language"],"discovery":{"query_language":it.get("query_language"),"query_term":it.get("query_term"),"query_species":it.get("query_species")},"product_form":it["product_form"],"product_shape":it["product_shape"],"processing_state":it["processing_state"],"packaging_type":it["packaging_type"],"brand":it.get("brand"),"origin_country":it.get("origin_country"),"package_display":package_display,"package_source":it["package_source"],"package_conversion_basis":it.get("package_conversion_basis"),"platform_id":it["platform"],"platform_name":it["platform_name"],"status":"live","validation_status":it["validation_status"],"sanity_outlier":it["sanity_outlier"],"sanity_reason":it["sanity_reason"],"price_local":it["current_price"],"price_usd":it["price_usd"],"normalized_price_usd_per_kg":normalized_usd_per_kg,"currency":it["currency"],"observed_at":today,"retrieved_at":it["observed_at"],"source_url":it["product_url"]}})
   successful_platforms={it["platform"] for it in items}
   platform_errors={e["platform"]:e["reason"] for e in errors if e["platform"] not in successful_platforms}
   for platform,reason in platform_errors.items():
@@ -258,6 +262,9 @@ def run():
   output_path.parent.mkdir(parents=True,exist_ok=True)
   output_path.write_text(json.dumps(audit,ensure_ascii=False,indent=2),encoding="utf-8")
   log(f"检索词审计报告已写入: {output_path}")
+ sanity_count=sum(1 for it in items if it.get("sanity_outlier"));sanity_pct=(sanity_count/len(items)*100) if items else 0
+ log(f"sanity: {sanity_count} 条超出区间（{sanity_pct:.1f}%），已标记 needs_review")
+ log(f"sanity review: {auto_reviewed} 条已找到有页面规格证据的价格差异原因，其余保持原因待查")
  log(f"平台适配器完成：{json.dumps(summary,ensure_ascii=False)}，失败任务 {len(errors)} 条，dry_run={dry_run}；{errors}")
  if not items and not dry_run:raise RuntimeError("没有有效价格")
 if __name__=="__main__":run()
