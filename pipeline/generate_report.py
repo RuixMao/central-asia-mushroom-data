@@ -257,7 +257,7 @@ def run():
    if customer_safe(analysis,allowed):break
  except (AuthenticationError,APIError) as exc:
   log(f"DeepSeek unavailable, using verified fallback: {type(exc).__name__}")
-   analysis=clean_analysis(decision_fallback(today,signals,evidence,market_facts,trends));used_fallback=True
+  analysis=clean_analysis(decision_fallback(today,signals,evidence,market_facts,trends));used_fallback=True
  if not used_fallback and not customer_safe(analysis,allowed):
   log("模型稿未通过研究成稿检查，改用已核验研究模板")
   analysis=clean_analysis(decision_fallback(today,signals,evidence,market_facts,trends));used_fallback=True
