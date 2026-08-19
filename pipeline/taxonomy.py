@@ -10,7 +10,11 @@ SPECIES={
     # 中亚山区/草原高频野生菌(来源:fungiatlas 吉尔吉斯 Top10 + 哈萨克菌类日历,2026-08 验证)
     "saffron_milk_cap":["рыжик","рыжики","ряжик","сосновый рыжик","ельник","saffron milk cap","saffron milk-caps","ryzhik","еловый рыжик"],
     "milk_mushroom":["груздь","грузди","подгруздок","подгруздки","груздь белый","белый груздь","milk mushroom","milk mushrooms","mleczaj","gruzdi"],
-    "blewit":["синеножка","синие ножки","синявка","рядовка лиловая","леписта","лиловая рядовка","blewit","blewits","lepista nuda","blueleg","blue leg","синегнойка"]}
+    "blewit":["синеножка","синие ножки","синявка","рядовка лиловая","леписта","лиловая рядовка","blewit","blewits","lepista nuda","blueleg","blue leg","синегнойка"],
+    # 阿魏菇/白灵菇/草原白蘑菇(用户提供:荒漠原生珍稀菌,油炸炖肉,溢价高;
+    # 来源验证:哈萨克市场 White Steppe Mushroom,吉尔吉斯 Ak kozu garyn,
+    # 学名 Pleurotus eryngii var. ferulae;独立于杏鲍菇的商业品类)
+    "steppe_mushroom":["белый степной гриб","белые степные грибы","степной белый гриб","степной гриб","степная вешенка","ферула","ак козу карын","ак козу карындар","white steppe mushroom","steppe white mushroom","ferula mushroom","pleurotus ferulae","eryngii var. ferulae","阿魏菇","阿魏側耳","阿魏蘑","白灵菇","白靈菇","白阿魏蘑","翅鲍菇","雪山灵芝"]}
 AMBIGUOUS=["грибы","mushrooms","саңырауқұлақ","козу карын","занбӯруғ","qo‘ziqorin","qo'ziqorin","золотые нити","древесные грибы","лесные грибы","kömelek","gömelek","komelek","kömelekler","kömelekli","komelekler","komelekli","вешенкалар","шампиньондар"]
 EXCLUDE_ONLY=["грибной соус","mushroom sauce","mushroom flavour","蘑菇味","мицелий","грибница","семена гриб","споры гриб","ящик для грибов","увлажнитель","оборудование для гриб","субстрат","компост для гриб","набор для выращивания","электрод","светильник","лампа","игрушк","декор","саңырауқұлақ тәрізді","электр"]
 FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","сушён","сухие","сухой","сухая","dried","хушккарда"]),("pickled",["марин","pickled","marinadlanan"]),("canned",["консерв","canned","konserw"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]

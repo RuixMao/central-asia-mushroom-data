@@ -49,6 +49,30 @@ class TestWildSpeciesTaxonomy(unittest.TestCase):
         finally:
             os.environ.pop("SEARCH_QUERY_MODE", None)
 
+    def test_steppe_mushroom_ferula(self):
+        """阿魏菇/白灵菇/草原白蘑菇(用户提供:荒漠原生珍稀菌)应分类为 steppe_mushroom,
+        且与杏鲍菇(king_oyster)、平菇(oyster)不冲突。"""
+        cases = {
+            "Белый степной гриб свежий 500 г": "steppe_mushroom",
+            "Ак козу карын 300 г": "steppe_mushroom",
+            "阿魏菇 500克": "steppe_mushroom",
+            "白灵菇 干品 200克": "steppe_mushroom",
+            "Королевская вешенка 1 кг": "king_oyster_mushroom",
+            "Грибы вешенки свежие": "oyster_mushroom",
+        }
+        for title, want in cases.items():
+            lang = "zh" if any(ch >= "\u4e00" for ch in title) else "ru"
+            c = classify(title, language=lang)
+            self.assertEqual(c["species_id"], want, f"{title} -> {c['species_id']}, want {want}")
+
+    def test_steppe_mushroom_in_search_matrix(self):
+        """五国检索矩阵都应含阿魏菇检索词。"""
+        for country in ("KZ", "UZ", "KG", "TJ", "TM"):
+            species = set()
+            for lang in COUNTRY_SEARCH_TERMS[country].values():
+                species.update(lang.keys())
+            self.assertIn("steppe_mushroom", species, f"{country} 缺阿魏菇")
+
 
 if __name__ == "__main__":
     unittest.main()

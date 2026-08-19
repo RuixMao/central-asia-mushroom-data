@@ -43,6 +43,8 @@ TARGET_SPECIES={
  "saffron_milk_cap":{"zh":"松乳菌","ru":"рыжики","en":"saffron milk cap"},
  "milk_mushroom":{"zh":"乳菇","ru":"грузди","en":"milk mushroom"},
  "blewit":{"zh":"蓝柄菇","ru":"синеножки","en":"blewit"},
+ # 阿魏菇/白灵菇/草原白蘑菇:荒漠原生珍稀菌,溢价高(用户提供,2026-08 验证)
+ "steppe_mushroom":{"zh":"阿魏菇","ru":"белый степной гриб","en":"white steppe mushroom"},
 }
 HS_CODES=("070951","070959","200310")
 FX_TO_CNY={"KZT":0.014,"UZS":0.00058,"KGS":0.083,"TJS":0.66,"TMT":2.04}
