@@ -6,8 +6,10 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-from utils import safe_get
+from utils import safe_get, parse_price_text, response_text
 
+# 兼容旧引用:本地 _parse_price 指向统一实现(全适配器共用 utils.parse_price_text)
+_parse_price = parse_price_text
 
 MUSHROOM = re.compile(
     r"гриб|шампин|вешен|шиитак|эноки|"
@@ -23,25 +25,6 @@ NON_FOOD = re.compile(
     re.I,
 )
 PRICE = re.compile(r"(\d[\d\s,.]{0,15})\s*(?:₸|KZT|сом|KGS|сум|UZS|TJS|TMT|c\.|с\.)", re.I)
-
-
-def _parse_price(raw):
-    """千分位/小数点兼容解析:45,000 -> 45000;1,234.56 -> 1234.56;128,70 -> 128.70"""
-    s = raw.replace(" ", "").replace("\u202f", "").strip()
-    if not s:
-        return None
-    if "," in s and "." in s:
-        s = s.replace(",", "")
-    elif "," in s:
-        parts = s.split(",")
-        if len(parts) >= 3 or (len(parts) == 2 and len(parts[1]) == 3 and len(parts[0]) > 0):
-            s = s.replace(",", "")
-        else:
-            s = s.replace(",", ".")
-    try:
-        return float(s)
-    except ValueError:
-        return None
 
 
 def _walk(value):
@@ -64,12 +47,8 @@ class CatalogSearchAdapter:
         response = safe_get(self.config["url"], retries=2, backoff=2)
         if not response:
             return [], "unreachable"
-        # 部分中亚站点没有正确的 HTTP charset，requests 会把 UTF-8
-        # 页面误解为 ISO-8859-1，从而让本地语言商品名变成乱码。
-        try:
-            html = response.content.decode("utf-8")
-        except UnicodeDecodeError:
-            html = response.text
+        # 统一 UTF-8 解码(防 charset 错标导致本地语言乱码)
+        html = response_text(response)
         soup = BeautifulSoup(html, "html.parser")
         rows = {}
         # React 目录页通常把商品卡片直接内嵌在 HTML 中，标题和价格并不在同一个链接里。
@@ -103,11 +82,8 @@ class CatalogSearchAdapter:
                 if isinstance(offers, list):
                     offers = offers[0] if offers else {}
                 price = offers.get("price") or offers.get("lowPrice")
-                try:
-                    price = float(str(price).replace(" ", "").replace(",", "."))
-                except (TypeError, ValueError):
-                    continue
-                if price <= 0:
+                price = parse_price_text(price)
+                if not price or price <= 0:
                     continue
                 url = urljoin(response.url, str(item.get("url") or offers.get("url") or ""))
                 product_id = str(item.get("sku") or item.get("productID") or url.rstrip("/").split("/")[-1])

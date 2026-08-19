@@ -14,6 +14,53 @@ def log(message): print(f"[{dt.datetime.now().isoformat(timespec='seconds')}] {m
 def today_str(): return dt.date.today().isoformat()
 def median(nums): return statistics.median(nums) if nums else None
 
+def parse_price_text(raw):
+    """千分位/小数点兼容价格解析(全适配器统一入口)。
+
+    中亚站点价格习惯各异:45,000(千分位逗号)/45.00(小数点)/128,70(小数点逗号)/
+    45 000(空格)/1,234.56(千分位+小数点)。统一规则:
+      - 同时含 , 和 . → 逗号是千分位,去掉(1,234.56 -> 1234.56)
+      - 仅含 , → 看小数部分:3 位且前面有数字当千分位(45,000 -> 45000),
+        否则当小数点(128,70 -> 128.70)
+      - 空格/窄空格直接去除
+    解析失败返回 None(调用方按 gap 处理,不写 0)。
+    """
+    if raw is None:
+        return None
+    s = str(raw).replace(" ", "").replace("\u202f", "").replace("\u00a0", "").strip()
+    if not s:
+        return None
+    if "," in s and "." in s:
+        s = s.replace(",", "")
+    elif "," in s:
+        parts = s.split(",")
+        if len(parts) >= 3 or (len(parts) == 2 and len(parts[1]) == 3 and len(parts[0]) > 0):
+            s = s.replace(",", "")
+        else:
+            s = s.replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return None
+
+
+def response_text(response):
+    """按 UTF-8 解码响应体(全适配器统一入口)。
+
+    中亚站点 header 常把 charset 错标为 latin-1/ISO-8859-1(实际是 UTF-8),
+    requests 的 response.text 会按错误编码解码 → 本地语言字符变 mojibake
+    (ö 变成 Ã¶)。强制 UTF-8 解码,失败时回退 requests 默认行为。
+    兼容测试用 mock(无真实 .content bytes 时回退 .text)。
+    """
+    content = getattr(response, "content", None)
+    if isinstance(content, bytes):
+        try:
+            return content.decode("utf-8")
+        except UnicodeDecodeError:
+            pass
+    text = getattr(response, "text", "")
+    return text if isinstance(text, str) else ""
+
 # 数据中心出口 IP 被目标站防火墙/反爬拒绝的域名(本地直连正常、CI 必挂)。
 # 设置环境变量 PROXY_BASE(如 https://tm-proxy.xxx.workers.dev)后,
 # 这些域名的请求改经 CF Worker 中转出口;不设置则保持直连(本地正常)。

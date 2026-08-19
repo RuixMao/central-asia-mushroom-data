@@ -20,6 +20,7 @@ import re
 from bs4 import BeautifulSoup
 
 from .render import RenderedProductAdapter
+from utils import parse_price_text
 
 UZS_PRICE = re.compile(r"(\d[\d\s,.]{1,15})\s*(?:сум|UZS)", re.I)
 # Uzum 实际验证码句式:"Подтвердите, что запросы отправляли вы, а не робот"
@@ -65,8 +66,8 @@ class UzumAdapter(RenderedProductAdapter):
             match = UZS_PRICE.search(text)
             if not match:
                 continue
-            price = float(match.group(1).replace(" ", "").replace(",", ""))
-            if price <= 0:
+            price = parse_price_text(match.group(1))
+            if not price or price <= 0:
                 continue
             link = card.find("a", href=True)
             url = link["href"] if link else self.config["url"]

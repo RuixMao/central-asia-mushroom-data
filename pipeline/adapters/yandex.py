@@ -2,10 +2,15 @@ import hashlib
 import re
 from bs4 import BeautifulSoup
 from .render import RenderedProductAdapter
+from utils import parse_price_text
 
 # Yandex Market（乌兹别克斯坦站）：渲染后页面文本中价格形如 "50 000 сум"
 SUM_PRICE = re.compile(r"(\d[\d\s]{2,12})\s*сум\b", re.I)
-MUSHROOM = re.compile(r"шампиньон|вешенк|гриб", re.I)
+MUSHROOM = re.compile(
+    r"шампиньон|вешенк|гриб|шиитак|эноки|эринги|"
+    r"qo['‘’`]ziqorin|shampinyon|sampinyon|veshenka|shiitake|enoki|eringi",
+    re.I,
+)
 
 
 class YandexMarketAdapter(RenderedProductAdapter):
@@ -47,8 +52,8 @@ class YandexMarketAdapter(RenderedProductAdapter):
             if not title or title in seen_titles:
                 continue
             seen_titles.add(title)
-            price = float(match.group(1).replace(" ", ""))
-            if price <= 0:
+            price = parse_price_text(match.group(1))
+            if not price or price <= 0:
                 continue
             stable_title = re.sub(r"\W+", " ", title.lower(), flags=re.UNICODE).strip()
             pid = f"yandex-uz-{hashlib.sha256(stable_title.encode('utf-8')).hexdigest()[:16]}"

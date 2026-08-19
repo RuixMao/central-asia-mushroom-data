@@ -13,6 +13,8 @@ def _normalize_url(url):
  except Exception:return url
 class RenderedProductAdapter:
  def __init__(self,config):self.config=config
+ # 子类可覆写:渲染后等待该 CSS 选择器出现(SPA 异步加载商品时用)
+ wait_selector=None
  def render(self,url):
   try:from playwright.sync_api import sync_playwright,TimeoutError as PlaywrightTimeout
   except ImportError:return None,"render_dependency_missing"
@@ -23,6 +25,9 @@ class RenderedProductAdapter:
     page.goto(url,wait_until="domcontentloaded",timeout=45000)
     try:page.wait_for_load_state("networkidle",timeout=15000)
     except PlaywrightTimeout:pass
+    if self.wait_selector:
+     try:page.wait_for_selector(self.wait_selector,timeout=15000)
+     except PlaywrightTimeout:pass
     body=page.locator("body").inner_text(timeout=10000);html=page.content();browser.close()
    if re.search(r"captcha|верификац|подтвердите, что вы не робот",body,re.I):return None,"render_blocked"
    return (html,body),None

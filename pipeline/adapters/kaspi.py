@@ -1,6 +1,7 @@
 import re
 from bs4 import BeautifulSoup
 from .render import RenderedProductAdapter
+from utils import parse_price_text
 PRICE=re.compile(r"(\d[\d\s]{2,12})\s*₸")
 ID_IN_URL=re.compile(r"-(\d+)/?$")
 # саңырауқұлақ(哈语"蘑菇")会匹配"蘑菇形电极/蘑菇台灯"等非食品,必须排除
@@ -24,8 +25,8 @@ class KaspiAdapter(RenderedProductAdapter):
   if NON_FOOD.search(text):return None
   match=PRICE.search(text)
   if not match:return None
-  price=float(match.group(1).replace(" ",""))
-  if price<=0:return None
+  price=parse_price_text(match.group(1))
+  if not price or price<=0:return None
   link=card.find("a",href=True);url=link["href"] if link else self.config["url"]
   if url.startswith("/"):url="https://kaspi.kz"+url
   pid=self.config["platform_product_id"]

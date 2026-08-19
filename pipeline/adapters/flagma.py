@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-from utils import safe_get
+from utils import safe_get, parse_price_text, response_text
 
 
 MUSHROOM = re.compile(
@@ -33,7 +33,7 @@ class FlagmaAdapter:
         response = safe_get(self.config["url"], retries=2, backoff=3)
         if not response:
             return [], "unreachable"
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response_text(response), "html.parser")
         rows = {}
         saw_negotiable = False
         for anchor in soup.find_all("a", href=True):
@@ -47,8 +47,8 @@ class FlagmaAdapter:
             match = PRICE.search(scope)
             if not match:
                 continue
-            price = float(match.group(1).replace(" ", "").replace(",", "."))
-            if price <= 0:
+            price = parse_price_text(match.group(1))
+            if not price or price <= 0:
                 continue
             url = urljoin(response.url, anchor["href"])
             product_id = re.sub(r"\W+", "-", url.rstrip("/").split("/")[-1])[:120]
