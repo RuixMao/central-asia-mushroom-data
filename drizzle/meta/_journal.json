@@ -29,6 +29,20 @@
       "when": 1786588600000,
       "tag": "0003_market_research_evidence",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1787112000000,
+      "tag": "0004_price_sanity",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1787115600000,
+      "tag": "0005_p0_research_judgments",
+      "breakpoints": true
     }
   ]
 }
