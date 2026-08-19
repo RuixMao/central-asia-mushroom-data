@@ -4,9 +4,13 @@ SPECIES={
  "button_mushroom":["шампиньон","шампиньондор","шампин.","шампин","champignon","button mushroom","gelin kömelek","şampinýon","şampinon","şampinjon","şampion","champinjon","shampinyon","sampinyon","shampinion","双孢菇"],"oyster_mushroom":["вешенк","veshenka","veshenki","weşenka kömelegi","устричный гриб","oyster mushroom","平菇"],
  "enoki":["эноки","enoki","enokitake","金针菇"],"shiitake":["шиитаке","шиитаки","shiitake","siitake","sitake","香菇"],"king_oyster_mushroom":["королевская вешенка","king oyster mushroom","king trumpet mushroom","эринги","eringi","杏鲍菇"],
  "shimeji":["шимиджи","shimeji","shimeji"],"wood_ear":["муэр","wood ear","древесный гриб","ағаш саңырауқұлағы"],"snow_fungus":["серебряное ухо","snow fungus"],
- "morel":["сморчок","morel"],"matsutake":["мацутакэ","matsutake"],"porcini":["белый гриб","гриб белый","боровик","подосиновик","подосиновики","красноголовик","porcini","ақ саңырауқұлақ"],
- "chanterelle":["лисичк","chanterelle"],"straw_mushroom":["вольвариелла","straw mushroom"],"honey_fungus":["опёнок","опенок","опята","honey mushroom","honey fungus","занбӯруғи асал","бал саңырауқұлағы"],
- "suillus":["маслёнок","масленок","маслята","suillus"],"truffle":["трюфель","truffle"]}
+    "morel":["сморчок","сморчки","сморчковая шапочка","morel","morels","морэл","морл"],"matsutake":["мацутакэ","matsutake"],"porcini":["белый гриб","белые грибы","гриб белый","боровик","боровики","подосиновик","подосиновики","красноголовик","porcini","ақ саңырауқұлақ"],
+    "chanterelle":["лисичк","лисички","chanterelle","chanterelles"],"straw_mushroom":["вольвариелла","straw mushroom"],"honey_fungus":["опёнок","опенок","опята","honey mushroom","honey fungus","занбӯруғи асал","бал саңырауқұлағы"],
+    "suillus":["маслёнок","масленок","маслята","suillus"],"truffle":["трюфель","truffle"],
+    # 中亚山区/草原高频野生菌(来源:fungiatlas 吉尔吉斯 Top10 + 哈萨克菌类日历,2026-08 验证)
+    "saffron_milk_cap":["рыжик","рыжики","ряжик","сосновый рыжик","ельник","saffron milk cap","saffron milk-caps","ryzhik","еловый рыжик"],
+    "milk_mushroom":["груздь","грузди","подгруздок","подгруздки","груздь белый","белый груздь","milk mushroom","milk mushrooms","mleczaj","gruzdi"],
+    "blewit":["синеножка","синие ножки","синявка","рядовка лиловая","леписта","лиловая рядовка","blewit","blewits","lepista nuda","blueleg","blue leg","синегнойка"]}
 AMBIGUOUS=["грибы","mushrooms","саңырауқұлақ","козу карын","занбӯруғ","qo‘ziqorin","qo'ziqorin","золотые нити","древесные грибы","лесные грибы","kömelek","gömelek","komelek","kömelekler","kömelekli","komelekler","komelekli","вешенкалар","шампиньондар"]
 EXCLUDE_ONLY=["грибной соус","mushroom sauce","mushroom flavour","蘑菇味","мицелий","грибница","семена гриб","споры гриб","ящик для грибов","увлажнитель","оборудование для гриб","субстрат","компост для гриб","набор для выращивания","электрод","светильник","лампа","игрушк","декор","саңырауқұлақ тәрізді","электр"]
 FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","сушён","сухие","сухой","сухая","dried","хушккарда"]),("pickled",["марин","pickled","marinadlanan"]),("canned",["консерв","canned","konserw"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]
