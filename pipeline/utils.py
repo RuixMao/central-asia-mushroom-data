@@ -44,6 +44,25 @@ def parse_price_text(raw):
         return None
 
 
+def find_price_match(node, pattern):
+    """只在单个 DOM 文本节点内匹配价格。
+
+禁止先把整页/整卡片压成一行再匹配，否则轮播序号“1”和
+价格“128,70”可能被拼成“1 128,70”。找不到时宁可返回 None，
+不跨节点猜测。
+    """
+    strings = node.find_all(string=True) if hasattr(node, "find_all") else ()
+    for value in strings:
+        if getattr(value, "parent", None) is not None and value.parent.name in {"script", "style", "noscript"}:
+            continue
+        text = " ".join(str(value).split())
+        for match in pattern.finditer(text):
+            price = parse_price_text(match.group(1))
+            if price is not None and price > 0:
+                return match, price
+    return None, None
+
+
 def response_text(response):
     """按 UTF-8 解码响应体(全适配器统一入口)。
 

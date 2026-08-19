@@ -2,7 +2,10 @@ import datetime as dt
 import json
 import os
 from collections import Counter
+from pathlib import Path
 from urllib.parse import quote
+from review import review_record
+from product_dimensions import describe_product
 from adapters.globus import GlobusAdapter
 from adapters.omarket import OMarketAdapter
 from adapters.zudbiyor import ZudbiyorAdapter
@@ -18,12 +21,12 @@ from adapters.gipertm import GiperAdapter
 from adapters.asmanexpress import AsmanAdapter
 from adapters.arbuz import ArbuzAdapter
 from adapters.catalog_search import CatalogSearchAdapter
-from adapters.wildberries import WildberriesAdapter
+from adapters.wildberries import DESTINATIONS as WB_DESTINATIONS,WildberriesAdapter
 from adapters.flagma import FlagmaAdapter
 from adapters.uzum import UzumAdapter
 from adapters.magnum import MagnumAdapter
 from config import TARGET_SPECIES
-from search_queries import iter_country_queries
+from search_queries import SearchQuery,iter_country_queries
 from taxonomy import classify,normalize_price,parse_package
 from utils import log,post_to_data,post_to_site,safe_get,today_str
 
@@ -108,7 +111,8 @@ for country,adapter,base,url_template in catalog_searches:
  # somon 总词(грибы)实测返回教材/种子(被 NON_FOOD 过滤),具体菌种词才能命中真商品;
  # 其余平台跑双语总词(日常模式)即可。
  species_scope = TARGET_SPECIES if adapter is CatalogSearchAdapter and base.get("platform") == "somon" else ("mushrooms",)
- for task in iter_country_queries(country, species_scope):
+ tasks=([SearchQuery(country,"mushrooms","ru",term,"russian") for term in ("грибы","шампиньоны","вешенки","мицелий")] if adapter is FlagmaAdapter else iter_country_queries(country,species_scope))
+ for task in tasks:
   # Flagma 各站只索引俄语(本地语言词实测返回 404),只跑俄语任务;
   # 其余平台跑双语(本地语言 + 俄语)
   if adapter is FlagmaAdapter and task.language != "ru":
@@ -120,15 +124,16 @@ for country,adapter,base,url_template in catalog_searches:
 # Wildberries 的配送区 dest 必须按国家实测，避免把默认俄罗斯结果错归入中亚。
 # CI 可用 WB_DESTS_JSON 显式启用，例如 {"KZ":"已核验的dest"}。
 try:
- wb_dests=json.loads(os.getenv("WB_DESTS_JSON", "{}"))
+ wb_dests=json.loads(os.getenv("WB_DESTS_JSON", "{}")) or {code:meta["dest"] for code,meta in WB_DESTINATIONS.items()}
 except json.JSONDecodeError:
  wb_dests={}
 wb_meta={"KZ":("KZT","Almaty","ALMATY_POINT_01"),"UZ":("UZS","Tashkent","TASHKENT_POINT_01"),"KG":("KGS","Bishkek","BISHKEK_POINT_01"),"TJ":("TJS","Dushanbe","DUSHANBE_POINT_01"),"TM":("TMT","Ashgabat","ASHGABAT_POINT_01")}
 for code,dest in wb_dests.items():
  if code not in wb_meta:continue
  currency,city,point=wb_meta[code]
- queries=list(iter_country_queries(code,TARGET_SPECIES))
- SOURCES.append((WildberriesAdapter,{"platform":f"wildberries-{code.lower()}","platform_name":"Wildberries","platform_product_id":"catalog-search","country":code,"city":city,"collection_point_id":point,"url":"https://search.wb.ru/","title":"Каталог грибов","package":"","currency":currency,"language":"multi","queries":[q.term for q in queries],"query_languages":sorted({q.language for q in queries}),"dest":str(dest)}))
+ queries=["шампиньоны","вешенки","шиитаке","эноки"]
+ verified=code in WB_DESTINATIONS and str(dest)==WB_DESTINATIONS[code]["dest"]
+ SOURCES.append((WildberriesAdapter,{"platform":f"wildberries-{code.lower()}","platform_name":"Wildberries","platform_product_id":"catalog-search","country":code,"city":city,"collection_point_id":point,"url":"https://search.wb.ru/","title":"Каталог грибов","package":"","currency":currency,"language":"ru","queries":queries,"query_languages":["ru"],"dest":str(dest),"dest_verified":verified,"detail_limit":3}))
 
 def rates():
  r=safe_get("https://fxapi.app/api/usd.json",retries=2);return r.json()["rates"],r.json().get("timestamp")
@@ -146,8 +151,9 @@ LOW_FREQUENCY_PLATFORMS = {"flagma-kz", "flagma-uz", "flagma-kg", "flagma-tj", "
 COLLECTION_MODE = os.getenv("COLLECTION_MODE", "static").strip().lower()
 
 def run():
- fx,fx_time=rates();items=[];errors=[];active_configs=[];seen_products=set();query_runs=[];wanted_platform=os.getenv("PLATFORM","").strip();wanted_point=os.getenv("COLLECTION_POINT","").strip();dry_run=os.getenv("DRY_RUN","false").lower()=="true"
+ fx,fx_time=rates();items=[];errors=[];active_configs=[];seen_products=set();query_runs=[];excluded_by_query=Counter();wanted_country=os.getenv("COUNTRY","").strip().upper();wanted_platform=os.getenv("PLATFORM","").strip();wanted_point=os.getenv("COLLECTION_POINT","").strip();dry_run=os.getenv("DRY_RUN","false").lower()=="true";query_task_limit=max(0,int(os.getenv("QUERY_TASK_LIMIT","0") or 0));executed_query_tasks=0
  for Adapter,config in SOURCES:
+  if wanted_country and config["country"]!=wanted_country:continue
   if wanted_platform and config["platform"]!=wanted_platform:continue
   if wanted_point and config["collection_point_id"]!=wanted_point:continue
   is_rendered=config["platform"] in RENDERED_PLATFORMS
@@ -156,6 +162,10 @@ def run():
   # 低频平台:日常(static)跳过,显式指定 platform 或 all/rendered 才跑
   if config["platform"] in LOW_FREQUENCY_PLATFORMS and COLLECTION_MODE=="static" and not wanted_platform:
    continue
+  if config.get("query_term") and query_task_limit and executed_query_tasks>=query_task_limit:
+   continue
+  if config.get("query_term"):
+   executed_query_tasks+=1
   active_configs.append(config)
   rows,error=Adapter(config).collect_many()
   if config.get("query_term"):
@@ -176,10 +186,16 @@ def run():
    else:
     package_text="";package_source="unverified"
    category=classify(row["original_title"],description=row.get("description") or "",category=row.get("category") or "",language=row.get("language") or "")
-   if category["status"]=="excluded":continue
+   if category["status"]=="excluded" and row.get("b2b_category")=="cultivation_input":
+    category={"species_id":None,"product_form":"cultivation_input","status":"review_required","confidence":.99,"evidence":[{"field":"title","rule":"cultivation_input"}]}
+   elif category["status"]=="excluded":
+    excluded_by_query[(row["platform"],row.get("query_language") or "fixed_page",row.get("query_term") or "",row.get("query_species") or "")]+=1
+    continue
    norm=normalize_price(row["current_price"],package_text,allow_volume=True,volume_kg_per_l=VOLUME_KG_PER_L);local_per_usd=float(fx[row["currency"]]);now=dt.datetime.now(dt.timezone.utc).isoformat()
-   is_valid=category["status"]=="classified" and category["confidence"]>=.9 and norm["price_per_kg"] is not None and package_source!="unverified"
-   items.append({**row,"product_url":row.pop("url"),"original_language":row.pop("language"),"species_id":category["species_id"],"product_form":category["product_form"],"classification_status":category["status"],"classification_confidence":category["confidence"],"classification_evidence":category["evidence"],"observed_at":now,"observation_date":today_str(),"package_value":norm["value"],"package_unit":norm["unit"],"package_source":package_source,"package_conversion_basis":norm.get("conversion_basis"),"normalized_quantity_kg":norm["quantity_kg"],"normalized_price_per_kg":norm["price_per_kg"],"price_usd":round(row["current_price"]/local_per_usd,2),"usd_rate_local_per_usd":local_per_usd,"fx_source":"fxapi.app","fx_timestamp":fx_time,"in_stock":row.get("in_stock"),"source_type":row.pop("source_type","server_html"),"validation_status":"valid" if is_valid else "needs_review"})
+   dimensions=describe_product(row["original_title"],category["product_form"],norm["value"],norm["unit"],row)
+   item={**row,**dimensions,"product_url":row.pop("url"),"original_language":row.pop("language"),"species_id":category["species_id"],"product_form":category["product_form"],"classification_status":category["status"],"classification_confidence":category["confidence"],"classification_evidence":category["evidence"],"observed_at":now,"observation_date":today_str(),"package_value":norm["value"],"package_unit":norm["unit"],"package_source":package_source,"package_conversion_basis":norm.get("conversion_basis"),"normalized_quantity_kg":norm["quantity_kg"],"normalized_price_per_kg":norm["price_per_kg"],"price_usd":round(row["current_price"]/local_per_usd,2),"usd_rate_local_per_usd":local_per_usd,"fx_source":"fxapi.app","fx_timestamp":fx_time,"in_stock":row.get("in_stock"),"source_type":row.pop("source_type","server_html")}
+   review=review_record(item)
+   items.append({**item,"validation_status":review["validation_status"],"review_decision":review["decision"],"review_reasons":review["reasons"],"review_actions":review["actions"]})
  if items and not dry_run:
   payload={"items":items}
   post_to_site("/api/ingest/prices",payload)
@@ -199,7 +215,7 @@ def run():
    labels=TARGET_SPECIES.get(it["species_id"],{})
    normalized_usd_per_kg=round(it["normalized_price_per_kg"]/it["usd_rate_local_per_usd"],2)
    package_display=f'{it["package_value"]:g} {it["package_unit"]}' if it.get("package_value") and it.get("package_unit") else ""
-   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":it["country"],"source":it["platform"],"data":{"product_key":f'{it["platform"]}:{it["collection_point_id"]}:{it["platform_product_id"]}',"species_id":it["species_id"],"species_zh":labels.get("zh",it["species_id"]),"species_foreign":labels.get("ru") or labels.get("en"),"original_title":it["original_title"],"original_language":it["original_language"],"discovery":{"query_language":it.get("query_language"),"query_term":it.get("query_term"),"query_species":it.get("query_species")},"product_form":it["product_form"],"package_display":package_display,"package_source":it["package_source"],"package_conversion_basis":it.get("package_conversion_basis"),"platform_id":it["platform"],"platform_name":it["platform_name"],"status":"live","price_local":it["current_price"],"price_usd":it["price_usd"],"normalized_price_usd_per_kg":normalized_usd_per_kg,"currency":it["currency"],"observed_at":today,"retrieved_at":it["observed_at"],"source_url":it["product_url"]}})
+   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":it["country"],"source":it["platform"],"data":{"product_key":f'{it["platform"]}:{it["collection_point_id"]}:{it["platform_product_id"]}',"species_id":it["species_id"],"species_zh":labels.get("zh",it["species_id"]),"species_foreign":labels.get("ru") or labels.get("en"),"original_title":it["original_title"],"original_language":it["original_language"],"discovery":{"query_language":it.get("query_language"),"query_term":it.get("query_term"),"query_species":it.get("query_species")},"product_form":it["product_form"],"product_shape":it["product_shape"],"processing_state":it["processing_state"],"packaging_type":it["packaging_type"],"brand":it.get("brand"),"origin_country":it.get("origin_country"),"package_display":package_display,"package_source":it["package_source"],"package_conversion_basis":it.get("package_conversion_basis"),"platform_id":it["platform"],"platform_name":it["platform_name"],"status":"live","price_local":it["current_price"],"price_usd":it["price_usd"],"normalized_price_usd_per_kg":normalized_usd_per_kg,"currency":it["currency"],"observed_at":today,"retrieved_at":it["observed_at"],"source_url":it["product_url"]}})
   successful_platforms={it["platform"] for it in items}
   platform_errors={e["platform"]:e["reason"] for e in errors if e["platform"] not in successful_platforms}
   for platform,reason in platform_errors.items():
@@ -228,6 +244,20 @@ def run():
           "valid_by_platform":dict(sorted(Counter(it["platform"] for it in valid_items).items())),
           "valid_by_species":dict(sorted(Counter(it["species_id"] for it in valid_items).items())),
           "discovered_by_query_language":dict(sorted(Counter(it.get("query_language") or "fixed_page" for it in valid_items).items()))}
+ audit_output=os.getenv("AUDIT_OUTPUT","").strip()
+ if audit_output:
+  audit_rows=[]
+  for query in query_runs:
+   matched=[it for it in items if it["platform"]==query["platform"] and it.get("query_language")==query["language"] and it.get("query_term")==query["term"] and it.get("query_species")==query["species"]]
+   key=(query["platform"],query["language"],query["term"],query["species"])
+   actual=Counter(it["species_id"] or "unclassified" for it in matched)
+   audit_rows.append({**query,"retained_count":len(matched),"valid_count":sum(it["validation_status"]=="valid" for it in matched),"needs_review_count":sum(it["validation_status"]!="valid" for it in matched),"excluded_count":excluded_by_query[key],"classified_species":dict(sorted(actual.items())),"off_target_count":sum(it.get("species_id") not in (query["species"],None) for it in matched) if query["species"]!="mushrooms" else 0})
+  audit_items=[{"country":it["country"],"platform":it["platform"],"title":it["original_title"],"species_id":it["species_id"],"product_shape":it["product_shape"],"processing_state":it["processing_state"],"packaging_type":it["packaging_type"],"brand":it.get("brand"),"origin_country":it.get("origin_country"),"classification_status":it["classification_status"],"validation_status":it["validation_status"],"review_decision":it["review_decision"],"review_reasons":it["review_reasons"],"review_actions":it["review_actions"],"price_local":it["current_price"],"currency":it["currency"],"package_value":it["package_value"],"package_unit":it["package_unit"],"query_language":it.get("query_language"),"query_term":it.get("query_term"),"product_url":it["product_url"]} for it in items]
+  audit={"generated_at":dt.datetime.now(dt.timezone.utc).isoformat(),"dry_run":dry_run,"country_filter":wanted_country or None,"collection_mode":COLLECTION_MODE,"search_query_mode":os.getenv("SEARCH_QUERY_MODE","daily"),"summary":summary,"items":audit_items,"queries":audit_rows,"errors":errors}
+  output_path=Path(audit_output)
+  output_path.parent.mkdir(parents=True,exist_ok=True)
+  output_path.write_text(json.dumps(audit,ensure_ascii=False,indent=2),encoding="utf-8")
+  log(f"检索词审计报告已写入: {output_path}")
  log(f"平台适配器完成：{json.dumps(summary,ensure_ascii=False)}，失败任务 {len(errors)} 条，dry_run={dry_run}；{errors}")
  if not items and not dry_run:raise RuntimeError("没有有效价格")
 if __name__=="__main__":run()

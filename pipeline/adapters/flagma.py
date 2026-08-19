@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-from utils import safe_get, parse_price_text, response_text
+from utils import safe_get, find_price_match, response_text
 
 
 MUSHROOM = re.compile(
@@ -21,6 +21,7 @@ MUSHROOM = re.compile(
 )
 # 菌丝/种子/培养包/设备等不是可食用菌商品,匹配即排除(与 taxonomy EXCLUDE_ONLY 一致)
 NON_FOOD = re.compile(r"мицел|семен|спор|набор для выращ|грибной блок|субстрат|компост|увлажнитель|оборудован", re.I)
+CULTIVATION_INPUT = re.compile(r"мицел|грибной блок|субстрат|компост|спор", re.I)
 PRICE = re.compile(r"(\d[\d\s,.]{0,15})\s*(?:₸|KZT|сум|UZS|сом(?:они)?|KGS|TJS|TMT|c\.|с\.)", re.I)
 NEGOTIABLE = re.compile(r"цена\s+(?:по\s+)?договор|договорная|уточняйте|по запросу", re.I)
 
@@ -38,22 +39,25 @@ class FlagmaAdapter:
         saw_negotiable = False
         for anchor in soup.find_all("a", href=True):
             title = " ".join(anchor.get_text(" ", strip=True).split())
-            if not MUSHROOM.search(title) or NON_FOOD.search(title):
+            cultivation_input = bool(CULTIVATION_INPUT.search(title))
+            if not MUSHROOM.search(title) or (NON_FOOD.search(title) and not cultivation_input):
                 continue
-            scope = " ".join((anchor.parent or anchor).get_text(" ", strip=True).split())
-            if NEGOTIABLE.search(scope):
+            scope = anchor.parent or anchor
+            scope_text = " ".join(scope.get_text(" ", strip=True).split())
+            if NEGOTIABLE.search(scope_text):
                 saw_negotiable = True
                 continue
-            match = PRICE.search(scope)
+            match, price = find_price_match(scope, PRICE)
             if not match:
                 continue
-            price = parse_price_text(match.group(1))
             if not price or price <= 0:
                 continue
             url = urljoin(response.url, anchor["href"])
             product_id = re.sub(r"\W+", "-", url.rstrip("/").split("/")[-1])[:120]
             rows[product_id] = {**self.config, "platform_product_id": product_id,
                 "url": url, "original_title": title, "current_price": price,
+                "b2b_category": "cultivation_input" if cultivation_input else "edible_mushroom",
+                "seller": " ".join((scope.select_one('[class*=company],[class*=seller]') or anchor).get_text(" ", strip=True).split()),
                 "raw_price_text": match.group(0), "source_type": "b2b_listing",
                 "page_fingerprint": hashlib.sha256(response.content).hexdigest()}
         if rows:

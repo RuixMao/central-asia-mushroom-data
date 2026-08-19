@@ -45,7 +45,6 @@ COUNTRY_SEARCH_TERMS = {
             "saffron_milk_cap": (("рыжик", "loan"),),
             "milk_mushroom": (("груздь", "loan"),),
             "blewit": (("синеножка", "loan"),),
-            "steppe_mushroom": (("ак козу карын", "native"),),
         },
         "ru": {
             "mushrooms": (("грибы", "russian"),),
@@ -81,7 +80,6 @@ COUNTRY_SEARCH_TERMS = {
             "saffron_milk_cap": (("rijik", "loan"),),
             "milk_mushroom": (("gruzd", "loan"),),
             "blewit": (("sinenojka", "loan"),),
-            "steppe_mushroom": (("oq qo'ziqorin", "native"),),
         },
         "ru": {
             "mushrooms": (("грибы", "russian"),),
@@ -117,7 +115,6 @@ COUNTRY_SEARCH_TERMS = {
             "saffron_milk_cap": (("рыжик", "loan"),),
             "milk_mushroom": (("груздь", "loan"),),
             "blewit": (("синеножка", "loan"),),
-            "steppe_mushroom": (("ак козу карын", "native"),),
         },
         "ru": {
             "mushrooms": (("грибы", "russian"),),

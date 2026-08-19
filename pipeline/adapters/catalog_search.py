@@ -6,7 +6,7 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-from utils import safe_get, parse_price_text, response_text
+from utils import safe_get, find_price_match, parse_price_text, response_text
 
 # 兼容旧引用:本地 _parse_price 指向统一实现(全适配器共用 utils.parse_price_text)
 _parse_price = parse_price_text
@@ -57,11 +57,10 @@ class CatalogSearchAdapter:
             title = " ".join((title_node or card).get_text(" ", strip=True).split())
             if not MUSHROOM.search(title) or NON_FOOD.search(title):
                 continue
-            match = PRICE.search(" ".join(card.get_text(" ", strip=True).split()))
+            match, price = find_price_match(card, PRICE)
             link = card.find("a", href=True)
             if not match or not link:
                 continue
-            price = _parse_price(match.group(1))
             url = urljoin(response.url, link["href"])
             product_id = url.rstrip("/").split("/")[-1]
             if product_id and price > 0:
@@ -96,11 +95,10 @@ class CatalogSearchAdapter:
                 title = " ".join(anchor.get_text(" ", strip=True).split())
                 if not MUSHROOM.search(title) or NON_FOOD.search(title):
                     continue
-                scope = anchor.parent.get_text(" ", strip=True) if anchor.parent else title
-                match = PRICE.search(scope)
+                scope = anchor.parent if anchor.parent else anchor
+                match, price = find_price_match(scope, PRICE)
                 if not match:
                     continue
-                price = _parse_price(match.group(1))
                 if price <= 0:
                     continue
                 url = urljoin(response.url, anchor["href"])

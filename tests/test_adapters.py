@@ -3,6 +3,7 @@ sys.path.insert(0,str(pathlib.Path(__file__).parents[1]/"pipeline"))
 
 from adapters.base import ProductAdapter
 from adapters.arbuz import ArbuzAdapter
+from adapters.omarket import OMarketAdapter
 ROOT=pathlib.Path(__file__).parent/"fixtures"
 
 class Response:
@@ -29,6 +30,22 @@ def test_globus_fixture(monkeypatch):
 def test_omarket_fixture(monkeypatch):
     row,error=collect(monkeypatch,(ROOT/"omarket.html").read_text(encoding="utf-8"))
     assert error is None and row["current_price"]==128.70
+
+def test_omarket_uses_product_metadata_not_page_counters():
+    html='''<span>1</span><span>/ 1</span><script>{"support":"5 c"}</script>
+    <meta property="og:title" content="Бишкек · 128.70 сом · Грибы Шампиньоны"><h1>Грибы Шампиньоны</h1>'''
+    row,error=OMarketAdapter({"title":"Грибы Шампиньоны"}).parse(Response(html))
+    assert error is None and row["current_price"]==128.70
+
+def test_price_parser_never_joins_carousel_counter_to_price(monkeypatch):
+    html="<div><span>1</span><span>/ 1</span></div><h3>128,70 c</h3>"
+    row,error=collect(monkeypatch,html)
+    assert error is None and row["current_price"]==128.70
+
+def test_price_parser_does_not_join_unrelated_numeric_nodes(monkeypatch):
+    html="<span>9</span><span>29.90 сом</span>"
+    row,error=collect(monkeypatch,html)
+    assert error is None and row["current_price"]==29.90
 
 def test_arbuz_json_fixture():
     import json

@@ -1,21 +1,18 @@
 import hashlib,re
 from bs4 import BeautifulSoup
-from utils import safe_get, parse_price_text, response_text
+from utils import safe_get, find_price_match, response_text
 
 PRICE=re.compile(r"(\d[\d\s]*(?:[.,]\d+)?)\s*(?:сомони|сом(?:/кг)?|[cс]\b)",re.I)
 class ProductAdapter:
  def __init__(self,config):self.config=config
  def parse(self,response):
-  text=" ".join(BeautifulSoup(response_text(response),"html.parser").get_text(" ",strip=True).split());marker=self.config.get("marker")
+  soup=BeautifulSoup(response_text(response),"html.parser");text=" ".join(soup.get_text(" ",strip=True).split());marker=self.config.get("marker")
   if marker:
    pos=text.lower().find(marker.lower())
    if pos<0:return None,"product_marker_missing"
    text=text[pos:pos+600]
-  matches=list(PRICE.finditer(text))
-  if not matches:return None,"price_missing"
-  match=next((item for item in matches if (parse_price_text(item.group(1)) or 0)>0),None)
-  if not match:return None,"zero_price"
-  price=parse_price_text(match.group(1))
+  match,price=find_price_match(soup,PRICE)
+  if not match:return None,"price_missing"
   if not price:return None,"price_missing"
   return {**self.config,"original_title":self.config["title"],"current_price":price,"raw_price_text":match.group(0)},None
  def collect(self):

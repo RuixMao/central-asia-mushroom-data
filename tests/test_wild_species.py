@@ -3,7 +3,7 @@ import sys, pathlib, unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "pipeline"))
 
 from taxonomy import classify
-from search_queries import COUNTRY_SEARCH_TERMS
+from search_queries import COUNTRY_SEARCH_TERMS, iter_country_queries
 
 
 class TestWildSpeciesTaxonomy(unittest.TestCase):
@@ -54,7 +54,6 @@ class TestWildSpeciesTaxonomy(unittest.TestCase):
         且与杏鲍菇(king_oyster)、平菇(oyster)不冲突。"""
         cases = {
             "Белый степной гриб свежий 500 г": "steppe_mushroom",
-            "Ак козу карын 300 г": "steppe_mushroom",
             "阿魏菇 500克": "steppe_mushroom",
             "白灵菇 干品 200克": "steppe_mushroom",
             "Королевская вешенка 1 кг": "king_oyster_mushroom",
@@ -65,6 +64,12 @@ class TestWildSpeciesTaxonomy(unittest.TestCase):
             c = classify(title, language=lang)
             self.assertEqual(c["species_id"], want, f"{title} -> {c['species_id']}, want {want}")
 
+    def test_broad_white_mushroom_terms_need_review(self):
+        """本地语“白蘑菇”不能独自区分牛肝菌和阿魏菇。"""
+        for title, language in (("Ак козу карын 300 г", "ky"), ("Oq qo'ziqorin 300 g", "uz"), ("Ферула 300 г", "ru")):
+            c = classify(title, language=language)
+            self.assertNotEqual(c["status"], "classified", f"{title} 不应被强制分类")
+
     def test_steppe_mushroom_in_search_matrix(self):
         """五国检索矩阵都应含阿魏菇检索词。"""
         for country in ("KZ", "UZ", "KG", "TJ", "TM"):
@@ -72,6 +77,28 @@ class TestWildSpeciesTaxonomy(unittest.TestCase):
             for lang in COUNTRY_SEARCH_TERMS[country].values():
                 species.update(lang.keys())
             self.assertIn("steppe_mushroom", species, f"{country} 缺阿魏菇")
+
+    def test_deduped_queries_still_emit_every_species(self):
+        """矩阵中的每个品类在跨语言去重后仍必须至少发出一个查询。"""
+        for country in ("KZ", "UZ", "KG", "TJ", "TM"):
+            configured = {
+                species_id
+                for language_terms in COUNTRY_SEARCH_TERMS[country].values()
+                for species_id in language_terms
+            }
+            emitted = {query.species_id for query in iter_country_queries(country, configured)}
+            self.assertEqual(configured, emitted, f"{country} 去重后丢失: {configured - emitted}")
+
+    def test_no_term_maps_to_multiple_species_in_one_language(self):
+        """同一国家、同一语言的主检索词不得指向两个品类。"""
+        for country, languages in COUNTRY_SEARCH_TERMS.items():
+            for language, species_terms in languages.items():
+                owners = {}
+                for species_id, terms in species_terms.items():
+                    for term, _origin in terms:
+                        key = term.casefold()
+                        self.assertNotIn(key, owners, f"{country}/{language} {term} 同时属于 {owners.get(key)} 和 {species_id}")
+                        owners[key] = species_id
 
 
 if __name__ == "__main__":

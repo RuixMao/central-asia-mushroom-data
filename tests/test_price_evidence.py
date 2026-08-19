@@ -7,7 +7,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parents[1] / "pipeline"))
 from adapters.lochin import LochinAdapter
 from adapters.somon import SomonAdapter
 from adapters.yukber import YukberAdapter
-from taxonomy import classify, parse_package
+from taxonomy import classify, normalize_price, parse_package
 
 
 class Response:
@@ -21,6 +21,13 @@ class PriceEvidenceTest(unittest.TestCase):
         parsed = parse_package("Qo'ziqorin вешенки 1L")
         self.assertEqual(parsed["parse_status"], "volume_not_mass")
         self.assertIsNone(parsed["quantity_kg"])
+
+    def test_volume_can_use_explicit_one_litre_one_kg_policy(self):
+        result = normalize_price(250, "425 ml", allow_volume=True, volume_kg_per_l=1.0)
+        self.assertEqual(result["parse_status"], "valid_volume_estimate")
+        self.assertEqual(result["quantity_kg"], 0.425)
+        self.assertEqual(result["price_per_kg"], 588.24)
+        self.assertEqual(result["conversion_basis"], "1 L = 1 kg")
 
     def test_somon_description_changes_form_to_dried(self):
         html = '''<html><head><meta property="og:title" content="Грибы шампиньоны 10 c.">
