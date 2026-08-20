@@ -23,13 +23,15 @@ concurrency:
 jobs:
   report:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
       - run: pip install -r pipeline/requirements.txt
+      - name: Verify report and WeChat dependencies
+        run: python -c "import sys; sys.path.insert(0, 'pipeline'); import generate_report, publish_wechat_draft"
       - name: Confirm today's production prices are available
         if: ${{ inputs.validate_only != true }}
         run: |
@@ -42,17 +44,26 @@ jobs:
 
           today = datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
           site_url = os.environ["SITE_URL"].rstrip("/")
-          request = urllib.request.Request(
-              f"{site_url}/api/prices",
-              headers={"User-Agent": "Yinheng-Daily-Report/1.0", "Accept": "application/json"},
-          )
-          with urllib.request.urlopen(request, timeout=60) as response:
-              records = json.load(response).get("records", [])
+          import time
 
-          today_records = [
-              row for row in records
-              if row.get("price", {}).get("observationDate") == today
-          ]
+          today_records = []
+          # GitHub 定时任务可能延迟；最多等待 20 分钟，避免价格刚落库时日报误判为空。
+          for attempt in range(21):
+              request = urllib.request.Request(
+                  f"{site_url}/api/prices",
+                  headers={"User-Agent": "Yinheng-Daily-Report/1.0", "Accept": "application/json"},
+              )
+              with urllib.request.urlopen(request, timeout=60) as response:
+                  records = json.load(response).get("records", [])
+              today_records = [
+                  row for row in records
+                  if row.get("price", {}).get("observationDate") == today
+              ]
+              if today_records:
+                  break
+              if attempt < 20:
+                  print(f"Today's prices are not ready; retry {attempt + 1}/20 in 60 seconds.")
+                  time.sleep(60)
           if not today_records:
               raise SystemExit(f"No production price records are available for {today}; report publication stopped.")
 

@@ -60,6 +60,8 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_*.py'
       - name: Python syntax check
         run: python -m compileall -q pipeline
+      - name: Verify collector dependency graph
+        run: python -c "import sys; sys.path.insert(0, 'pipeline'); import fetch_price"
       - name: Collect normalized prices
         run: python pipeline/fetch_price.py
         env:
