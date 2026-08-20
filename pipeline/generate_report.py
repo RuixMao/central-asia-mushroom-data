@@ -10,13 +10,13 @@ from pathlib import Path
 from openai import APIError, AuthenticationError, OpenAI
 from config import AI_API_KEY,AI_BASE_URL,AI_MODEL,TARGET_SPECIES
 from sanity import check_usd_per_kg, review_sanity_outliers
-from utils import get_site,log,post_to_site,today_str
+from utils import delete_from_site,get_site,log,post_to_site,today_str
 
 COUNTRIES={"KZ":"哈萨克斯坦","UZ":"乌兹别克斯坦","KG":"吉尔吉斯斯坦","TJ":"塔吉克斯坦","TM":"土库曼斯坦"}
 FORMS={"fresh":"鲜品","chilled":"冷藏","frozen":"冷冻","dried":"干制","pickled":"腌渍","canned":"罐装","powder":"粉剂"}
 SPECIES_NAMES={"button_mushroom":"双孢菇","oyster_mushroom":"平菇","shiitake":"香菇","enoki":"金针菇","shimeji":"真姬菇","porcini":"牛肝菌","suillus":"乳牛肝菌","morel":"羊肚菌","chanterelle":"鸡油菌","king_oyster_mushroom":"杏鲍菇","wood_ear":"木耳"}
 SECTIONS=("今日要点","市场动态","机会与风险","行动建议","数据说明")
-FORBIDDEN=re.compile(r"https?://|(?:price|observed|source)\s*[_-]\s*(?:usd|local|cny|at|url)|\b(?:AI|API|JSON|LLM|GPT|ChatGPT|DeepSeek|SQL|D1|null|live|gap|prompt|price_retail|n\s*=)\b|人工智能|大模型|语言模型|模型生成|智能生成|自动生成|机器生成|算法生成|数据库|字段|代码|键值|请求|响应|自动采集|采集管线|抓取|爬虫|入库|接口|算法|置信度|离散度|无事件窗口|Executive Summary|样本量|口径|样本有限|报价有限|数据有限|仅作参考|仅供参考|只用于发现询价线索|自动复核|已核验材料|检索到\s*\d+\s*条材料|经核验|有效参考价|有效报价|有效观察|不作外推|不据此判断整体涨跌|不直接推导批发利润|本报告暂不|给老板|给采购|给外贸|来源与资料日期",re.I)
+FORBIDDEN=re.compile(r"https?://|(?:price|observed|source)\s*[_-]\s*(?:usd|local|cny|at|url)|\b(?:AI|API|JSON|LLM|GPT|ChatGPT|DeepSeek|SQL|D1|null|live|gap|prompt|price_retail|n\s*=)\b|人工智能|大模型|语言模型|模型生成|智能生成|自动生成|机器生成|算法生成|数据库|字段|代码|键值|请求|响应|自动采集|采集管线|抓取|爬虫|入库|接口|算法|置信度|离散度|无事件窗口|Executive Summary|样本量|口径|样本有限|报价有限|数据有限|仅作参考|仅供参考|只用于发现询价线索|自动复核|已核验材料|检索到\s*\d+\s*条材料|经核验|有效参考价|有效报价|有效观察|不作外推|不据此判断整体涨跌|不直接推导批发利润|本报告暂不|给老板|给采购|给外贸|来源与资料日期|待进一步确认|待确认的价格|原因待确认|原因待查|详见正文|详见上表",re.I)
 # 品类 → HS 编码（用于把 UN Comtrade 年度进口单价映射到报告品类）
 SPECIES_HS={"button_mushroom":"070951","oyster_mushroom":"070959","shiitake":"070959","king_oyster_mushroom":"070959","enoki":"070959","wood_ear":"070959","snow_fungus":"070959","morel":"070959","matsutake":"070959","porcini":"070959","chanterelle":"070959","straw_mushroom":"070959","honey_fungus":"070959","suillus":"070959","truffle":"070959","mixed_mushrooms":"070959","unknown":"070959"}
 
@@ -33,7 +33,12 @@ CUSTOMER_PAIN_GUIDANCE="""
 
 def customer_safe(body,allowed):
  normalized=unicodedata.normalize("NFKC",body);refs=set(re.findall(r"\[(S\d+)\]",normalized))
- return 500<=len(normalized)<=2000 and "```" not in normalized and "中亚菌类市场研究日报｜" not in normalized and not FORBIDDEN.search(normalized) and all(normalized.count(section)==1 for section in SECTIONS) and refs<=allowed
+ return 500<=len(normalized)<=2000 and "```" not in normalized and "中亚菌类市场研究日报｜" not in normalized and not FORBIDDEN.search(normalized) and not re.search(r"\|\s*(?:食用菌|菌类)\s*\|",normalized) and all(normalized.count(section)==1 for section in SECTIONS) and refs<=allowed
+
+def customer_visible_price(row):
+ """客户版只接收品种、规格和价格均完整且已确认的记录。"""
+ d=row.get("data",{})
+ return d.get("status")=="live" and d.get("validation_status","valid")=="valid" and not d.get("sanity_outlier") and d.get("species_id") in SPECIES_NAMES and d.get("package_display") not in (None,"") and d.get("normalized_price_usd_per_kg") is not None and d.get("price_local") is not None and d.get("currency") and d.get("package_source") in {"page_title","page_structured_data"}
 
 def summary_from(body):
  paragraphs=[part.strip() for part in re.split(r"\n\s*\n",body) if part.strip() and not re.match(r"^#{1,6}\s",part.strip())]
@@ -143,46 +148,43 @@ def build_market_facts(prices):
    dispersions.append({"国家":COUNTRIES.get(country,country),"品类":TARGET_SPECIES.get(species_id,{}).get("zh",species_id),"形态":FORMS.get(form,form),"低价USD/kg":round(min(values),2),"低价规格":low["data"].get("package_display"),"低价渠道":low["data"].get("platform_name") or low.get("source"),"高价USD/kg":round(max(values),2),"高价规格":high["data"].get("package_display"),"高价渠道":high["data"].get("platform_name") or high.get("source"),"倍数":round(max(values)/min(values),1),"样本量":len(values),"判定":"规格或渠道溢价待核验，不得解释为批发套利空间","置信度":"中"})
  return {"分国家品类形态统计":facts,"同国同品类异常离散":sorted(dispersions,key=lambda x:x["倍数"],reverse=True)}
 
-def decision_fallback(today,signals,evidence,market_facts,trends,review_prices):
- facts=sorted(market_facts["分国家品类形态统计"],key=lambda x:(-x["样本量"],x["国家"]))
- sample_lines=[f'- **{item["国家"]}{item["品类"]}{item["形态"]}：{item["中位价USD/kg"]:.2f}美元/公斤。**' for item in facts[:5]]
- review_line=""
- if review_prices:
-  d=max(review_prices,key=lambda r:float(r["data"].get("normalized_price_usd_per_kg") or 0))["data"]
-  reason=d.get("sanity_review_reason") or d.get("sanity_reason") or "具体原因待查"
-  if d.get("sanity_review_status")=="explained":
-   review_line=f'**{d.get("species_zh") or "菌类"}（精品）报价为{float(d["normalized_price_usd_per_kg"]):.2f}美元/公斤。**{reason.replace("自动复核：","")}；建议与普通大包装分开比价。'
-  else:
-   review_line=f'**{d.get("species_zh") or "菌类"}{float(d["normalized_price_usd_per_kg"]):.2f}美元/公斤，原因待进一步确认。**建议确认规格后再用于比价。'
- else:review_line="**今日价格未见突出异常。**建议维持现有采购与出货节奏。"
- review_action="精品小包装价格应标明规格和档次，不与普通大包装直接比较。" if review_prices and all(r.get("data",{}).get("sanity_review_status")=="explained" for r in review_prices) else "规格或档次未确认的价格不用于对客报价。"
- event_line="今日无新增政策与事件，市场面平稳。" if not evidence else "今日政策与市场事件详见正文事实条目。"
+def decision_fallback(today,prices,evidence):
+ ordered=sorted(prices,key=lambda r:float(r["data"]["normalized_price_usd_per_kg"]))
+ low,high=ordered[0],ordered[-1];ld,hd=low["data"],high["data"]
+ low_country=COUNTRIES.get(low["country"],low["country"]);high_country=COUNTRIES.get(high["country"],high["country"])
+ low_name=SPECIES_NAMES[ld["species_id"]];high_name=SPECIES_NAMES[hd["species_id"]]
+ low_channel=ld.get("platform_name") or low.get("source");high_channel=hd.get("platform_name") or high.get("source")
+ buttons=[r for r in prices if r["data"].get("species_id")=="button_mushroom" and r["data"].get("product_form")=="fresh"]
+ button_low=min(buttons,key=lambda r:float(r["data"]["normalized_price_usd_per_kg"])) if buttons else low
+ bd=button_low["data"];button_country=COUNTRIES.get(button_low["country"],button_low["country"]);button_channel=bd.get("platform_name") or button_low.get("source")
+ today_events=[item for item in evidence if item.get("发布日期")==today]
+ event_line=(f'今日新增事件为“{today_events[0]["标题"]}”[{today_events[0]["id"]}]，建议按该事实评估受影响环节。' if today_events else "今日无新增政策与事件，市场面平稳。")
+ tm=[r for r in prices if r.get("country")=="TM"]
+ tm_line=(f'土库曼斯坦{SPECIES_NAMES[tm[0]["data"]["species_id"]]}在{tm[0]["data"].get("platform_name") or tm[0].get("source")}报价{float(tm[0]["data"]["normalized_price_usd_per_kg"]):.2f}美元/公斤；该国海关透明度低、许可获取难度高，谨慎进入。' if tm else "")
  return f"""## 今日要点
 
-1. {review_line}
-2. **今日价格重点见鲜品、干品和冷冻分表。**建议按相同形态、净重和等级进行比较。
-3. **{event_line}**建议维持现有出货节奏。
-4. **土库曼斯坦仍需谨慎进入。**当地海关透明度低、许可获取难度高，企业应先核实准入和清关成本。
+1. **今日已确认报价从{float(ld["normalized_price_usd_per_kg"]):.2f}至{float(hd["normalized_price_usd_per_kg"]):.2f}美元/公斤，价差主要来自品类与规格。**建议只在同品类、同形态、同净重条件下比价。
+2. **{button_country}{bd.get("package_display")}装双孢菇在{button_channel}报价{float(bd["normalized_price_usd_per_kg"]):.2f}美元/公斤。**建议采购端据此询问批量价格、库存和最小起订量。
+3. **{event_line}**{'建议维持现有出货节奏。' if not today_events else '建议核对现有出货安排。'}
+4. **{tm_line or '今日各市场按已确认报价正常跟踪。'}**
 
 ## 市场动态
 
-**今日价格差异主要来自国家、品类、形态和包装规格。**
-
-{chr(10).join(sample_lines) if sample_lines else '- 今日无新增价格。'}
+**今日低价为{low_country}{low_name}，高价为{high_country}{high_name}，两者品类与规格不同，不作直接比较。**
 
 {event_line}
 
 ## 机会与风险
 
-- **询价机会：**若低价渠道能够持续提供同规格、同等级商品，可向该渠道索取批量报价和最小起订量；只有报价有效期、库存和交货条件齐全后，才考虑试单。
-- **价格误判风险：**小包装、高端商品、促销或运费可能显著抬高折算单价。未经核实直接倒推利润，可能造成报价失真和库存积压。
-- **清关风险：**进入土库曼斯坦前必须先核实许可和代理资质，避免货物到口岸后无法正常清关。
+- **询价机会：**{low_country}{low_channel}的{low_name}（{ld.get("package_display")}装）报价{float(ld["normalized_price_usd_per_kg"]):.2f}美元/公斤。建议先索取同规格批量报价、库存和最小起订量，条件齐全后再考虑试单。
+- **价格误判风险：**{high_country}{high_channel}的{high_name}（{hd.get("package_display")}装）报价{float(hd["normalized_price_usd_per_kg"]):.2f}美元/公斤。若忽略品类、规格和渠道差异直接倒推利润，可能造成报价失真和库存积压。
+{f'- **清关风险：**{tm_line}建议发货前核实许可和代理资质，避免货到口岸后无法清关。' if tm else ''}
 
 ## 行动建议
 
-- **决策参考：**建议不因单条精品小包装价格调整整体备货。
-- **采购落地：**建议针对今日低价品类询问批量报价、最小起订量、库存和交货期。
-- **报价规范：**跨渠道比价前应核对净重、等级、形态和产地；{review_action}
+- **决策参考：**建议今日不因{high_country}{high_name}{float(hd["normalized_price_usd_per_kg"]):.2f}美元/公斤的零售报价调整整体备货，应先按同品类和同规格核算。
+- **采购落地：**建议向{button_country}{button_channel}询问{bd.get("package_display")}装双孢菇的批量报价、库存、最小起订量和交货期。
+- **报价规范：**{low_country}{low_name}{float(ld["normalized_price_usd_per_kg"]):.2f}美元/公斤与{high_country}{high_name}{float(hd["normalized_price_usd_per_kg"]):.2f}美元/公斤不可直接比较；报价单应分开列示品类、形态、净重和等级。
 
 ## 数据说明
 
@@ -219,12 +221,11 @@ def run():
    d=row.get("data",{})
    if row.get("country")==item.get("country") and d.get("product_key")==item.get("product_key"):
     d["sanity_review_status"]=item.get("sanity_review_status");d["sanity_review_reason"]=item.get("sanity_review_reason");d["sanity_reason"]=item.get("sanity_reason")
- live=[r for r in snapshots if r.get("data",{}).get("status")=="live" and r.get("data",{}).get("validation_status","valid")=="valid" and not r.get("data",{}).get("sanity_outlier") and r.get("data",{}).get("normalized_price_usd_per_kg") is not None and r.get("data",{}).get("package_source") in {"page_title","page_structured_data"}]
+ live=[r for r in snapshots if customer_visible_price(r)]
  review_prices=[r for r in snapshots if r.get("data",{}).get("status")=="live" and (r.get("data",{}).get("validation_status")=="needs_review" or r.get("data",{}).get("sanity_outlier")) and r.get("data",{}).get("observed_at")==today]
  specialty_prices=[r for r in review_prices if r.get("data",{}).get("sanity_review_status")=="explained"]
- pending_review_prices=[r for r in review_prices if r not in specialty_prices]
  prices=[r for r in live if r["data"].get("observed_at")==today]
- if not prices and not review_prices:raise RuntimeError(f"{today} 没有标准化价格记录，拒绝生成误导性日报")
+ if not prices:raise RuntimeError(f"{today} 没有可用于客户版的已确认价格，拒绝生成误导性日报")
  # 同一商品同日去重，避免重复运行把样本量放大。
  latest_prices={}
  for row in prices:
@@ -244,12 +245,6 @@ def run():
   label={"fresh":"鲜品","dried":"干品","frozen":"冷冻","chilled":"冷藏","pickled":"腌渍","canned":"罐装","other":"其他"}[form]
   table_parts.append("\n".join([f"### {label}","","| 国家 | 品类（中文，注明规格） | 渠道 | 当地挂牌价 | 折合美元/公斤 | 观察日期 |","|---|---|---|---:|---:|---:|",*table_groups[form]]))
  table_text="\n\n".join(table_parts)
- review_table_text=""
- if pending_review_prices:
-  review_table=["| 国家 | 品类 | 渠道 | 规格 | USD/kg | 说明 |","|---|---|---|---|---:|---|"]
-  for row in pending_review_prices:
-   d=row["data"];review_table.append(f'| {COUNTRIES.get(row["country"],row["country"])} | {cell(SPECIES_NAMES.get(d.get("species_id"),d.get("species_zh") or "食用菌"))} | {cell(d.get("platform_name") or row.get("source"))} | {cell(d.get("package_display"))} | {display_usd_per_kg(d.get("normalized_price_usd_per_kg"))} | 原因待进一步确认 |')
-  review_table_text="\n\n### 待进一步确认的价格\n\n"+"\n".join(review_table)
  history=defaultdict(lambda:defaultdict(list))
  for row in live:
   d=row["data"];observed=d.get("observed_at")
@@ -291,7 +286,7 @@ def run():
  evidence=[]
  for index,doc in enumerate(documents):evidence.append({"id":f"S{index+1}","document_id":doc["id"],"source_type":doc["kind"],"国家":COUNTRIES.get(doc["country"],doc["country"]),"类型":doc["kind"],"标题":doc["title"],"发布机构":doc["publisher"],"发布日期":str(doc["publishedAt"])[:10],"事实摘要":doc["excerpt"],"url":doc["sourceUrl"],"retrieved":str(doc["retrievedAt"])[:10]})
  allowed={item["id"] for item in evidence}
- review_findings=[{"国家":COUNTRIES.get(row["country"],row["country"]),"品类":f'{row["data"].get("species_zh") or row["data"].get("species_id")}（精品）' if row in specialty_prices else row["data"].get("species_zh") or row["data"].get("species_id"),"规格":row["data"].get("package_display"),"美元每公斤":row["data"].get("normalized_price_usd_per_kg"),"复核结论":row["data"].get("sanity_review_reason") or row["data"].get("sanity_reason") or "具体原因待查"} for row in review_prices]
+ review_findings=[{"国家":COUNTRIES.get(row["country"],row["country"]),"品类":f'{SPECIES_NAMES[row["data"]["species_id"]]}（精品）',"规格":row["data"].get("package_display"),"美元每公斤":row["data"].get("normalized_price_usd_per_kg"),"说明":row["data"].get("sanity_review_reason")} for row in specialty_prices if customer_visible_price({**row,"data":{**row["data"],"validation_status":"valid","sanity_outlier":False}})]
  prompt=f"""你是因恒科技的中亚食用菌首席市场研究员。请写一份面向进口商、渠道商、投资人与经营管理层的中文决策简报。客户为减少验证成本和错误决策付费，不为报价复述或通用建议付费。只可使用下方价格、结构化信号和证据包，不得自行补充新闻、政策、数字、来源、因果、利润或预测。
 {CUSTOMER_PAIN_GUIDANCE}
 日期：{today}
@@ -310,7 +305,7 @@ def run():
 2. “今日要点”写3至5条，每条采用“结论+具体数字或事实+是否行动”的客户语言；老板只读本节就能知道今天发生了什么、要不要动。
 3. 禁止出现样本有限、报价有限、仅供参考、自动复核、已核验材料、检索数量、不作外推等后台或自我否定表达。能确认的用数字直接写，不能确认的内容省略。
 4. 鲜品、干品、冷冻和盐渍分开点评。只有同品类同形态至少3条有效报价且连续覆盖至少5个交易日，才可写趋势或涨跌；否则不得输出指数和强趋势结论。
-5. 已确认是小包装的高价作为正常精品价格展示，品类后标注“（精品Xg装）”，说明是规格溢价并与普通大包装分开比较；不得描述后台复核过程。其余存疑价格不进入主流价和机会判断，没有明确依据时写“原因待进一步确认”。
+5. 已确认是小包装的高价作为正常精品价格展示，品类后标注“（精品Xg装）”，说明是规格溢价并与普通大包装分开比较；不得描述后台复核过程。任何未核实记录、空规格、空价格和未识别到具体品种的记录一律不进入客户版，也不得作为标题或今日要点。
 6. 政策或新闻事实必须引用 [S1] 形式的证据编号；无新增事件时写“今日无新增政策、海关、物流事件，市场面平稳”，并说明是否需要调整出货安排。
 7. 机会与风险必须具体到国家、品类、触发条件、潜在损失和规避动作。行动建议固定用“决策参考、采购落地、报价规范”三个栏目，引用当日价格，使用“建议、应”等语气。
 8. 涉及土库曼斯坦写明其海关透明度低、许可获取难度高，谨慎进入；涉及鸡枞写明其仅适合华人小众圈层，不建议作为主力出口。
@@ -326,10 +321,10 @@ def run():
    if customer_safe(analysis,allowed):break
  except (AuthenticationError,APIError,RuntimeError) as exc:
   log(f"DeepSeek unavailable, using verified fallback: {type(exc).__name__}")
-  analysis=clean_analysis(decision_fallback(today,signals,evidence,market_facts,trends,review_prices));used_fallback=True
+  analysis=clean_analysis(decision_fallback(today,prices,evidence));used_fallback=True
  if not used_fallback and not customer_safe(analysis,allowed):
   log("模型稿未通过成稿检查，改用固定日报模板")
-  analysis=clean_analysis(decision_fallback(today,signals,evidence,market_facts,trends,review_prices));used_fallback=True
+  analysis=clean_analysis(decision_fallback(today,prices,evidence));used_fallback=True
  if not customer_safe(analysis,allowed):raise RuntimeError("日报未通过研究成稿检查，拒绝发布")
  used_ids=set(re.findall(r"\[(S\d+)\]",analysis));used_evidence=[(index,item) for index,item in enumerate(evidence) if item["id"] in used_ids]
  marker="\n## 数据说明"
@@ -337,8 +332,8 @@ def run():
  if market_marker in analysis:
   before_risk,after_risk=analysis.split(market_marker,1);analysis=f"{before_risk}\n\n{table_text}{market_marker}{after_risk}"
  if marker in analysis:
-  main_text,data_note=analysis.split(marker,1);body=f"{main_text}{review_table_text}{marker}{data_note}"
- else:body=f"{analysis}{review_table_text}"
+  main_text,data_note=analysis.split(marker,1);body=f"{main_text}{marker}{data_note}"
+ else:body=analysis
  # 公众号版只有在同品类同形态连续覆盖达到门槛时才展示趋势；当前不自动附加内部指数表。
  title=title_from(today,analysis)
  if preview_output:
@@ -349,6 +344,9 @@ def run():
   return
  summary=summary_from(body)
  result=post_to_site("/api/ingest/report",{"title":title,"type":"daily","summary":summary,"body":body,"country":"KZ","aiGenerated":True,"sources":[{"evidence_id":item["id"],"document_id":item["document_id"],"source_type":item["source_type"],"title":item["标题"],"url":item["url"],"publisher":item["发布机构"],"published_at":item["发布日期"],"retrieved_at":item["retrieved"]} for _,item in used_evidence]})
+ replace_slug=os.environ.get("REPORT_REPLACE_SLUG","").strip()
+ if replace_slug:
+  delete_from_site(f"/api/ingest/report?slug={replace_slug}")
  artifact_output=os.environ.get("REPORT_ARTIFACT_OUTPUT","").strip()
  if artifact_output:
   artifact_path=Path(artifact_output)
