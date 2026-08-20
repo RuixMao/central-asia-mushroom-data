@@ -40,6 +40,13 @@ def summary_from(body):
  plain=re.sub(r"[#*_>`~-]"," ",paragraphs[0] if paragraphs else body).replace("\n"," ").strip()
  return re.split(r"(?<=[。！？])\s*",plain)[0][:160]
 
+def display_usd_per_kg(value):
+ """价格缺失时保留记录并显示破折号，避免待确认记录中断整份日报。"""
+ try:
+  return f"{float(value):.2f}" if value is not None else "—"
+ except (TypeError,ValueError):
+  return "—"
+
 def title_from(today,body):
  day=date.fromisoformat(today);match=re.search(r"\*\*(?:\d+[.、]\s*)?([^*。！？]{8,55})[。！？]?\*\*",body)
  headline=(match.group(1).strip("：:，,。 ") if match else "市场价格与风险提示")
@@ -241,7 +248,7 @@ def run():
  if pending_review_prices:
   review_table=["| 国家 | 品类 | 渠道 | 规格 | USD/kg | 说明 |","|---|---|---|---|---:|---|"]
   for row in pending_review_prices:
-   d=row["data"];review_table.append(f'| {COUNTRIES.get(row["country"],row["country"])} | {cell(SPECIES_NAMES.get(d.get("species_id"),d.get("species_zh") or "食用菌"))} | {cell(d.get("platform_name") or row.get("source"))} | {cell(d.get("package_display"))} | {float(d["normalized_price_usd_per_kg"]):.2f} | 原因待进一步确认 |')
+   d=row["data"];review_table.append(f'| {COUNTRIES.get(row["country"],row["country"])} | {cell(SPECIES_NAMES.get(d.get("species_id"),d.get("species_zh") or "食用菌"))} | {cell(d.get("platform_name") or row.get("source"))} | {cell(d.get("package_display"))} | {display_usd_per_kg(d.get("normalized_price_usd_per_kg"))} | 原因待进一步确认 |')
   review_table_text="\n\n### 待进一步确认的价格\n\n"+"\n".join(review_table)
  history=defaultdict(lambda:defaultdict(list))
  for row in live:
