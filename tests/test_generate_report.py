@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
 
-from generate_report import customer_safe, customer_visible_price, display_usd_per_kg
+from generate_report import customer_safe, customer_visible_price, display_usd_per_kg, title_from
 
 
 def test_display_usd_per_kg_formats_numeric_price():
@@ -29,3 +29,13 @@ def test_customer_safe_rejects_pending_sections_and_empty_references():
     assert customer_safe(sections,set())
     assert not customer_safe(sections.replace("已确认价格", "原因待进一步确认",1),set())
     assert not customer_safe(sections.replace("已确认价格", "详见正文事实条目",1),set())
+
+
+def test_title_uses_verified_same_species_spread():
+    prices=[
+        {"country":"KG","data":{"species_id":"button_mushroom","normalized_price_usd_per_kg":4.90}},
+        {"country":"TM","data":{"species_id":"button_mushroom","normalized_price_usd_per_kg":17.50}},
+    ]
+    title=title_from("2026-08-20","## 今日要点\n\n**内部标题不应采用。**",prices)
+    assert title.endswith("2国双孢菇价差3.6倍，规格需分开比")
+    assert "待确认" not in title

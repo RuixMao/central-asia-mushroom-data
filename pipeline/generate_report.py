@@ -52,9 +52,16 @@ def display_usd_per_kg(value):
  except (TypeError,ValueError):
   return "—"
 
-def title_from(today,body):
- day=date.fromisoformat(today);match=re.search(r"\*\*(?:\d+[.、]\s*)?([^*。！？]{8,55})[。！？]?\*\*",body)
- headline=(match.group(1).strip("：:，,。 ") if match else "市场价格与风险提示")
+def title_from(today,body,prices=None):
+ day=date.fromisoformat(today);headline="市场平稳无异常"
+ buttons=[r for r in prices or [] if r.get("data",{}).get("species_id")=="button_mushroom"]
+ if len(buttons)>=2:
+  values=[float(r["data"]["normalized_price_usd_per_kg"]) for r in buttons]
+  countries=len({r.get("country") for r in buttons})
+  headline=f"{countries}国双孢菇价差{max(values)/min(values):.1f}倍，规格需分开比"
+ else:
+  match=re.search(r"\*\*(?:\d+[.、]\s*)?([^*。！？]{8,25})[。！？]?\*\*",body)
+  if match:headline=match.group(1).strip("：:，,。 ")
  return f"中亚食用菌市场日报｜{day.month}月{day.day}日：{headline}"
 
 def clean_analysis(body):
@@ -335,7 +342,7 @@ def run():
   main_text,data_note=analysis.split(marker,1);body=f"{main_text}{marker}{data_note}"
  else:body=analysis
  # 公众号版只有在同品类同形态连续覆盖达到门槛时才展示趋势；当前不自动附加内部指数表。
- title=title_from(today,analysis)
+ title=title_from(today,analysis,prices)
  if preview_output:
   preview_path=Path(preview_output)
   preview_path.parent.mkdir(parents=True,exist_ok=True)
@@ -344,9 +351,9 @@ def run():
   return
  summary=summary_from(body)
  result=post_to_site("/api/ingest/report",{"title":title,"type":"daily","summary":summary,"body":body,"country":"KZ","aiGenerated":True,"sources":[{"evidence_id":item["id"],"document_id":item["document_id"],"source_type":item["source_type"],"title":item["标题"],"url":item["url"],"publisher":item["发布机构"],"published_at":item["发布日期"],"retrieved_at":item["retrieved"]} for _,item in used_evidence]})
- replace_slug=os.environ.get("REPORT_REPLACE_SLUG","").strip()
- if replace_slug:
-  delete_from_site(f"/api/ingest/report?slug={replace_slug}")
+ replace_slugs=[slug.strip() for slug in os.environ.get("REPORT_REPLACE_SLUG","").split(",") if slug.strip()]
+ for replace_slug in dict.fromkeys(replace_slugs):
+  if replace_slug!=result.get("slug"):delete_from_site(f"/api/ingest/report?slug={replace_slug}")
  artifact_output=os.environ.get("REPORT_ARTIFACT_OUTPUT","").strip()
  if artifact_output:
   artifact_path=Path(artifact_output)
