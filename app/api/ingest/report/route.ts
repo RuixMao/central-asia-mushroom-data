@@ -40,3 +40,17 @@ export async function GET(request: Request) {
     return Response.json({ records: rows, count: rows.length, sources });
   } catch { return Response.json({ records: [], count: 0, fallback: true }); }
 }
+
+export async function DELETE(request: Request) {
+  if (!authorized(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const slug = new URL(request.url).searchParams.get("slug")?.trim();
+  if (!slug) return Response.json({ error: "Missing slug" }, { status: 400 });
+  const db=(env as unknown as {DB:D1Database}).DB;
+  const found=await db.prepare("SELECT id FROM reports WHERE slug = ? LIMIT 1").bind(slug).first<{id:string}>();
+  if(!found) return Response.json({error:"Report not found"},{status:404});
+  await db.batch([
+    db.prepare("DELETE FROM report_sources WHERE report_id = ?").bind(found.id),
+    db.prepare("DELETE FROM reports WHERE id = ?").bind(found.id),
+  ]);
+  return Response.json({ok:true,slug});
+}

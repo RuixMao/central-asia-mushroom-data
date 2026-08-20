@@ -132,6 +132,11 @@ def post_to_site(endpoint, data, cron_secret=CRON_SECRET, retries=3):
                 raise RuntimeError(f"POST failed {url}: {exc}; response={detail}") from exc
             time.sleep(2 ** attempt)
 
+def delete_from_site(endpoint, cron_secret=CRON_SECRET):
+    response = requests.delete(f"{SITE_URL}{endpoint}", headers={"x-cron-secret": cron_secret}, timeout=30)
+    response.raise_for_status()
+    return response.json()
+
 def post_to_data(endpoint, data, retries=3):
     if not DATA_API_URL or not DATA_SYNC_SECRET:
         return None
