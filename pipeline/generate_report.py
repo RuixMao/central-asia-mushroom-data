@@ -340,7 +340,13 @@ def run():
   preview_path.write_text(f"# {title}\n\n{body}\n",encoding="utf-8")
   print(f"日报预览已生成（未发布）：{preview_path}")
   return
- result=post_to_site("/api/ingest/report",{"title":title,"type":"daily","summary":summary_from(body),"body":body,"country":"KZ","aiGenerated":True,"sources":[{"evidence_id":item["id"],"document_id":item["document_id"],"source_type":item["source_type"],"title":item["标题"],"url":item["url"],"publisher":item["发布机构"],"published_at":item["发布日期"],"retrieved_at":item["retrieved"]} for _,item in used_evidence]})
+ summary=summary_from(body)
+ result=post_to_site("/api/ingest/report",{"title":title,"type":"daily","summary":summary,"body":body,"country":"KZ","aiGenerated":True,"sources":[{"evidence_id":item["id"],"document_id":item["document_id"],"source_type":item["source_type"],"title":item["标题"],"url":item["url"],"publisher":item["发布机构"],"published_at":item["发布日期"],"retrieved_at":item["retrieved"]} for _,item in used_evidence]})
+ artifact_output=os.environ.get("REPORT_ARTIFACT_OUTPUT","").strip()
+ if artifact_output:
+  artifact_path=Path(artifact_output)
+  artifact_path.parent.mkdir(parents=True,exist_ok=True)
+  artifact_path.write_text(json.dumps({"title":title,"summary":summary,"body":body,"slug":result.get("slug"),"date":today},ensure_ascii=False),encoding="utf-8")
  post_to_site("/api/ingest/revalidate",{})
  print(f'市场研究日报完成：{len(prices)} 条标准化价格，{len(evidence)} 条已核验证据，slug={result.get("slug")}')
 
