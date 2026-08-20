@@ -16,7 +16,7 @@ on:
         default: false
         type: boolean
       replace_slug:
-        description: Delete this exact old report only after the replacement is published
+        description: Delete these comma-separated old reports only after the replacement is published
         required: false
         default: ''
         type: string
