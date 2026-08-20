@@ -35,7 +35,7 @@ export type Opportunity = {
   score: number;
   coverage: number;
   confidence: "A" | "A−" | "B+" | "B";
-  status: "优先验证" | "值得跟进" | "补数观察" | "暂缓";
+  status: "优先验证" | "值得跟进" | "信息有限" | "暂缓";
   marketUsd: number;
   change: number;
   signal: string;
@@ -97,7 +97,7 @@ export const opportunities: Opportunity[] = [
     marketUsd: 4_193_266,
     change: 31.8,
     signal: "进口依赖粗估约87%，本地零售价格带稳定，适合验证冷链到岸成本。",
-    nextAction: "向阿拉木图3家渠道获取同规格周度成交价，并核算喀什冷链线路。",
+    nextAction: "关注阿拉木图同规格成交价与喀什冷链到岸成本，评估报价空间。",
     metrics: [
       { label: "市场规模", value: 84, note: "2024年进口额419万美元" },
       { label: "增长动能", value: 44, note: "较2023年反弹31.8%，两年趋势仍偏弱" },
@@ -114,11 +114,11 @@ export const opportunities: Opportunity[] = [
     score: 70,
     coverage: 45,
     confidence: "B",
-    status: "补数观察",
+    status: "信息有限",
     marketUsd: 535_916,
     change: 117.8,
     signal: "2024年进口额同比翻倍，两年增长449%，但缺少来源国和当地价格证据。",
-    nextAction: "补采比什凯克批发市场价格、来源国结构和月度进口节奏。",
+    nextAction: "关注比什凯克批发价、来源国结构与进口节奏，判断供需稳定性。",
     metrics: [
       { label: "市场规模", value: 46, note: "2024年进口额53.6万美元" },
       { label: "增长动能", value: 100, note: "同比增长117.8%，触发高增长信号" },
@@ -135,11 +135,11 @@ export const opportunities: Opportunity[] = [
     score: 64,
     coverage: 55,
     confidence: "B+",
-    status: "补数观察",
+    status: "信息有限",
     marketUsd: 456_804,
     change: -6.5,
     signal: "相比2022年仍处于高位，塔什干零售挂牌价约6万–7.8万苏姆/kg。",
-    nextAction: "补齐净重、批发成交价和进口来源国，验证高零售价是否可转化为毛利。",
+    nextAction: "核对净重口径、批发成交价与来源国结构，评估零售价格对应的渠道空间。",
     metrics: [
       { label: "市场规模", value: 44, note: "2024年进口额45.7万美元" },
       { label: "增长动能", value: 77, note: "低基数高速增长，最近一年回落6.5%" },
@@ -156,11 +156,11 @@ export const opportunities: Opportunity[] = [
     score: 58,
     coverage: 45,
     confidence: "B",
-    status: "补数观察",
+    status: "信息有限",
     marketUsd: 228_842,
     change: 76.0,
     signal: "进口增长明显，但中吉两侧镜像差异71.9%，暂不计算中国份额。",
-    nextAction: "先核对HS版本、贸易方向和转口路径，再开展渠道报价。",
+    nextAction: "关注 HS 口径、贸易方向与转口路径，确认市场规模的可比性。",
     metrics: [
       { label: "市场规模", value: 32, note: "2024年进口额22.9万美元" },
       { label: "增长动能", value: 90, note: "同比增长76%" },
@@ -181,7 +181,7 @@ export const opportunities: Opportunity[] = [
     marketUsd: 1_027_970,
     change: -37.5,
     signal: "市场连续收缩且镜像差异72.1%，优先查明口径而非扩大投入。",
-    nextAction: "复核中哈贸易口径、转口链路及CIF/FOB差异，暂不进入机会榜。",
+    nextAction: "关注贸易口径、转口链路及 CIF/FOB 差异，审慎评估市场信号。",
     metrics: [
       { label: "市场规模", value: 58, note: "2024年进口额103万美元" },
       { label: "增长动能", value: 5, note: "同比下降37.5%，两年下降76.7%" },
@@ -201,12 +201,19 @@ export const priceObservations = [
   { countryCode: "UZ" as const, city: "塔什干", channel: "电商平台", product: "腌制双孢菇430ml", price: "25,990 сум/罐", date: "2026-08", source: "Uzum Market" },
 ];
 
+export const productionEvidence = [
+  { countryCode: "TJ" as const, country: "塔吉克斯坦", type: "企业实际产出", value: "春季约 1,000 kg", status: "当地生产证据", source: "联合国驻塔机构 / WFP", note: "单个农户案例，不外推为全国年产量" },
+  { countryCode: "TM" as const, country: "土库曼斯坦", type: "企业实际产出", value: "约 6 t/月", status: "当地生产证据", source: "土库曼斯坦政府", note: "Tiz hyzmat 企业月产量，不外推为全国年产量" },
+  { countryCode: "TM" as const, country: "土库曼斯坦", type: "规划产能", value: "600 t/年；远期 2,500 t/年", status: "计划值", source: "土库曼斯坦政府", note: "不进入实际产量汇总" },
+  { countryCode: "TM" as const, country: "土库曼斯坦", type: "出口状态", value: "计划中", status: "尚未验证出口", source: "土库曼斯坦政府", note: "需以海关记录或实际发运批次确认" },
+];
+
 export const dataSources = [
-  { name: "UN Comtrade", level: "A", scope: "五国贸易主表", cadence: "年/月", status: "已接入基线", note: "官方贸易统计；保留报告国、伙伴国、贸易流向和HS版本。", url: "https://comtradeapi.un.org" },
-  { name: "中国海关", level: "A", scope: "中国出口镜像", cadence: "月", status: "待自动接入", note: "用于核对中国对中亚出口、贸易方式和境内地区。", url: "https://english.customs.gov.cn/Statistics/Statistics" },
-  { name: "FAOSTAT", level: "A−", scope: "农业供给能力", cadence: "年", status: "已接入基线", note: "中亚菌类产量为FAO估算值；衍生指标需标注口径限制。", url: "https://www.fao.org/faostat" },
-  { name: "哈萨克斯坦统计局", level: "A", scope: "4/6/10位商品", cadence: "月", status: "排期接入", note: "可补充国别—商品、地区贸易和EAEU互贸明细。", url: "https://stat.gov.kz/en/industries/economy/foreign-market/" },
-  { name: "乌兹别克斯坦统计委", level: "A", scope: "外贸与经济指标", cadence: "月/年", status: "排期接入", note: "官方页面提供CSV、JSON和XML数据出口。", url: "https://stat.uz/en/official-statistics/merchandise-trade" },
+  { name: "UN Comtrade", level: "A", scope: "五国贸易主表", cadence: "年/月", status: "可查询", note: "官方贸易统计；保留报告国、伙伴国、贸易流向和HS版本。", url: "https://comtradeapi.un.org" },
+  { name: "中国海关", level: "A", scope: "中国出口镜像", cadence: "月", status: "专题查询", note: "用于核对中国对中亚出口、贸易方式和境内地区。", url: "https://english.customs.gov.cn/Statistics/Statistics" },
+  { name: "FAOSTAT", level: "A−", scope: "农业供给能力", cadence: "年", status: "分国覆盖", note: "未收录不等于零产量；塔、土两国另列企业实际产出、规划产能和出口状态，计划值不进入实际产量汇总。", url: "https://www.fao.org/faostat" },
+  { name: "哈萨克斯坦统计局", level: "A", scope: "4/6/10位商品", cadence: "月", status: "专题查询", note: "可补充国别—商品、地区贸易和EAEU互贸明细。", url: "https://stat.gov.kz/en/industries/economy/foreign-market/" },
+  { name: "乌兹别克斯坦统计委", level: "A", scope: "外贸与经济指标", cadence: "月/年", status: "专题查询", note: "官方页面提供CSV、JSON和XML数据出口。", url: "https://stat.uz/en/official-statistics/merchandise-trade" },
   { name: "市场观察池", level: "B+", scope: "价格与渠道", cadence: "周", status: "7条已核验", note: "挂牌价不是成交价；每条记录绑定采集日期、来源与证据。", url: "#prices" },
 ];
 

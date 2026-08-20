@@ -31,7 +31,7 @@ const readyAssets = [
     title: "日度价格观察",
     coverage: "阿拉木图 / 塔什干 · 重点菌类",
     cadence: "日度采集",
-    state: "样例接入",
+    state: "公开观察",
     value: "价格趋势、渠道差异、异常预警",
     url: "/market-data",
   },

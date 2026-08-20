@@ -1,5 +1,10 @@
-import SiteNav from "../site-nav";
-import MarketingFooter from "../marketing-footer";
-import { opportunities } from "../data";
-const money=(n:number)=>new Intl.NumberFormat("en-US",{style:"currency",currency:"USD",notation:"compact"}).format(n);
-export default function OpportunitiesPage(){return <div className="marketing-site"><SiteNav/><main className="subpage"><section className="subhero"><span>MARKET OPPORTUNITIES</span><h1>从数据异常中，发现值得验证的商业机会</h1><p>机会分不是结论，而是研究优先级。每项均保留覆盖度、证据等级与下一步验证动作。</p></section><section className="opportunity-page-grid">{opportunities.map((item,index)=><article key={item.id}><div className="opp-page-top"><span>0{index+1} · {item.country}</span><strong>{item.score}<small>/100</small></strong></div><p>HS {item.hs}</p><h2>{item.product}</h2><div className="opp-page-metrics"><span>市场规模<b>{money(item.marketUsd)}</b></span><span>同比变化<b>{item.change>0?"+":""}{item.change}%</b></span></div><p className="opp-page-signal">{item.signal}</p><div className="opp-page-foot"><span>覆盖 {item.coverage}% · 证据 {item.confidence}</span><b>{item.status}</b></div></article>)}</section><section className="page-cta"><div><span>NEXT STEP</span><h2>需要底层数据与来源？</h2></div><a href="/terminal">进入数据终端 →</a></section></main><MarketingFooter/></div>}
+import ProductShell from "../product-shell";
+import { OpportunityRadar } from "../theme-live-data";
+
+export const metadata={title:"商机雷达｜中亚食用菌出海服务平台"};
+
+export default function OpportunitiesPage(){return <ProductShell><main className="saas-main">
+  <section className="saas-hero compact"><span>验证市场机会</span><h1>哪些机会值得继续投入时间？</h1><p>先比较市场基础、可用信息和关键风险，再决定是否询价、打样或寻找渠道。这里展示的是待验证方向，不是成交预测。</p></section>
+  <OpportunityRadar/>
+  <section className="page-cta radar-cta"><div><span>下一步怎么做</span><h2>把市场信号变成您的验证清单</h2><p>结合您的产品、成本和目标国家，明确还需核实的价格、物流、准入和渠道条件。</p></div><div><a href="/terminal">核对价格和市场依据 →</a><a href="/expand/contact">提交我的具体情况 →</a></div></section>
+</main></ProductShell>}

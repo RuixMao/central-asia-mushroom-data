@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { reports as fallbackReports } from "../saas-data";
 
 type Report={id?:string;slug?:string;title:string;type:string;country:string;summary:string;publishedAt?:string|number|Date;date?:string};
-export default function ReportsClient({filter="all"}:{filter?:"all"|"daily"|"weekly"|"monthly"}){
+export default function ReportsClient({filter="all"}:{filter?:"all"|"daily"|"weekly"|"monthly"|"quarterly"|"annual"}){
   const fallback:Report[]=fallbackReports.map((r,i)=>({...r,id:`fallback-${i}`}));
   const fallbackDate=fallbackReports[0]?.date??"";
   const [items,setItems]=useState<Report[]>(fallback);
