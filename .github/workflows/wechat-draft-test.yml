@@ -1,0 +1,21 @@
+name: WeChat Draft Test
+on:
+  workflow_dispatch:
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r pipeline/requirements.txt
+      - name: Add latest daily report to WeChat drafts
+        run: python pipeline/publish_wechat_draft.py
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          WECHAT_APP_ID: ${{ secrets.WECHAT_APP_ID }}
+          WECHAT_APP_SECRET: ${{ secrets.WECHAT_APP_SECRET }}
+          WECHAT_AUTHOR: 因恒科技

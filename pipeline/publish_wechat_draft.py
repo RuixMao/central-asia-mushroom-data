@@ -117,11 +117,22 @@ def add_draft(token, artifact, thumb_media_id):
 def run():
     artifact_path = Path(os.environ.get("REPORT_ARTIFACT_OUTPUT", "tmp/daily-report.json"))
     cover_path = Path(os.environ.get("WECHAT_COVER_PATH", "public/og.png"))
-    if not artifact_path.is_file():
-        raise WeChatError(f"日报产物不存在：{artifact_path}")
     if not cover_path.is_file():
         raise WeChatError(f"公众号封面不存在：{cover_path}")
-    artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+    if artifact_path.is_file():
+        artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
+    else:
+        # 仅供人工触发的连通性测试使用；正式日报始终读取本轮生成产物。
+        site_url = os.environ.get("SITE_URL", "").rstrip("/")
+        if not site_url:
+            raise WeChatError(f"日报产物不存在：{artifact_path}")
+        response = requests.get(f"{site_url}/api/ingest/report", timeout=60)
+        response.raise_for_status()
+        reports = [row for row in response.json().get("records", []) if row.get("type") == "daily"]
+        if not reports:
+            raise WeChatError("线上没有可用于测试的日报")
+        latest = reports[0]
+        artifact = {key: latest.get(key, "") for key in ("title", "summary", "body", "slug")}
     token = get_access_token(require_env("WECHAT_APP_ID"), require_env("WECHAT_APP_SECRET"))
     title = artifact["title"][:64]
     if title in recent_draft_titles(token):
