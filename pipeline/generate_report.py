@@ -35,6 +35,11 @@ def customer_safe(body,allowed):
  normalized=unicodedata.normalize("NFKC",body);refs=set(re.findall(r"\[(S\d+)\]",normalized))
  return 500<=len(normalized)<=2000 and "```" not in normalized and "中亚菌类市场研究日报｜" not in normalized and not FORBIDDEN.search(normalized) and not re.search(r"\|\s*(?:食用菌|菌类)\s*\|",normalized) and all(normalized.count(section)==1 for section in SECTIONS) and refs<=allowed
 
+def utf8_truncate(text,max_bytes):
+ encoded=text.encode("utf-8")
+ if len(encoded)<=max_bytes:return text
+ return encoded[:max_bytes].decode("utf-8","ignore").rstrip("：:，,。 、|")
+
 def customer_visible_price(row):
  """客户版只接收品种、规格和价格均完整且已确认的记录。"""
  d=row.get("data",{})
@@ -57,12 +62,12 @@ def title_from(today,body,prices=None):
  buttons=[r for r in prices or [] if r.get("data",{}).get("species_id")=="button_mushroom"]
  if len(buttons)>=2:
   values=[float(r["data"]["normalized_price_usd_per_kg"]) for r in buttons]
-  countries=len({r.get("country") for r in buttons})
-  headline=f"{countries}国双孢菇价差{max(values)/min(values):.1f}倍，规格需分开比"
+  headline=f"双孢菇价差{max(values)/min(values):.1f}倍"
  else:
   match=re.search(r"\*\*(?:\d+[.、]\s*)?([^*。！？]{8,25})[。！？]?\*\*",body)
   if match:headline=match.group(1).strip("：:，,。 ")
- return f"中亚食用菌市场日报｜{day.month}月{day.day}日：{headline}"
+ prefix=f"中亚食用菌市场日报｜{day.month}月{day.day}日："
+ return prefix+utf8_truncate(headline,64-len(prefix.encode("utf-8")))
 
 def clean_analysis(body):
  lines=body.strip().splitlines()
@@ -195,7 +200,7 @@ def decision_fallback(today,prices,evidence):
 
 ## 数据说明
 
-本报告价格来自中亚五国主流零售与电商渠道公开挂牌价，统一折算为美元/公斤。零售挂牌价与批发成交价、到岸成本存在差异，正式决策请以批量报价为准。数据来源：因恒科技监测，采集日期 {today}。"""
+本报告价格来自中亚五国主流零售与电商渠道公开挂牌价，统一折算为美元/公斤。零售挂牌价与批发成交价、到岸成本存在差异，正式决策请以批量报价为准。数据来源：因恒科技监测，采集日期 {today}。如需核验具体报价来源，可联系专属客服索取。"""
 
 def cell(value):return str(value if value not in (None,"") else "—").replace("|","/").replace("\n"," ").strip()
 
@@ -282,7 +287,7 @@ def run():
    years=sorted(seq);first=seq[years[0]];last=seq[years[-1]]
    change=f"{(last/first-1)*100:.1f}%" if first else None
    annual_ref.append({"国家":COUNTRIES.get(country,country),"品类":TARGET_SPECIES.get(species_id,{}).get("zh",species_id),"贸易口径年度进口单价USD/kg":{y:seq[y] for y in years},"多年变化":change})
- documents=get_site("/api/market-context?days=90").get("records",[])[:25]
+ documents=[doc for doc in get_site("/api/market-context?days=90").get("records",[]) if doc.get("primarySource") and doc.get("kind") in {"policy","news"}][:25]
  calendar=get_site(f"/api/ingest/snapshot?metric=event_calendar&year={today_date.year}&limit=1000").get("records",[])
  upcoming_events=[]
  for row in calendar:
@@ -316,7 +321,7 @@ def run():
 6. 政策或新闻事实必须引用 [S1] 形式的证据编号；无新增事件时写“今日无新增政策、海关、物流事件，市场面平稳”，并说明是否需要调整出货安排。
 7. 机会与风险必须具体到国家、品类、触发条件、潜在损失和规避动作。行动建议固定用“决策参考、采购落地、报价规范”三个栏目，引用当日价格，使用“建议、应”等语气。
 8. 涉及土库曼斯坦写明其海关透明度低、许可获取难度高，谨慎进入；涉及鸡枞写明其仅适合华人小众圈层，不建议作为主力出口。
-9. “数据说明”简洁说明零售挂牌价、美元/公斤折算、样本限制及采集日期。不得虚构批发价、物流价、政策、原因、利润或需求。输出标准 Markdown，不重复输出完整明细表或网址，后续程序会附加。"""
+9. “数据说明”不得写样本限制，统一由程序替换为固定客户版文字。政策或事件只能引用证据包中的官方公告并写明机构与日期；价格不附网址。不得虚构批发价、物流价、政策、原因、利润或需求。输出标准 Markdown，不重复输出完整明细表或网址，后续程序会附加。"""
  preview_output=os.environ.get("REPORT_PREVIEW_OUTPUT","").strip()
  if not AI_API_KEY and not preview_output:raise RuntimeError("AI_API_KEY is not configured")
  client=OpenAI(api_key=AI_API_KEY,base_url=AI_BASE_URL or "https://api.deepseek.com") if AI_API_KEY else None;analysis="";used_fallback=False
@@ -338,9 +343,12 @@ def run():
  market_marker="\n## 机会与风险"
  if market_marker in analysis:
   before_risk,after_risk=analysis.split(market_marker,1);analysis=f"{before_risk}\n\n{table_text}{market_marker}{after_risk}"
- if marker in analysis:
-  main_text,data_note=analysis.split(marker,1);body=f"{main_text}{marker}{data_note}"
- else:body=analysis
+ fixed_data_note=f"## 数据说明\n\n本报告价格来自中亚五国主流零售与电商渠道公开挂牌价，统一折算为美元/公斤。零售挂牌价与批发成交价、到岸成本存在差异，正式决策请以批量报价为准。数据来源：因恒科技监测，采集日期 {today}。如需核验具体报价来源，可联系专属客服索取。"
+ main_text=analysis.split(marker,1)[0] if marker in analysis else analysis
+ source_note=""
+ if used_evidence:
+  source_note="\n\n来源：\n"+"\n".join(f'- {item["发布机构"]}｜{item["标题"]}｜{item["发布日期"]}' for _,item in used_evidence[:5])
+ body=f"{main_text.rstrip()}\n\n{fixed_data_note}{source_note}"
  # 公众号版只有在同品类同形态连续覆盖达到门槛时才展示趋势；当前不自动附加内部指数表。
  title=title_from(today,analysis,prices)
  if preview_output:
