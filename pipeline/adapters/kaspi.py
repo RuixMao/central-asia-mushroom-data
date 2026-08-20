@@ -1,8 +1,11 @@
 import re
 from bs4 import BeautifulSoup
 from .render import RenderedProductAdapter
+from utils import parse_price_text
 PRICE=re.compile(r"(\d[\d\s]{2,12})\s*₸")
 ID_IN_URL=re.compile(r"-(\d+)/?$")
+# саңырауқұлақ(哈语"蘑菇")会匹配"蘑菇形电极/蘑菇台灯"等非食品,必须排除
+NON_FOOD=re.compile(r"электрод|светильник|лампа|игрушк|украшен|декор|нашлемник|наушник|мангал|форма для|трафарет|саңырауқұлақ тәрізді|электр|ламп",re.I)
 class KaspiAdapter(RenderedProductAdapter):
  def parse_rendered(self,html,body=""):
   row,error=self._parse_one(html)
@@ -18,11 +21,12 @@ class KaspiAdapter(RenderedProductAdapter):
   return soup.select(".item-card,.product-card,[data-product-id]")
  def _row_from_card(self,card):
   text=" ".join(card.get_text(" ",strip=True).split())
-  if not re.search(r"шампиньон|вешенк|гриб",text,re.I):return None
+  if not re.search(r"шампиньон|вешенк|гриб|саңырауқұлақ|шиитак|эноки|эринги",text,re.I):return None
+  if NON_FOOD.search(text):return None
   match=PRICE.search(text)
   if not match:return None
-  price=float(match.group(1).replace(" ",""))
-  if price<=0:return None
+  price=parse_price_text(match.group(1))
+  if not price or price<=0:return None
   link=card.find("a",href=True);url=link["href"] if link else self.config["url"]
   if url.startswith("/"):url="https://kaspi.kz"+url
   pid=self.config["platform_product_id"]

@@ -1,5 +1,6 @@
 import json, re
 from .base import ProductAdapter
+from utils import parse_price_text, response_text
 
 # gipertm.com（土库曼斯坦）：Next.js 商品详情页
 # 商品数据内嵌于 <script id="__NEXT_DATA__"> JSON：
@@ -17,7 +18,7 @@ class GiperAdapter(ProductAdapter):
     """
 
     def parse(self, response):
-        m = NEXT_DATA_RE.search(response.text)
+        m = NEXT_DATA_RE.search(response_text(response))
         if not m:
             return None, "next_data_missing"
         try:
@@ -36,7 +37,7 @@ class GiperAdapter(ProductAdapter):
         pm = TMT_PRICE.search(price_text)
         if not pm:
             return None, "price_missing"
-        price = float(pm.group(1).replace(" ", "").replace(",", "."))
-        if price <= 0:
+        price = parse_price_text(pm.group(1))
+        if not price or price <= 0:
             return None, "zero_price"
         return {**self.config, "original_title": name, "current_price": price, "raw_price_text": price_text}, None

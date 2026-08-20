@@ -6,12 +6,25 @@ from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
-from utils import safe_get
+from utils import safe_get, find_price_match, parse_price_text, response_text
 
+# 兼容旧引用:本地 _parse_price 指向统一实现(全适配器共用 utils.parse_price_text)
+_parse_price = parse_price_text
 
-MUSHROOM = re.compile(r"гриб|шампин|вешен|шиитак|эноки|qo['’`]ziqorin|shampinyon|k[oö]melek", re.I)
-NON_FOOD = re.compile(r"мицел|семен|спор|набор для выращ|грибной блок|urug|mitsel", re.I)
-PRICE = re.compile(r"(\d[\d\s,.]{0,15})\s*(?:₸|KZT|сом|KGS|сум|UZS|TJS|TMT)", re.I)
+MUSHROOM = re.compile(
+    r"гриб|шампин|вешен|шиитак|эноки|"
+    r"саңырауқұлақ|коз(?:у)?\s+кар|опята|занбӯруғ|"
+    r"qo['‘’`]ziqorin|shampinyon|sampinyon|veshenka|k[oö]melek|şampinýom",
+    re.I,
+)
+# 排除非可食用菌:菌丝/种子/培养包/设备/教材/书籍/科普等
+NON_FOOD = re.compile(
+    r"мицел|семен|спор|набор для выращ|грибной блок|urug|mitsel|"
+    r"учебник|класс|биолог|книг|реферат|презентац|"
+    r"субстрат|компост|увлажнитель|оборудован",
+    re.I,
+)
+PRICE = re.compile(r"(\d[\d\s,.]{0,15})\s*(?:₸|KZT|сом|KGS|сум|UZS|TJS|TMT|c\.|с\.)", re.I)
 
 
 def _walk(value):
@@ -34,8 +47,24 @@ class CatalogSearchAdapter:
         response = safe_get(self.config["url"], retries=2, backoff=2)
         if not response:
             return [], "unreachable"
-        soup = BeautifulSoup(response.text, "html.parser")
+        # 统一 UTF-8 解码(防 charset 错标导致本地语言乱码)
+        html = response_text(response)
+        soup = BeautifulSoup(html, "html.parser")
         rows = {}
+        # React 目录页通常把商品卡片直接内嵌在 HTML 中，标题和价格并不在同一个链接里。
+        for card in soup.select('[data-testid="product-card"]'):
+            title_node = card.find("h3")
+            title = " ".join((title_node or card).get_text(" ", strip=True).split())
+            if not MUSHROOM.search(title) or NON_FOOD.search(title):
+                continue
+            match, price = find_price_match(card, PRICE)
+            link = card.find("a", href=True)
+            if not match or not link:
+                continue
+            url = urljoin(response.url, link["href"])
+            product_id = url.rstrip("/").split("/")[-1]
+            if product_id and price > 0:
+                rows[product_id] = self._row(product_id, title, price, url, response)
         for script in soup.select('script[type="application/ld+json"]'):
             try:
                 payload = json.loads(script.string or script.get_text())
@@ -52,11 +81,8 @@ class CatalogSearchAdapter:
                 if isinstance(offers, list):
                     offers = offers[0] if offers else {}
                 price = offers.get("price") or offers.get("lowPrice")
-                try:
-                    price = float(str(price).replace(" ", "").replace(",", "."))
-                except (TypeError, ValueError):
-                    continue
-                if price <= 0:
+                price = parse_price_text(price)
+                if not price or price <= 0:
                     continue
                 url = urljoin(response.url, str(item.get("url") or offers.get("url") or ""))
                 product_id = str(item.get("sku") or item.get("productID") or url.rstrip("/").split("/")[-1])
@@ -69,11 +95,10 @@ class CatalogSearchAdapter:
                 title = " ".join(anchor.get_text(" ", strip=True).split())
                 if not MUSHROOM.search(title) or NON_FOOD.search(title):
                     continue
-                scope = anchor.parent.get_text(" ", strip=True) if anchor.parent else title
-                match = PRICE.search(scope)
+                scope = anchor.parent if anchor.parent else anchor
+                match, price = find_price_match(scope, PRICE)
                 if not match:
                     continue
-                price = float(match.group(1).replace(" ", "").replace(",", "."))
                 if price <= 0:
                     continue
                 url = urljoin(response.url, anchor["href"])

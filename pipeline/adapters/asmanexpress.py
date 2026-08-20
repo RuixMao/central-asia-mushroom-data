@@ -1,5 +1,6 @@
 import json, re
 from .base import ProductAdapter
+from utils import response_text
 
 # asmanexpress.com（土库曼斯坦）：Next.js 商品详情页
 # 商品数据内嵌于 <script id="__NEXT_DATA__"> JSON：
@@ -16,7 +17,7 @@ class AsmanAdapter(ProductAdapter):
     """
 
     def parse(self, response):
-        m = NEXT_DATA_RE.search(response.text)
+        m = NEXT_DATA_RE.search(response_text(response))
         if not m:
             return None, "next_data_missing"
         try:

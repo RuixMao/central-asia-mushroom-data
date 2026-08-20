@@ -19,16 +19,16 @@ test("server-renders the corporate website and public data center", async () => 
   const html = await response.text();
   assert.match(html, /因恒科技/);
   assert.match(html, /inhen-tech-logo\.png/);
-  assert.match(html, /中亚食用菌出海/);
-  assert.match(html, /市场行情/);
-  assert.match(html, /需求分析/);
-  assert.match(html, /解决方案/);
-  assert.match(html, /出海路径/);
-  assert.match(html, /合作对接/);
+  assert.match(html, /不确定该先进入哪个中亚市场/);
+  assert.match(html, /选择目标市场/);
+  assert.match(html, /查询当地价格/);
+  assert.match(html, /验证市场机会/);
+  assert.match(html, /了解出海步骤/);
+  assert.match(html, /提交我的具体情况/);
   assert.match(html, /href="\/privacy"/);
   assert.match(html, /href="\/terms"/);
   assert.match(html, /href="\/market"/);
-  assert.match(html, /\$6\.96M/);
+  assert.match(html, /\$6\.00M/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 
   const terminal = await render("/terminal");
@@ -36,11 +36,11 @@ test("server-renders the corporate website and public data center", async () => 
   const terminalHtml = await terminal.text();
   assert.match(terminalHtml, /中亚菌类数据终端/);
   assert.match(terminalHtml, /数据资产地图/);
-  assert.match(terminalHtml, /每日食用菌细分品类价格终端/);
-  assert.match(terminalHtml, /筛选内有效报价/);
+  assert.match(terminalHtml, /按国家、品类和规格核对当地价格/);
+  assert.match(terminalHtml, /当前可比较报价/);
   assert.match(terminalHtml, /近七次采集/);
   assert.match(terminalHtml, /导出当前结果 CSV/);
-  assert.match(terminalHtml, /定制数据与 API/);
+  assert.match(terminalHtml, /核算我的产品是否值得进入/);
   assert.match(terminalHtml, /每日 SKU 明细/);
   assert.match(terminalHtml, /来源/);
 

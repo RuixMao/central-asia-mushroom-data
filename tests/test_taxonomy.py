@@ -1,12 +1,34 @@
 import sys,unittest
 sys.path.insert(0,"pipeline")
-from taxonomy import classify,normalize_price,parse_package
+from taxonomy import classify,normalize_price,parse_package,_fix_mojibake
 class TaxonomyTest(unittest.TestCase):
  def test_species(self):
   cases={"Грибы Эноки 300 г":"enoki","Грибы Вешенки":"oyster_mushroom","Грибы shiitake":"shiitake","Шампиньоны":"button_mushroom","королевская вешенка":"king_oyster_mushroom","杏鲍菇 300g":"king_oyster_mushroom","veshenki fresh":"oyster_mushroom"}
   for title,want in cases.items():self.assertEqual(classify(title)["species_id"],want)
+ def test_mojibake_fix_power_of_two(self):
+  """UTF-8 双重编码乱码(Ã¶)应修复为 ö 并正确分类(双孢菇)。"""
+  assert _fix_mojibake("kÃ¶melek")=="kömelek"
+  fixed=_fix_mojibake("GelinkÃ¶melek");assert _fix_mojibake(fixed)==fixed
+  c=classify("Eklin Gelin kÃ¶melek bÃ¼tin",language="tk")
+  self.assertEqual(c["status"],"classified");self.assertEqual(c["species_id"],"button_mushroom")
+ def test_abbrev_and_species_combo(self):
+  """缩写 шампин. 与泛称+品种组合(грибы шиитаки)应正确分类。"""
+  c1=classify("Bonduelle шампин. марин козу карындар 350мл",language="ky")
+  self.assertEqual(c1["status"],"classified");self.assertEqual(c1["species_id"],"button_mushroom")
+  c2=classify("Грибы Шиитаки 100 г",language="ru")
+  self.assertEqual(c2["status"],"classified");self.assertEqual(c2["species_id"],"shiitake")
+ def test_porcini_word_order_and_synonym(self):
+  """词序颠倒(гриб белый)与红牛肝菌同义词(подосиновики)应归 porcini。"""
+  c1=classify("Гриб белый Arbuz Select целый",language="ru")
+  self.assertEqual(c1["status"],"classified");self.assertEqual(c1["species_id"],"porcini")
+  c2=classify("Грибы подосиновики 300 г",language="ru")
+  self.assertEqual(c2["species_id"],"porcini")
+ def test_mixed_forest_stays_unknown(self):
+  """混合森林菌不应强分类,保持 unknown(诚实)。"""
+  c=classify("Смесь Всегда Пожалуйста лесных грибов 300 г",language="ru")
+  self.assertEqual(c["status"],"unknown")
  def test_uncertain(self):
-  self.assertEqual(classify("Грибы")["status"],"unknown")
+  self.assertEqual(classify("Грибы")["status"],"ambiguous")
   self.assertEqual(classify("Смесь шиитаке и вешенки")["status"],"mixed_species")
   self.assertEqual(classify("Шампиньоны",description="вешенка")["status"],"review_required")
  def test_forms(self):

@@ -3,7 +3,7 @@ import re
 from urllib.parse import urljoin
 from bs4 import BeautifulSoup
 from .base import ProductAdapter
-from utils import safe_get
+from utils import safe_get, parse_price_text, response_text
 
 # OLX 乌兹别克斯坦：商品页价格形如 "65 000 сум"（乌兹别克苏姆）
 SUM_PRICE = re.compile(r"(\d[\d\s]{1,12}(?:[.,]\d{1,2})?)\s*сум\b", re.I)
@@ -18,7 +18,7 @@ class OlxAdapter(ProductAdapter):
     """
 
     def parse(self, response):
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response_text(response), "html.parser")
         og = soup.find("meta", property="og:title")
         title = (og.get("content") if og else None) or (soup.title.string if soup.title else "") or ""
         title = re.sub(r"\s+", " ", title).strip()
@@ -27,8 +27,8 @@ class OlxAdapter(ProductAdapter):
         match = SUM_PRICE.search(title)
         if not match:
             return None, "price_missing"
-        price = float(match.group(1).replace(" ", "").replace(",", "."))
-        if price <= 0:
+        price = parse_price_text(match.group(1))
+        if not price or price <= 0:
             return None, "zero_price"
         return {**self.config, "original_title": title, "current_price": price, "raw_price_text": match.group(0)}, None
 
@@ -47,7 +47,7 @@ class OlxSearchAdapter(ProductAdapter):
                                    "AppleWebKit/537.36 Chrome/124 Mobile Safari/537.36"})
         if not response:
             return [], "unreachable"
-        soup = BeautifulSoup(response.text, "html.parser")
+        soup = BeautifulSoup(response_text(response), "html.parser")
         rows, seen = [], set()
         for anchor in soup.select('a[href*="/d/obyavlenie/"]'):
             href = urljoin(response.url, anchor.get("href", ""))
@@ -64,8 +64,8 @@ class OlxSearchAdapter(ProductAdapter):
                     break
             if not match:
                 continue
-            price = float(match.group(1).replace(" ", "").replace(",", "."))
-            if price <= 0:
+            price = parse_price_text(match.group(1))
+            if not price or price <= 0:
                 continue
             product_match = re.search(r"-(ID[A-Za-z0-9]+)\.html", href)
             product_id = product_match.group(1) if product_match else hashlib.sha256(href.encode()).hexdigest()[:16]
