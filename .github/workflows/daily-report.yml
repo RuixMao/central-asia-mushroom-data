@@ -109,3 +109,12 @@ jobs:
           AI_BASE_URL: https://api.deepseek.com
           AI_MODEL: deepseek-v4-flash
           REPORT_REVISION: ${{ inputs.publish_revision == true && 'true' || 'false' }}
+          REPORT_ARTIFACT_OUTPUT: tmp/daily-report.json
+      - name: Add report to WeChat Official Account drafts
+        if: ${{ inputs.validate_only != true }}
+        run: python pipeline/publish_wechat_draft.py
+        env:
+          REPORT_ARTIFACT_OUTPUT: tmp/daily-report.json
+          WECHAT_APP_ID: ${{ secrets.WECHAT_APP_ID }}
+          WECHAT_APP_SECRET: ${{ secrets.WECHAT_APP_SECRET }}
+          WECHAT_AUTHOR: 因恒科技
