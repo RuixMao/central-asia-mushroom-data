@@ -1,8 +1,5 @@
 name: Customer Daily Report
 on:
-  schedule:
-    # Beijing 10:00 / Central Asia 07:00-08:00.
-    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       validate_only:
@@ -127,6 +124,32 @@ jobs:
           REPORT_REVISION: ${{ inputs.publish_revision == true && 'true' || 'false' }}
           REPORT_REPLACE_SLUG: ${{ inputs.replace_slug }}
           REPORT_ARTIFACT_OUTPUT: tmp/daily-report.json
+      - name: Verify today's report is visible on the production website
+        if: ${{ inputs.validate_only != true }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+
+          today = datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
+          site_url = os.environ["SITE_URL"].rstrip("/")
+          request = urllib.request.Request(
+              f"{site_url}/api/reports?type=daily&pageSize=50",
+              headers={"User-Agent": "Yinheng-Daily-Report-Verification/1.0", "Accept": "application/json"},
+          )
+          with urllib.request.urlopen(request, timeout=60) as response:
+              payload = json.load(response)
+          reports = payload.get("records") or payload.get("reports") or payload.get("items") or []
+          matches = [row for row in reports if str(row.get("date") or row.get("publishedAt") or row.get("createdAt") or "").startswith(today)]
+          if not matches:
+              raise SystemExit(f"The {today} daily report is not visible on the production website.")
+          print(f"Production website verification passed for {today}: {len(matches)} report(s).")
+          PY
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
       - name: Generate daily video and social content package
         if: ${{ inputs.validate_only != true }}
         run: python pipeline/generate_content_package.py
@@ -146,6 +169,7 @@ jobs:
       - name: Add report to WeChat Official Account drafts
         # 固定公网 IP 就绪后，在仓库 Variables 中设置 ENABLE_WECHAT_DRAFT=true 即可恢复。
         if: ${{ inputs.validate_only != true && vars.ENABLE_WECHAT_DRAFT == 'true' }}
+        continue-on-error: true
         run: python pipeline/publish_wechat_draft.py
         env:
           REPORT_ARTIFACT_OUTPUT: tmp/daily-report.json

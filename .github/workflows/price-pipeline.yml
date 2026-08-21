@@ -1,4 +1,7 @@
 name: Price Pipeline
+permissions:
+  actions: write
+  contents: read
 on:
   schedule:
     # Beijing 20:00 / Central Asia 17:00-18:00: evening snapshot.
@@ -81,3 +84,8 @@ jobs:
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      - name: Trigger website daily report after the final morning refresh
+        if: ${{ success() && github.event_name == 'schedule' && github.event.schedule == '0 1 * * *' }}
+        run: gh workflow run daily-report.yml --ref main
+        env:
+          GH_TOKEN: ${{ github.token }}
