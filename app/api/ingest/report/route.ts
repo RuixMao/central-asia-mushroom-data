@@ -27,6 +27,20 @@ export async function POST(request: Request) {
   return Response.json({ ok: true, slug });
 }
 
+export async function DELETE(request: Request) {
+  if (!authorized(request)) return Response.json({ error: "Unauthorized" }, { status: 401 });
+  const slug = new URL(request.url).searchParams.get("slug");
+  if (!slug) return Response.json({ error: "Missing slug" }, { status: 400 });
+  const db = (env as unknown as { DB: D1Database }).DB;
+  const report = await db.prepare("SELECT id FROM reports WHERE slug = ? LIMIT 1").bind(slug).first<{ id: string }>();
+  if (!report) return Response.json({ ok: true, deleted: false });
+  await db.batch([
+    db.prepare("DELETE FROM report_sources WHERE report_id = ?").bind(report.id),
+    db.prepare("DELETE FROM reports WHERE id = ?").bind(report.id),
+  ]);
+  return Response.json({ ok: true, deleted: true });
+}
+
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams, filters = [];
   const type = params.get("type"), country = params.get("country"), slug = params.get("slug");
