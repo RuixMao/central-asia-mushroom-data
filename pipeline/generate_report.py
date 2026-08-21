@@ -244,6 +244,12 @@ def run():
   key=(row["data"].get("product_key") or f'{row.get("country")}:{row.get("source")}:{row["data"].get("original_title")}',today)
   latest_prices.setdefault(key,row)
  prices=list(latest_prices.values())
+ display_prices={}
+ for row in prices:
+  d=row["data"]
+  key=(row.get("country"),row.get("source"),d.get("species_id"),d.get("product_form"),d.get("package_display"),d.get("price_local"),d.get("currency"),d.get("normalized_price_usd_per_kg"))
+  display_prices.setdefault(key,row)
+ prices=list(display_prices.values())
  signals=build_signals(prices,live,today_date)
  market_facts=build_market_facts(prices)
  table_groups=defaultdict(list)
@@ -343,7 +349,7 @@ def run():
  market_marker="\n## 机会与风险"
  if market_marker in analysis:
   before_risk,after_risk=analysis.split(market_marker,1);analysis=f"{before_risk}\n\n{table_text}{market_marker}{after_risk}"
- fixed_data_note=f"## 数据说明\n\n本报告价格来自中亚五国主流零售与电商渠道公开挂牌价，统一折算为美元/公斤。零售挂牌价与批发成交价、到岸成本存在差异，正式决策请以批量报价为准。数据来源：因恒科技监测，采集日期 {today}。如需核验具体报价来源，可联系专属客服索取。"
+ fixed_data_note=f"## 数据说明\n\n> 数据说明：本报告价格来自中亚五国主流零售与电商渠道公开挂牌价，统一折算为美元/公斤。零售挂牌价与批发成交价、到岸成本存在差异，正式决策请以批量报价为准。数据来源：因恒科技监测，采集日期 {today}。如需核验具体报价来源，可联系专属客服索取。"
  main_text=analysis.split(marker,1)[0] if marker in analysis else analysis
  source_note=""
  if used_evidence:
