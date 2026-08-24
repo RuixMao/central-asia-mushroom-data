@@ -8,8 +8,10 @@ on:
     - cron: '0 12 * * *'
     # Beijing 07:30 / Central Asia 04:30-05:30: morning baseline.
     - cron: '30 23 * * *'
-    # Beijing 09:00 / Central Asia 06:00-07:00: final refresh before publication.
-    - cron: '0 1 * * *'
+    # Beijing 09:17 / Central Asia 06:17-07:17: staggered final refresh before publication.
+    - cron: '17 1 * * *'
+    # Beijing 09:47: backup refresh if GitHub misses or delays the primary schedule.
+    - cron: '47 1 * * *'
   workflow_dispatch:
     inputs:
       platform:
@@ -85,7 +87,16 @@ jobs:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
       - name: Trigger website daily report after the final morning refresh
-        if: ${{ success() && github.event_name == 'schedule' && github.event.schedule == '0 1 * * *' }}
-        run: gh workflow run daily-report.yml --ref main
+        if: ${{ success() && github.event_name == 'schedule' && (github.event.schedule == '17 1 * * *' || github.event.schedule == '47 1 * * *') }}
+        run: |
+          today="$(TZ=Asia/Shanghai date +%F)"
+          curl --fail --silent --show-error "$SITE_URL/api/reports?type=daily&pageSize=50" --output /tmp/daily-reports.json
+          if python -c 'import json,sys; today=sys.argv[1]; rows=json.load(open(sys.argv[2], encoding="utf-8")).get("records", []); sys.exit(1 if any(str(row.get("slug", "")).startswith(today) for row in rows) else 0)' "$today" /tmp/daily-reports.json; then
+            gh workflow run daily-report.yml --ref main
+            echo "Triggered website daily report for $today."
+          else
+            echo "Website daily report for $today already exists; backup trigger skipped."
+          fi
         env:
           GH_TOKEN: ${{ github.token }}
+          SITE_URL: ${{ secrets.SITE_URL }}
