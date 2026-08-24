@@ -201,6 +201,12 @@ export const priceObservations = [
   { countryCode: "UZ" as const, city: "塔什干", channel: "电商平台", product: "腌制双孢菇430ml", price: "25,990 сум/罐", date: "2026-08", source: "Uzum Market" },
 ];
 
+export const logisticsReferences = [
+  {countryCode:"KZ" as const,route:"乌鲁木齐—阿拉木图",mode:"铁路 40HQ",load:"26 吨，FOB",price:"US$2,350/柜",unitPrice:"约 US$0.09/kg",transit:"10–14 天",observedAt:"2026-07-31",source:"SWIFTTRANS",url:"https://swifttrans.kz/zh/rates",use:"普货整柜参考；不含冷链、清关及末端配送"},
+  {countryCode:"KZ" as const,route:"乌鲁木齐—阿拉木图",mode:"公路拼箱",load:"500 kg/托",price:"US$700/托",unitPrice:"约 US$1.40/kg",transit:"按订舱确认",observedAt:"2026-01-04",source:"Interlux Cargo",url:"https://interluxcargo.com/ch/page/",use:"普货拼箱参考；食用菌需另询温控、报关和损耗责任"},
+  {countryCode:"KZ" as const,route:"中国仓—哈萨克斯坦",mode:"汽车快递",load:"10 kg 起",price:"US$2.30/kg 起",unitPrice:"US$2.30/kg 起",transit:"6–9 天",observedAt:"2026-08-24",source:"Alemtrans",url:"https://jak.kz/en",use:"普货小批量参考；页面未承诺冷链或食品准入"},
+];
+
 export const productionEvidence = [
   { countryCode: "TJ" as const, country: "塔吉克斯坦", type: "企业实际产出", value: "春季约 1,000 kg", status: "当地生产证据", source: "联合国驻塔机构 / WFP", note: "单个农户案例，不外推为全国年产量" },
   { countryCode: "TM" as const, country: "土库曼斯坦", type: "企业实际产出", value: "约 6 t/月", status: "当地生产证据", source: "土库曼斯坦政府", note: "Tiz hyzmat 企业月产量，不外推为全国年产量" },

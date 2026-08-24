@@ -110,6 +110,13 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 - `python pipeline/fetch_price.py`：16 个来源的周频价格与缺口采集。
 - `python pipeline/generate_report.py`：读取最新快照并生成日报。
 
+价格采集内置自动复核闭环：先按页面证据校验品类、规格、价格和合理区间；
+可由同批有效样本解释的小包装溢价会自动复核通过，仍缺少可验证证据的记录
+不会写入正式价格表；同日已经存在的旧记录也会被撤回，失败原因只留在采集审计
+和来源质量统计中。定时任务下一轮会重新读取源页面，证据恢复后重新进入正式库，
+因此不会长期堆积为“待复核”。如需观察旧行为，可临时设置
+`AUTO_REVIEW_QUARANTINE=0`。
+
 站点环境变量：`CRON_SECRET`、`UN_COMTRADE_API_KEY`，可选 `DEPLOY_HOOK_URL`。GitHub Actions Secrets：`SITE_URL`、`CRON_SECRET`、`UN_COMTRADE_API_KEY`、`AI_PROVIDER`、`AI_API_KEY`。
 
 首次启用：

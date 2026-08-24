@@ -75,6 +75,8 @@ jobs:
           MAGNUM_DEBUG: ${{ inputs.magnum_debug && '1' || '0' }}
           PROXY_BASE: ${{ secrets.PROXY_BASE }}
           WB_DESTS_JSON: ${{ secrets.WB_DESTS_JSON }}
+          # 默认开启闭环：无法由可验证证据解决的记录自动隔离，下次定时采集重试。
+          AUTO_REVIEW_QUARANTINE: '1'
       - name: Build daily summaries
         if: ${{ inputs.dry_run != true }}
         run: curl --fail --silent --show-error -X POST "$SITE_URL/api/prices/summarize" -H "x-cron-secret:$CRON_SECRET" -H "content-type:application/json" -d '{}'
