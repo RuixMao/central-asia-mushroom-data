@@ -31,15 +31,26 @@ def test_customer_safe_rejects_pending_sections_and_empty_references():
     assert not customer_safe(sections.replace("已确认价格", "详见正文事实条目",1),set())
 
 
-def test_title_uses_verified_same_species_spread():
+def test_title_does_not_treat_static_cross_market_spread_as_daily_news():
     prices=[
         {"country":"KG","data":{"species_id":"button_mushroom","normalized_price_usd_per_kg":4.90}},
         {"country":"TM","data":{"species_id":"button_mushroom","normalized_price_usd_per_kg":17.50}},
     ]
     title=title_from("2026-08-20","## 今日要点\n\n**内部标题不应采用。**",prices)
-    assert title.endswith("双孢菇价差3.6倍")
+    assert title.endswith("市场平稳无异常")
     assert len(title.encode("utf-8")) <= 64
     assert "待确认" not in title
+
+
+def test_title_uses_largest_same_product_change_signal():
+    signals=[
+        {"类型":"同规格渠道价差","国家":"吉尔吉斯斯坦","品类":"双孢菇","变化":"价差 28.0%"},
+        {"类型":"同商品连续变化","国家":"哈萨克斯坦","品类":"金针菇","变化":"-12.4%"},
+        {"类型":"同商品连续变化","国家":"乌兹别克斯坦","品类":"平菇","变化":"+5.0%"},
+    ]
+    title=title_from("2026-08-24","",signals=signals)
+    assert title.endswith("金针菇降12.4%")
+    assert len(title.encode("utf-8")) <= 64
 
 
 def test_utf8_truncate_never_splits_chinese_character():
