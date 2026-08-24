@@ -57,15 +57,18 @@ def display_usd_per_kg(value):
  except (TypeError,ValueError):
   return "—"
 
-def title_from(today,body,prices=None):
+def title_from(today,body,prices=None,signals=None):
  day=date.fromisoformat(today);headline="市场平稳无异常"
- buttons=[r for r in prices or [] if r.get("data",{}).get("species_id")=="button_mushroom"]
- if len(buttons)>=2:
-  values=[float(r["data"]["normalized_price_usd_per_kg"]) for r in buttons]
-  headline=f"双孢菇价差{max(values)/min(values):.1f}倍"
- else:
-  match=re.search(r"\*\*(?:\d+[.、]\s*)?([^*。！？]{8,25})[。！？]?\*\*",body)
-  if match:headline=match.group(1).strip("：:，,。 ")
+ # 标题只使用当天相对前次发生的同商品变化。跨国家、跨规格的静态价差
+ # 不代表当天出现了新变化，不能连续多日充当新闻标题。
+ changes=[item for item in signals or [] if item.get("类型")=="同商品连续变化"]
+ if changes:
+  def magnitude(item):
+   try:return abs(float(str(item.get("变化","")).replace("%", "")))
+   except (TypeError,ValueError):return 0
+  item=max(changes,key=magnitude);change=str(item.get("变化","")).strip();value=magnitude(item)
+  direction="涨" if not change.startswith("-") else "降"
+  headline=f'{item.get("品类","")}{direction}{value:.1f}%'
  prefix=f"中亚食用菌市场日报｜{day.month}月{day.day}日："
  return prefix+utf8_truncate(headline,64-len(prefix.encode("utf-8")))
 
@@ -356,7 +359,7 @@ def run():
   source_note="\n\n来源：\n"+"\n".join(f'- {item["发布机构"]}｜{item["标题"]}｜{item["发布日期"]}' for _,item in used_evidence[:5])
  body=f"{main_text.rstrip()}\n\n{fixed_data_note}{source_note}"
  # 公众号版只有在同品类同形态连续覆盖达到门槛时才展示趋势；当前不自动附加内部指数表。
- title=title_from(today,analysis,prices)
+ title=title_from(today,analysis,prices,signals)
  if preview_output:
   preview_path=Path(preview_output)
   preview_path.parent.mkdir(parents=True,exist_ok=True)
