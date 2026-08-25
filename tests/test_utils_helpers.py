@@ -1,8 +1,19 @@
 """utils 工具函数单测:统一价格解析与 UTF-8 解码。"""
+import datetime as dt
 import sys, pathlib, unittest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1] / "pipeline"))
 
-from utils import parse_price_text, response_text
+from utils import parse_price_text, response_text, today_str
+
+
+class TestBusinessDate(unittest.TestCase):
+    def test_utc_runner_uses_beijing_business_date(self):
+        now = dt.datetime(2026, 8, 24, 23, 41, tzinfo=dt.timezone.utc)
+        self.assertEqual(today_str(now), "2026-08-25")
+
+    def test_naive_runner_time_is_treated_as_utc(self):
+        now = dt.datetime(2026, 8, 24, 23, 41)
+        self.assertEqual(today_str(now), "2026-08-25")
 
 
 class TestParsePriceText(unittest.TestCase):
