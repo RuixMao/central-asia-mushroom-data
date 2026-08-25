@@ -1,5 +1,9 @@
 name: Customer Daily Report
 on:
+  schedule:
+    # Independent primary trigger. It does not depend on the price workflow.
+    # Beijing 10:07 / Central Asia 07:07-08:07.
+    - cron: '7 2 * * *'
   workflow_dispatch:
     inputs:
       validate_only:

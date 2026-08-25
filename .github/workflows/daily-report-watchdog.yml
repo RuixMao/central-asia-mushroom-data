@@ -1,0 +1,37 @@
+name: Daily Report Watchdog
+
+permissions:
+  actions: write
+  contents: read
+
+on:
+  schedule:
+    # Independent checks after the primary publication window.
+    - cron: '23 2 * * *'
+    - cron: '53 2 * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: daily-report-watchdog
+  cancel-in-progress: false
+
+jobs:
+  ensure-report:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check today's customer report and start recovery when needed
+        run: |
+          today="$(TZ=Asia/Shanghai date +%F)"
+          curl --fail --silent --show-error \
+            "$SITE_URL/api/reports?type=daily&pageSize=50" \
+            --output /tmp/daily-reports.json
+
+          if python -c 'import json,sys; today=sys.argv[1]; payload=json.load(open(sys.argv[2], encoding="utf-8")); rows=payload.get("records") or payload.get("reports") or payload.get("items") or []; sys.exit(0 if any(str(row.get("date") or row.get("publishedAt") or row.get("createdAt") or row.get("slug") or "").startswith(today) for row in rows) else 1)' "$today" /tmp/daily-reports.json; then
+            echo "Customer daily report for $today is already available."
+          else
+            gh workflow run daily-report.yml --ref main
+            echo "Recovery run started for $today."
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SITE_URL: ${{ secrets.SITE_URL }}
