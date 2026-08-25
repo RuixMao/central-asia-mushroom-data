@@ -5,13 +5,20 @@ import time
 import urllib.parse
 import threading
 import requests
+from zoneinfo import ZoneInfo
 from config import SITE_URL, CRON_SECRET
 
 DATA_API_URL = os.environ.get("DATA_API_URL", "").rstrip("/")
 DATA_SYNC_SECRET = os.environ.get("DATA_SYNC_SECRET", "")
 
 def log(message): print(f"[{dt.datetime.now().isoformat(timespec='seconds')}] {message}", flush=True)
-def today_str(): return dt.date.today().isoformat()
+BUSINESS_TIMEZONE = ZoneInfo("Asia/Shanghai")
+def today_str(now=None):
+    """Return the customer/reporting business date, independent of runner timezone."""
+    current = now or dt.datetime.now(dt.timezone.utc)
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=dt.timezone.utc)
+    return current.astimezone(BUSINESS_TIMEZONE).date().isoformat()
 def median(nums): return statistics.median(nums) if nums else None
 
 def parse_price_text(raw):
