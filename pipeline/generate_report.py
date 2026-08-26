@@ -216,11 +216,17 @@ def run():
  today=today_str();today_date=date.fromisoformat(today);snapshots=get_site("/api/ingest/snapshot?metric=price_retail&limit=500").get("records",[])
  existing=get_site("/api/ingest/report?type=daily").get("records",[])
  revision=os.environ.get("REPORT_REVISION", "").lower() in {"1","true","yes"}
- if not revision and any(
-  str(report.get("slug") or report.get("publishedAt") or report.get("createdAt") or "").startswith(today)
-  for report in existing
- ):
+ current=next((
+  report for report in existing
+  if str(report.get("slug") or report.get("publishedAt") or report.get("createdAt") or "").startswith(today)
+ ),None)
+ if not revision and current:
   print(f"{today} 日报已存在，跳过重复生成")
+  artifact_output=os.environ.get("REPORT_ARTIFACT_OUTPUT", "").strip()
+  if artifact_output:
+   artifact_path=Path(artifact_output)
+   artifact_path.parent.mkdir(parents=True,exist_ok=True)
+   artifact_path.write_text(json.dumps({"title":current.get("title"),"summary":current.get("summary"),"body":current.get("body"),"slug":current.get("slug"),"date":today},ensure_ascii=False),encoding="utf-8")
   return
  # 兼容尚未写入 sanity 字段的历史快照：生成前再次校验，并用同日规格做二次复核。
  review_candidates=[]
