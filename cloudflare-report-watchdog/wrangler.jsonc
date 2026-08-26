@@ -1,0 +1,13 @@
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "yinheng-daily-report-watchdog",
+  "main": "src/index.js",
+  "compatibility_date": "2026-08-26",
+  "triggers": {
+    "crons": ["15 2 * * *", "45 2 * * *", "15 3 * * *"]
+  },
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  }
+}
