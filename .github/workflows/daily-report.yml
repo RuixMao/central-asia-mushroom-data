@@ -141,13 +141,13 @@ jobs:
           today = datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
           site_url = os.environ["SITE_URL"].rstrip("/")
           request = urllib.request.Request(
-              f"{site_url}/api/reports?type=daily&pageSize=50",
+              f"{site_url}/api/ingest/report?type=daily",
               headers={"User-Agent": "Yinheng-Daily-Report-Verification/1.0", "Accept": "application/json"},
           )
           with urllib.request.urlopen(request, timeout=60) as response:
               payload = json.load(response)
           reports = payload.get("records") or payload.get("reports") or payload.get("items") or []
-          matches = [row for row in reports if str(row.get("date") or row.get("publishedAt") or row.get("createdAt") or "").startswith(today)]
+          matches = [row for row in reports if any(str(row.get(key) or "").startswith(today) for key in ("slug", "publishedAt", "createdAt"))]
           if not matches:
               raise SystemExit(f"The {today} daily report is not visible on the production website.")
           print(f"Production website verification passed for {today}: {len(matches)} report(s).")
