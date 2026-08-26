@@ -216,7 +216,10 @@ def run():
  today=today_str();today_date=date.fromisoformat(today);snapshots=get_site("/api/ingest/snapshot?metric=price_retail&limit=500").get("records",[])
  existing=get_site("/api/ingest/report?type=daily").get("records",[])
  revision=os.environ.get("REPORT_REVISION", "").lower() in {"1","true","yes"}
- if not revision and any(today in str(report.get("title", "")) for report in existing):
+ if not revision and any(
+  str(report.get("slug") or report.get("publishedAt") or report.get("createdAt") or "").startswith(today)
+  for report in existing
+ ):
   print(f"{today} 日报已存在，跳过重复生成")
   return
  # 兼容尚未写入 sanity 字段的历史快照：生成前再次校验，并用同日规格做二次复核。
