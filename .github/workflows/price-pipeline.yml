@@ -90,7 +90,7 @@ jobs:
         if: ${{ success() && github.event_name == 'schedule' && (github.event.schedule == '17 1 * * *' || github.event.schedule == '47 1 * * *') }}
         run: |
           today="$(TZ=Asia/Shanghai date +%F)"
-          curl --fail --silent --show-error "$SITE_URL/api/reports?type=daily&pageSize=50" --output /tmp/daily-reports.json
+          curl --fail --silent --show-error "$SITE_URL/api/ingest/report?type=daily" --output /tmp/daily-reports.json
           if python -c 'import json,sys; today=sys.argv[1]; rows=json.load(open(sys.argv[2], encoding="utf-8")).get("records", []); sys.exit(1 if any(str(row.get("slug", "")).startswith(today) for row in rows) else 0)' "$today" /tmp/daily-reports.json; then
             gh workflow run daily-report.yml --ref main
             echo "Triggered website daily report for $today."
