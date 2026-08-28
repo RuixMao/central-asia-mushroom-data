@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 
-const countries=new Set(["KZ","UZ","KG","TJ","TM"]),kinds=new Set(["news","policy","macro"]);
+const countries=new Set(["KZ","UZ","KG","TJ","TM","LA","VN","TH","MM","KH"]),kinds=new Set(["news","policy","macro"]);
 const authorized=(request:Request)=>Boolean(process.env.CRON_SECRET)&&request.headers.get("x-cron-secret")===process.env.CRON_SECRET;
 type Document={id?:string;country?:string;kind?:string;title?:string;publisher?:string;source_url?:string;language?:string;published_at?:string;retrieved_at?:string;excerpt?:string;primary_source?:boolean;verification_status?:string;relevance_score?:number;content_hash?:string};
 type Reconcile={source_urls?:string[];verification_status?:"discovered"|"verified"|"rejected"};

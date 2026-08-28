@@ -3,7 +3,7 @@ import { env } from "cloudflare:workers";
 import { getDb } from "../../../../db";
 import { reportSources, reports } from "../../../../db/schema";
 
-const countries = new Set(["KZ", "UZ", "KG", "TJ", "TM"]);
+const countries = new Set(["KZ", "UZ", "KG", "TJ", "TM", "LA", "VN", "TH", "MM", "KH"]);
 const types = new Set(["daily", "weekly", "monthly", "quarterly", "annual"]);
 const supersededSlugs = new Set(["2026-08-13-中亚菌类市场研究日报-2026-08-13-dc3459"]);
 const authorized = (request: Request) => Boolean(process.env.CRON_SECRET) && request.headers.get("x-cron-secret") === process.env.CRON_SECRET;

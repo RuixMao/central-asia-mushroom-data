@@ -1,4 +1,4 @@
-"""中亚五国食用菌多语检索词矩阵。
+"""中亚及东南亚目标市场食用菌多语检索词矩阵。
 
 本地语言和俄语都是真实的检索任务,language 不只是入库标签。
 检索结果会保留 query_language/query_term/query_species,便于评估每个词的产出。
@@ -204,6 +204,55 @@ COUNTRY_SEARCH_TERMS = {
             "milk_mushroom": (("грузди", "russian"),),
             "blewit": (("синеножки", "russian"),),
             "steppe_mushroom": (("белый степной гриб", "russian"),),
+        },
+    },
+    "LA": {
+        "lo": {
+            "mushrooms": (("ເຫັດ", "native"),),
+            "oyster_mushroom": (("ເຫັດນາງລົມ", "native"),),
+            "shiitake": (("ເຫັດຫອມ", "native"),),
+            "enoki": (("ເຫັດເຂັມທອງ", "native"),),
+        },
+        "en": {"mushrooms": (("mushroom", "loan"),)},
+    },
+    "VN": {
+        "vi": {
+            "mushrooms": (("nấm", "native"),),
+            "button_mushroom": (("nấm mỡ", "native"),),
+            "oyster_mushroom": (("nấm bào ngư", "native"),),
+            "shiitake": (("nấm hương", "native"),),
+            "enoki": (("nấm kim châm", "native"),),
+            "king_oyster_mushroom": (("nấm đùi gà", "native"),),
+        },
+        "en": {"mushrooms": (("mushroom", "loan"),)},
+    },
+    "TH": {
+        "th": {
+            "mushrooms": (("เห็ด", "native"),),
+            "button_mushroom": (("เห็ดแชมปิญอง", "loan"),),
+            "oyster_mushroom": (("เห็ดนางรม", "native"),),
+            "shiitake": (("เห็ดหอม", "native"),),
+            "enoki": (("เห็ดเข็มทอง", "native"),),
+            "king_oyster_mushroom": (("เห็ดออรินจิ", "loan"),),
+        },
+        "en": {"mushrooms": (("mushroom", "loan"),)},
+    },
+    "MM": {
+        "my": {"mushrooms": (("မှို", "native"),)},
+        "en": {
+            "mushrooms": (("mushroom", "loan"),),
+            "oyster_mushroom": (("oyster mushroom", "loan"),),
+            "shiitake": (("shiitake mushroom", "loan"),),
+            "enoki": (("enoki mushroom", "loan"),),
+        },
+    },
+    "KH": {
+        "km": {"mushrooms": (("ផ្សិត", "native"),)},
+        "en": {
+            "mushrooms": (("mushroom", "loan"),),
+            "button_mushroom": (("button mushroom", "loan"),),
+            "shiitake": (("shiitake mushroom", "loan"),),
+            "enoki": (("enoki mushroom", "loan"),),
         },
     },
 }

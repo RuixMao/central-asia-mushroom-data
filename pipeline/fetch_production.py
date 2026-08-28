@@ -3,7 +3,7 @@ import csv,datetime as dt,io,json,os,zipfile
 from pathlib import Path
 from utils import log,post_to_site,safe_get
 
-COUNTRIES={"KZ":108,"UZ":235,"KG":113,"TJ":208,"TM":213}
+COUNTRIES={"KZ":108,"UZ":235,"KG":113,"TJ":208,"TM":213,"LA":120,"VN":237,"TH":216,"MM":28,"KH":115}
 ITEM_CODE=449
 ELEMENT_CODE=5510
 API="https://fenixservices.fao.org/faostat/api/v1/en/data/QCL"

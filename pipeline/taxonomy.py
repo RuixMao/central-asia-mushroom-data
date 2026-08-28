@@ -1,9 +1,9 @@
 import re
 
 SPECIES={
- "button_mushroom":["шампиньон","шампиньондор","шампин.","шампин","champignon","button mushroom","gelin kömelek","şampinýon","şampinon","şampinjon","şampion","champinjon","shampinyon","sampinyon","shampinion","双孢菇"],"oyster_mushroom":["вешенк","veshenka","veshenki","weşenka kömelegi","устричный гриб","oyster mushroom","平菇"],
- "enoki":["эноки","enoki","enokitake","金针菇"],"shiitake":["шиитаке","шиитаки","shiitake","siitake","sitake","香菇"],"king_oyster_mushroom":["королевская вешенка","king oyster mushroom","king trumpet mushroom","эринги","eringi","杏鲍菇"],
- "shimeji":["шимиджи","shimeji","shimeji"],"wood_ear":["муэр","wood ear","древесный гриб","ағаш саңырауқұлағы"],"snow_fungus":["серебряное ухо","snow fungus"],
+ "button_mushroom":["шампиньон","шампиньондор","шампин.","шампин","champignon","button mushroom","gelin kömelek","şampinýon","şampinon","şampinjon","şampion","champinjon","shampinyon","sampinyon","shampinion","nấm mỡ","เห็ดแชมปิญอง","双孢菇"],"oyster_mushroom":["вешенк","veshenka","veshenki","weşenka kömelegi","устричный гриб","oyster mushroom","nấm bào ngư","เห็ดนางรม","平菇"],
+ "enoki":["эноки","enoki","enokitake","nấm kim châm","เห็ดเข็มทอง","金针菇"],"shiitake":["шиитаке","шиитаки","shiitake","shitake","siitake","sitake","nấm hương","nấm đông cô","เห็ดหอม","ເຫັດຫອມ","香菇"],"king_oyster_mushroom":["королевская вешенка","king oyster mushroom","king trumpet mushroom","эринги","eringi","nấm đùi gà","เห็ดออรินจิ","杏鲍菇"],
+ "shimeji":["шимиджи","shimeji","shime ji","beech mushroom","nấm hải sản","เห็ดชิเมจิ"],"wood_ear":["муэр","wood ear","black jelly mushroom","древесный гриб","ағаш саңырауқұлағы","เห็ดหูหนู"],"snow_fungus":["серебряное ухо","snow fungus","silver mushroom"],
     "morel":["сморчок","сморчки","сморчковая шапочка","morel","morels","морэл","морл"],"matsutake":["мацутакэ","matsutake"],"porcini":["белый гриб","белые грибы","гриб белый","боровик","боровики","подосиновик","подосиновики","красноголовик","porcini","ақ саңырауқұлақ"],
     "chanterelle":["лисичк","лисички","chanterelle","chanterelles"],"straw_mushroom":["вольвариелла","straw mushroom"],"honey_fungus":["опёнок","опенок","опята","honey mushroom","honey fungus","занбӯруғи асал","бал саңырауқұлағы"],
     "suillus":["маслёнок","масленок","маслята","suillus"],"truffle":["трюфель","truffle"],
@@ -15,9 +15,9 @@ SPECIES={
     # 来源验证:哈萨克市场 White Steppe Mushroom,吉尔吉斯 Ak kozu garyn,
     # 学名 Pleurotus eryngii var. ferulae;独立于杏鲍菇的商业品类)
     "steppe_mushroom":["белый степной гриб","белые степные грибы","степной белый гриб","степной гриб","степная вешенка","white steppe mushroom","steppe white mushroom","ferula mushroom","pleurotus ferulae","eryngii var. ferulae","阿魏菇","阿魏側耳","阿魏蘑","白灵菇","白靈菇","白阿魏蘑","翅鲍菇","雪山灵芝"]}
-AMBIGUOUS=["грибы","mushrooms","саңырауқұлақ","козу карын","ак козу карын","ак козу карындар","занбӯруғ","qo‘ziqorin","qo'ziqorin","oq qo‘ziqorin","oq qo'ziqorin","ферула","золотые нити","древесные грибы","лесные грибы","kömelek","gömelek","komelek","kömelekler","kömelekli","komelekler","komelekli","вешенкалар","шампиньондар"]
+AMBIGUOUS=["грибы","mushroom","mushrooms","ເຫັດ","nấm","เห็ด","မှို","ផ្សិត","саңырауқұлақ","козу карын","ак козу карын","ак козу карындар","занбӯруғ","qo‘ziqorin","qo'ziqorin","oq qo‘ziqorin","oq qo'ziqorin","ферула","золотые нити","древесные грибы","лесные грибы","kömelek","gömelek","komelek","kömelekler","kömelekli","komelekler","komelekli","вешенкалар","шампиньондар"]
 EXCLUDE_ONLY=["грибной соус","mushroom sauce","mushroom flavour","蘑菇味","мицелий","грибница","семена гриб","споры гриб","ящик для грибов","увлажнитель","оборудование для гриб","субстрат","компост для гриб","набор для выращивания","электрод","светильник","лампа","игрушк","декор","саңырауқұлақ тәрізді","электр"]
-FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen"]),("dried",["сушен","сушён","сухие","сухой","сухая","dried","хушккарда"]),("pickled",["марин","pickled","marinadlanan"]),("canned",["консерв","canned","konserw"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh"])]
+FORMS=[("prepared_food",["готовое блюдо","в соусе","суп","лапша","приправа","соус"]),("frozen",["заморож","frozen","đông lạnh","แช่แข็ง"]),("dried",["сушен","сушён","сухие","сухой","сухая","dried","хушккарда","nấm khô","เห็ดแห้ง"]),("pickled",["марин","pickled","marinadlanan"]),("canned",["консерв","canned","konserw"]),("powder",["порош","powder"]),("provisionally_preserved",["временно консерв"]),("chilled",["охлажден","chilled"]),("fresh",["свеж","fresh","tươi","สด","ສົດ"])]
 
 def _hits(text):
  matches=[]
@@ -73,17 +73,17 @@ def parse_package(text,allow_volume=False,volume_kg_per_l=1.0):
    return {"package_value":value,"package_unit":"ml" if unit in ("ml","мл") else "l","package_count":1,"normalized_quantity_kg":None,"parse_status":"volume_not_mass","evidence":volume.group(0),"value":value,"unit":"ml" if unit in ("ml","мл") else "l","quantity_kg":None,"conversion_basis":None}
   kg=litres*float(volume_kg_per_l)
   return {"package_value":value,"package_unit":"ml" if unit in ("ml","мл") else "l","package_count":1,"normalized_quantity_kg":kg,"parse_status":"valid_volume_estimate","evidence":volume.group(0),"value":value,"unit":"ml" if unit in ("ml","мл") else "l","quantity_kg":kg,"conversion_basis":f"1 L = {float(volume_kg_per_l):g} kg"}
- m=re.search(r"(\d+)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(kg|кг|gr|g|гр|г)\b",s)
+ m=re.search(r"(\d+)\s*(?:[x×]|gói|แพ็ค|pack(?:s)?)\s*(\d+(?:\.\d+)?)\s*(kg|кг|gr|g|гр|г|กรัม|ก\.)(?=\s|$|[x×])",s)
  if m:count=int(m.group(1));value=float(m.group(2));unit=m.group(3);evidence=m.group(0)
  else:
-  m=re.search(r"(\d+(?:\.\d+)?)\s*(kg|кг|gr|g|гр|г)\s*[x×]\s*(\d+)",s)
+  m=re.search(r"(\d+(?:\.\d+)?)\s*(kg|кг|gr|g|гр|г|กรัม|ก\.)\s*[x×]\s*(\d+)",s)
   if m:value=float(m.group(1));unit=m.group(2);count=int(m.group(3));evidence=m.group(0)
   else:
-   m=re.search(r"(\d+(?:\.\d+)?)\s*(kg|кг|gr|g|гр|г)\b",s)
+   m=re.search(r"(\d+(?:\.\d+)?)\s*(kg|кг|gr|g|гр|г|กรัม|ก\.)(?=\s|$|[x×])",s)
    if m:value=float(m.group(1));unit=m.group(2);evidence=m.group(0)
    elif re.search(r"(за|по|per)\s*(1\s*)?(kg|кг)",s):value,unit,evidence=1.0,"kg","per kg"
    else:return {"package_value":None,"package_unit":None,"package_count":None,"normalized_quantity_kg":None,"parse_status":"uncertain" if re.search(r"шт|pack|упак|件",s) else "invalid","evidence":None,"value":None,"unit":None,"quantity_kg":None}
- kg=(value if unit in ("kg","кг") else value/1000)*count
+ kg=round((value if unit in ("kg","кг") else value/1000)*count,6)
  return {"package_value":value,"package_unit":"kg" if unit in ("kg","кг") else "g","package_count":count,"normalized_quantity_kg":kg,"parse_status":"valid","evidence":evidence,"value":value,"unit":"kg" if unit in ("kg","кг") else "g","quantity_kg":kg}
 
 def normalize_price(price,package_text,promotion_price=None,allow_volume=False,volume_kg_per_l=1.0):
