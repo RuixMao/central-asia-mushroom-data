@@ -14,17 +14,23 @@ _parse_price = parse_price_text
 MUSHROOM = re.compile(
     r"гриб|шампин|вешен|шиитак|эноки|"
     r"саңырауқұлақ|коз(?:у)?\s+кар|опята|занбӯруғ|"
-    r"qo['‘’`]ziqorin|shampinyon|sampinyon|veshenka|k[oö]melek|şampinýom",
+    r"qo['‘’`]ziqorin|shampinyon|sampinyon|veshenka|k[oö]melek|şampinýom|"
+    r"mushroom|ເຫັດ|nấm|เห็ด|မှို|ផ្សិត",
     re.I,
 )
 # 排除非可食用菌:菌丝/种子/培养包/设备/教材/书籍/科普等
 NON_FOOD = re.compile(
     r"мицел|семен|спор|набор для выращ|грибной блок|urug|mitsel|"
     r"учебник|класс|биолог|книг|реферат|презентац|"
-    r"субстрат|компост|увлажнитель|оборудован",
+    r"субстрат|компост|увлажнитель|оборудован|"
+    r"spawn|growing kit|mycelium|bào tử|phôi nấm|ก้อนเชื้อ|မျိုးစေ့|ពូជ",
     re.I,
 )
-PRICE = re.compile(r"(\d[\d\s,.]{0,15})\s*(?:₸|KZT|сом|KGS|сум|UZS|TJS|TMT|c\.|с\.)", re.I)
+PRICE = re.compile(
+    r"(?:₭|฿|₫|៛|MMK|KHR|LAK|VND|THB|USD|\$|K(?=\s*\d))\s*(\d[\d\s,.]{0,15})|"
+    r"(\d[\d\s,.]{0,15})\s*(?:₸|KZT|сом|KGS|сум|UZS|TJS|TMT|LAK|VND|THB|MMK|KHR|ကျပ်|đ|บาท|ກີບ|រៀល|c\.|с\.)",
+    re.I,
+)
 
 
 def _walk(value):

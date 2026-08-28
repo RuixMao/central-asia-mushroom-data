@@ -6,6 +6,8 @@ from pathlib import Path
 from urllib.parse import quote
 from review import review_record
 from sanity import apply_sanity_validation, review_sanity_outliers
+from auto_review import resolve_pending_reviews
+from investigate_review import investigate_pending_reviews
 from product_dimensions import describe_product
 from adapters.globus import GlobusAdapter
 from adapters.omarket import OMarketAdapter
@@ -74,9 +76,14 @@ SOURCES=[
 (FlagmaAdapter,{"platform":"flagma-kg","platform_name":"Flagma.kg","platform_product_id":"catalog-search","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://flagma-kg.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"KGS","language":"ru"}),
 (FlagmaAdapter,{"platform":"flagma-tj","platform_name":"Flagma.tj","platform_product_id":"catalog-search","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://flagma-tj.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"TJS","language":"ru"}),
 (FlagmaAdapter,{"platform":"flagma-tm","platform_name":"Flagma-TM","platform_product_id":"catalog-search","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://flagma-tm.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"TMT","language":"ru"}),
+(CatalogSearchAdapter,{"platform":"champa-garden-la","platform_name":"Champa Garden Shop","platform_product_id":"fresh-shiitake-100g","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://champagardenshop.com/products/fresh-shitake-100g-pack-barcode-50103200","title":"ເຫັດຫອມສົດ 100g Fresh Shitake 100g pack","package":"100 g","currency":"LAK","language":"lo"}),
+(CatalogSearchAdapter,{"platform":"bach-hoa-xanh-vn","platform_name":"Bách hoá XANH","platform_product_id":"fresh-mushroom-category","country":"VN","city":"Ho Chi Minh City","collection_point_id":"HCMC_POINT_01","url":"https://www.bachhoaxanh.com/nam-tuoi/","title":"Nấm các loại","package":"","currency":"VND","language":"vi"}),
+(CatalogSearchAdapter,{"platform":"bigc-th","platform_name":"Big C Online","platform_product_id":"mushroom-category","country":"TH","city":"Bangkok","collection_point_id":"BANGKOK_POINT_01","url":"https://www.bigc.co.th/category/mushroom","title":"เห็ด","package":"","currency":"THB","language":"th"}),
+(CatalogSearchAdapter,{"platform":"foodpanda-mm","platform_name":"Capital Hypermarket / foodpanda","platform_product_id":"capital-hypermarket-mushrooms","country":"MM","city":"Yangon","collection_point_id":"YANGON_POINT_01","url":"https://www.foodpanda.com.mm/en/shop/z2su/capital-hypermarket-h001-dawbon-z2su","title":"Mushrooms","package":"","currency":"MMK","language":"en"}),
+(CatalogSearchAdapter,{"platform":"lucky-foodpanda-kh","platform_name":"Lucky Supermarket / foodpanda","platform_product_id":"lucky-olympia-mushrooms","country":"KH","city":"Phnom Penh","collection_point_id":"PHNOM_PENH_POINT_01","url":"https://www.foodpanda.com.kh/en/shop/bq32/lucky-supermarket-olympia","title":"Fresh mushrooms","package":"","currency":"USD","language":"en"}),
 ]
 
-# 五国检索任务均同时包含本地语言和俄语。对可靠的商品搜索站扫描全品类；
+# 中亚任务使用本地语言和俄语，东南亚任务使用本地语言和英语。对可靠的商品搜索站扫描全品类；
 # 对容易限流或仅有通用搜索页的站点，只用食用菌总词发现商品，再由 taxonomy 分类。
 SOURCES=[entry for entry in SOURCES if entry[1].get("platform_product_id") not in {"search-shampinon", "catalog-search"}]
 
@@ -148,7 +155,13 @@ def rates():
 RENDERED_PLATFORMS = {"kaspi-kz", "yandex-uz", "uzum-uz"}
 # 长期无产出的平台(面议 B2B / 无蘑菇数据),日常模式跳过避免空跑,
 # 仅在 expanded/all 模式或显式指定 PLATFORM 时采集(降频不删除)。
-LOW_FREQUENCY_PLATFORMS = {"flagma-kz", "flagma-uz", "flagma-kg", "flagma-tj", "flagma-tm", "makro-uz"}
+LOW_FREQUENCY_PLATFORMS = {
+ "flagma-kz", "flagma-uz", "flagma-kg", "flagma-tj", "flagma-tm", "makro-uz",
+ # 2026-08-24 五国线上复测：搜索接口持续 429，详情页持续 403/498，
+ # 且逐商品重试会把单国日常任务拖长数分钟。保留适配器和国家配送区，
+ # 但只在显式 PLATFORM=wildberries-xx 或 COLLECTION_MODE=all 时低频复测。
+ "wildberries-kz", "wildberries-uz", "wildberries-kg", "wildberries-tj", "wildberries-tm",
+}
 COLLECTION_MODE = os.getenv("COLLECTION_MODE", "static").strip().lower()
 
 def run():
@@ -199,7 +212,12 @@ def run():
    normalized_usd_per_kg=round(norm["price_per_kg"]/local_per_usd,2) if norm.get("price_per_kg") is not None else None
    sanity_review=apply_sanity_validation(review,category["species_id"],row["country"],normalized_usd_per_kg)
    items.append({**item,**sanity_review,"normalized_price_usd_per_kg":normalized_usd_per_kg})
+ investigation_stats=investigate_pending_reviews(items)
  auto_reviewed=review_sanity_outliers(items)
+ # 自动复核闭环：可解释异常自动放行，证据不足项自动隔离；后续定时采集
+ # 会再次读取源页面，解析器一旦获得完整证据即可自然恢复为 valid。
+ quarantine_unresolved=os.getenv("AUTO_REVIEW_QUARANTINE", "1").lower() not in {"0","false","no"}
+ review_stats=resolve_pending_reviews(items,quarantine_unresolved=quarantine_unresolved)
  if items and not dry_run:
   payload={"items":items}
   post_to_site("/api/ingest/prices",payload)
@@ -219,7 +237,7 @@ def run():
    labels=TARGET_SPECIES.get(it["species_id"],{})
    normalized_usd_per_kg=it.get("normalized_price_usd_per_kg")
    package_display=f'{it["package_value"]:g} {it["package_unit"]}' if it.get("package_value") and it.get("package_unit") else ""
-   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":it["country"],"source":it["platform"],"data":{"product_key":f'{it["platform"]}:{it["collection_point_id"]}:{it["platform_product_id"]}',"species_id":it["species_id"],"species_zh":labels.get("zh",it["species_id"]),"species_foreign":labels.get("ru") or labels.get("en"),"original_title":it["original_title"],"original_language":it["original_language"],"discovery":{"query_language":it.get("query_language"),"query_term":it.get("query_term"),"query_species":it.get("query_species")},"product_form":it["product_form"],"product_shape":it["product_shape"],"processing_state":it["processing_state"],"packaging_type":it["packaging_type"],"brand":it.get("brand"),"origin_country":it.get("origin_country"),"package_display":package_display,"package_source":it["package_source"],"package_conversion_basis":it.get("package_conversion_basis"),"platform_id":it["platform"],"platform_name":it["platform_name"],"status":"live","validation_status":it["validation_status"],"sanity_outlier":it["sanity_outlier"],"sanity_reason":it["sanity_reason"],"price_local":it["current_price"],"price_usd":it["price_usd"],"normalized_price_usd_per_kg":normalized_usd_per_kg,"currency":it["currency"],"observed_at":today,"retrieved_at":it["observed_at"],"source_url":it["product_url"]}})
+   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":it["country"],"source":it["platform"],"data":{"product_key":f'{it["platform"]}:{it["collection_point_id"]}:{it["platform_product_id"]}',"species_id":it["species_id"],"species_zh":labels.get("zh",it["species_id"]),"species_foreign":labels.get("ru") or labels.get("en"),"original_title":it["original_title"],"original_language":it["original_language"],"discovery":{"query_language":it.get("query_language"),"query_term":it.get("query_term"),"query_species":it.get("query_species")},"product_form":it["product_form"],"product_shape":it["product_shape"],"processing_state":it["processing_state"],"packaging_type":it["packaging_type"],"brand":it.get("brand"),"origin_country":it.get("origin_country"),"package_display":package_display,"package_source":it["package_source"],"package_conversion_basis":it.get("package_conversion_basis"),"platform_id":it["platform"],"platform_name":it["platform_name"],"status":"live","validation_status":it["validation_status"],"auto_review_status":it.get("auto_review_status"),"auto_review_reason":it.get("auto_review_reason"),"sanity_outlier":it["sanity_outlier"],"sanity_reason":it["sanity_reason"],"price_local":it["current_price"],"price_usd":it["price_usd"],"normalized_price_usd_per_kg":normalized_usd_per_kg,"currency":it["currency"],"observed_at":today,"retrieved_at":it["observed_at"],"source_url":it["product_url"]}})
   successful_platforms={it["platform"] for it in items}
   platform_errors={e["platform"]:e["reason"] for e in errors if e["platform"] not in successful_platforms}
   for platform,reason in platform_errors.items():
@@ -236,14 +254,16 @@ def run():
   for platform,config in platform_configs.items():
    count=sum(1 for it in items if it["platform"]==platform)
    valid_count=sum(1 for it in items if it["platform"]==platform and it["validation_status"]=="valid")
-   health_status="live" if valid_count else ("needs_review" if count else "gap")
+   pending_count=sum(1 for it in items if it["platform"]==platform and it["validation_status"]=="needs_review")
+   quarantined_count=sum(1 for it in items if it["platform"]==platform and it["validation_status"]=="rejected")
+   health_status="live" if valid_count else ("needs_review" if pending_count else ("quarantined" if quarantined_count else "gap"))
    platform_queries=[q for q in query_runs if q["platform"]==platform]
    try:
-    post_to_site("/api/ingest/snapshot",{"metric":"source_health","country":config["country"],"source":platform,"data":{"status":health_status,"candidate_count":count,"valid_count":valid_count,"needs_review_count":count-valid_count,"reason":platform_errors.get(platform),"search_coverage":{"languages":sorted({q["language"] for q in platform_queries}),"query_count":len(platform_queries),"successful_query_count":sum(q["status"]=="live" for q in platform_queries)},"observed_at":today}})
+    post_to_site("/api/ingest/snapshot",{"metric":"source_health","country":config["country"],"source":platform,"data":{"status":health_status,"candidate_count":count,"valid_count":valid_count,"needs_review_count":pending_count,"quarantined_count":quarantined_count,"reason":platform_errors.get(platform),"search_coverage":{"languages":sorted({q["language"] for q in platform_queries}),"query_count":len(platform_queries),"successful_query_count":sum(q["status"]=="live" for q in platform_queries)},"observed_at":today}})
    except RuntimeError as exc:
     log(f"source_health 写入失败(降级): {exc}")
  valid_items=[it for it in items if it["validation_status"]=="valid"]
- summary={"candidates":len(items),"valid":len(valid_items),"needs_review":len(items)-len(valid_items),
+ summary={"candidates":len(items),"valid":len(valid_items),"needs_review":sum(it["validation_status"]=="needs_review" for it in items),"quarantined":sum(it["validation_status"]=="rejected" for it in items),"investigation":investigation_stats,"auto_review":review_stats,
           "valid_by_country":dict(sorted(Counter(it["country"] for it in valid_items).items())),
           "valid_by_platform":dict(sorted(Counter(it["platform"] for it in valid_items).items())),
           "valid_by_species":dict(sorted(Counter(it["species_id"] for it in valid_items).items())),
@@ -264,7 +284,9 @@ def run():
   log(f"检索词审计报告已写入: {output_path}")
  sanity_count=sum(1 for it in items if it.get("sanity_outlier"));sanity_pct=(sanity_count/len(items)*100) if items else 0
  log(f"sanity: {sanity_count} 条超出区间（{sanity_pct:.1f}%），已标记 needs_review")
- log(f"sanity review: {auto_reviewed} 条已找到有页面规格证据的价格差异原因，其余保持原因待查")
+ log(f"sanity review: {auto_reviewed} 条已找到有页面规格证据的价格差异原因")
+ log(f"targeted investigation: {json.dumps(investigation_stats,ensure_ascii=False)}")
+ log(f"auto review loop: {json.dumps(review_stats,ensure_ascii=False)}")
  log(f"平台适配器完成：{json.dumps(summary,ensure_ascii=False)}，失败任务 {len(errors)} 条，dry_run={dry_run}；{errors}")
  if not items and not dry_run:raise RuntimeError("没有有效价格")
 if __name__=="__main__":run()

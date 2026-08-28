@@ -3,7 +3,7 @@ import { getDb } from "../../../../db";
 import { dataSnapshots } from "../../../../db/schema";
 
 const metrics = new Set(["trade", "price", "price_retail", "logistics", "production", "source_health", "search_query_health", "macro", "market_avg_price", "fx", "freight", "port_status", "regulation", "event_calendar"]);
-const countries = new Set(["KZ", "UZ", "KG", "TJ", "TM"]);
+const countries = new Set(["KZ", "UZ", "KG", "TJ", "TM", "LA", "VN", "TH", "MM", "KH"]);
 const authorized = (request: Request) => Boolean(process.env.CRON_SECRET) && request.headers.get("x-cron-secret") === process.env.CRON_SECRET;
 
 export async function POST(request: Request) {

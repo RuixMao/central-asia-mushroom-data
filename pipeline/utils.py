@@ -57,7 +57,8 @@ def find_price_match(node, pattern):
             continue
         text = " ".join(str(value).split())
         for match in pattern.finditer(text):
-            price = parse_price_text(match.group(1))
+            price_group = next((group for group in match.groups() if group is not None), None)
+            price = parse_price_text(price_group)
             if price is not None and price > 0:
                 return match, price
     return None, None

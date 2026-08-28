@@ -12,7 +12,7 @@ const market=(code:"KZ"|"UZ")=>{
 };
 const focusMarkets=[{code:"KZ" as const,name:"哈萨克斯坦",conclusion:"规模领先，适合优先验证鲜品冷链与渠道成交条件。",risk:"冷链到岸成本及零售挂牌价与真实成交价差异"},{code:"UZ" as const,name:"乌兹别克斯坦",conclusion:"市场仍处培育期，适合从塔什干渠道和具体品类小范围验证。",risk:"批发成交、净重规格与进口来源国信息仍待核验"}];
 const coverage=[
-  ["KZ","已覆盖","今日覆盖","部分覆盖","待验证","部分覆盖"],
+  ["KZ","已覆盖","今日覆盖","部分覆盖","3条参考价","部分覆盖"],
   ["UZ","已覆盖","今日覆盖","部分覆盖","待验证","部分覆盖"],
   ["KG","已覆盖","今日覆盖","部分覆盖","暂无来源","待验证"],
   ["TJ","镜像覆盖","今日覆盖","待验证","暂无来源","待验证"],
@@ -22,7 +22,7 @@ const coverage=[
 export default function CorporateHome(){return <div className="marketing-site decision-home">
   <SiteNav/>
   <main>
-    <section className="decision-hero"><div><span>中亚食用菌市场判断与落地验证</span><h1>不确定该先进入哪个中亚市场？</h1><p>比较五国市场规模、当地价格、渠道和进入风险，先找到更适合您的目标市场，再决定是否报价、打样或试单。</p><div><a className="corp-primary" href="/insights/country">帮我选择目标市场</a><a className="corp-secondary" href="/market">查询当地价格 →</a></div><small className="hero-trust-note">结论均标明数据来源、更新时间和仍需核实的风险，不用缺失数据替您做决定。</small></div><Image src="/central-asia-corridor.png" alt="连接中国与中亚市场的跨境物流走廊" width={1536} height={1024} priority/></section>
+    <section className="decision-hero"><div><span>中亚及东南亚食用菌市场判断与落地验证</span><h1>从老挝出发，寻找更合适的出海市场</h1><p>比较中亚五国与东南亚五国的市场规模、当地价格、渠道和进入风险，重点验证老挝，再决定是否报价、打样或试单。</p><div><a className="corp-primary" href="/insights/country">帮我选择目标市场</a><a className="corp-secondary" href="/market">查询当地价格 →</a></div><small className="hero-trust-note">结论均标明数据来源、更新时间和仍需核实的风险，不用缺失数据替您做决定。</small></div><Image src="/central-asia-corridor.png" alt="连接中国与中亚及东南亚市场的跨境贸易走廊" width={1536} height={1024} priority/></section>
 
     <section className="decision-section"><header><span>从您的问题开始</span><h2>现在最想解决哪一步？</h2></header><div className="decision-question-grid">{[["01","不知道先做哪个国家","比较市场规模、竞争、渠道和风险，缩小目标范围。","/insights/country","比较五国市场"],["02","不知道当地能卖多少钱","按国家、菌种、规格和渠道查看公开价格，判断报价空间。","/market","查询当地价格"],["03","担心机会无法真正落地","核对物流、准入、渠道和证据缺口，明确试单前还要验证什么。","/opportunities","查看待验证机会"]].map(x=><article key={x[0]}><span>{x[0]}</span><h3>{x[1]}</h3><p>{x[2]}</p><a href={x[3]}>{x[4]} →</a></article>)}</div></section>
 

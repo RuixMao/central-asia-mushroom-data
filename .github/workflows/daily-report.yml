@@ -35,8 +35,8 @@ jobs:
         with:
           python-version: '3.12'
       - run: pip install -r pipeline/requirements.txt
-      - name: Verify report and WeChat dependencies
-        run: python -c "import sys; sys.path.insert(0, 'pipeline'); import generate_report, publish_wechat_draft"
+      - name: Verify report and content dependencies
+        run: python -c "import sys; sys.path.insert(0, 'pipeline'); import generate_report, generate_content_package"
       - name: Confirm today's production prices are available
         if: ${{ inputs.validate_only != true }}
         run: |
@@ -127,8 +127,25 @@ jobs:
           REPORT_REVISION: ${{ inputs.publish_revision == true && 'true' || 'false' }}
           REPORT_REPLACE_SLUG: ${{ inputs.replace_slug }}
           REPORT_ARTIFACT_OUTPUT: tmp/daily-report.json
-      - name: Add report to WeChat Official Account drafts
+      - name: Generate daily video and social content package
         if: ${{ inputs.validate_only != true }}
+        run: python pipeline/generate_content_package.py
+        env:
+          REPORT_ARTIFACT_OUTPUT: tmp/daily-report.json
+          CONTENT_PACKAGE_DIR: tmp/daily-content-package
+          VIDEO_VOICE_ID: zhixingnv
+      - name: Preserve daily article and video production package
+        if: ${{ inputs.validate_only != true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: daily-content-package
+          path: |
+            tmp/daily-report.json
+            tmp/daily-content-package/
+          retention-days: 30
+      - name: Add report to WeChat Official Account drafts
+        # 固定公网 IP 就绪后，在仓库 Variables 中设置 ENABLE_WECHAT_DRAFT=true 即可恢复。
+        if: ${{ inputs.validate_only != true && vars.ENABLE_WECHAT_DRAFT == 'true' }}
         run: python pipeline/publish_wechat_draft.py
         env:
           REPORT_ARTIFACT_OUTPUT: tmp/daily-report.json

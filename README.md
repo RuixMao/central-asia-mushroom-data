@@ -101,14 +101,21 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 ## 自动化数据管线
 
-`pipeline/` 每日采集 UN Comtrade 贸易数据与物流时效，每周一按“中亚五国 × 5 个菌种”采集当地商超、电商和分类信息价格。所有结果写入 D1；无价格时写入 `status: gap`，绝不写 0。随后由 AI 生成中文市场日报并写入报告表。
+`pipeline/` 每日采集中亚五国及东南亚五国的 UN Comtrade 贸易、汇率与市场背景数据，并采集当地商超、电商和分类信息价格；东南亚任务优先验证老挝。所有结果写入 D1；无价格时写入 `status: gap`，绝不写 0。随后生成中文市场日报并写入报告表。
 
 核心入口：
 
-- `python pipeline/fetch_trade.py`：最近两年、五国、3 个 HS 编码。
+- `python pipeline/fetch_trade.py`：最近两年、十国、3 个 HS 编码。
 - `python pipeline/fetch_logistics.py`：中亚核心路线时效中位数。
-- `python pipeline/fetch_price.py`：16 个来源的周频价格与缺口采集。
+- `python pipeline/fetch_price.py`：按 `pipeline/config.py` 的 `COUNTRIES` 与 `pipeline/fetch_price.py` 的 `SOURCES` 采集价格和来源缺口。
 - `python pipeline/generate_report.py`：读取最新快照并生成日报。
+
+价格采集内置自动复核闭环：先按页面证据校验品类、规格、价格和合理区间；
+可由同批有效样本解释的小包装溢价会自动复核通过，仍缺少可验证证据的记录
+不会写入正式价格表；同日已经存在的旧记录也会被撤回，失败原因只留在采集审计
+和来源质量统计中。定时任务下一轮会重新读取源页面，证据恢复后重新进入正式库，
+因此不会长期堆积为“待复核”。如需观察旧行为，可临时设置
+`AUTO_REVIEW_QUARANTINE=0`。
 
 站点环境变量：`CRON_SECRET`、`UN_COMTRADE_API_KEY`，可选 `DEPLOY_HOOK_URL`。GitHub Actions Secrets：`SITE_URL`、`CRON_SECRET`、`UN_COMTRADE_API_KEY`、`AI_PROVIDER`、`AI_API_KEY`。
 

@@ -5,7 +5,7 @@ import { mirrorRecords, opportunities } from "./data";
 
 type PriceRow = { observation_date:string; country:string; country_name?:string; species_id:string; species_name?:string; platform_name:string; original_title:string; normalized_usd_per_kg:number|null };
 type Report = { slug?:string; title:string; summary?:string; type:string; date?:string; publishedAt?:string|number|Date };
-const countryNames:Record<string,string>={KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦"};
+const countryNames:Record<string,string>={KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦",LA:"老挝",VN:"越南",TH:"泰国",MM:"缅甸",KH:"柬埔寨"};
 const countryCodes=["KZ","UZ","KG","TJ","TM"];
 const money=(value:number)=>value?value>=1_000_000?`$${(value/1_000_000).toFixed(2)}M`:`$${Math.round(value/1000).toLocaleString("zh-CN")}K`:"—";
 const range=(values:number[])=>values.length?`$${Math.min(...values).toFixed(2)}–$${Math.max(...values).toFixed(2)}/kg`:"—";

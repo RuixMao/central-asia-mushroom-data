@@ -14,6 +14,11 @@ COUNTRIES={
  "KG":{"name":"Kyrgyzstan","publisher":"吉尔吉斯斯坦政府及权威机构"},
  "TJ":{"name":"Tajikistan","publisher":"塔吉克斯坦政府及权威机构"},
  "TM":{"name":"Turkmenistan","publisher":"土库曼斯坦政府及权威机构"},
+ "LA":{"name":"Laos","publisher":"老挝政府及权威机构"},
+ "VN":{"name":"Vietnam","publisher":"越南政府及权威机构"},
+ "TH":{"name":"Thailand","publisher":"泰国政府及权威机构"},
+ "MM":{"name":"Myanmar","publisher":"缅甸政府及权威机构"},
+ "KH":{"name":"Cambodia","publisher":"柬埔寨政府及权威机构"},
 }
 COUNTRY_TERMS={
  "KZ":("kazakhstan","kazakh","қазақстан","казахстан"),
@@ -21,10 +26,16 @@ COUNTRY_TERMS={
  "KG":("kyrgyzstan","kyrgyz","кыргызстан","киргиз"),
  "TJ":("tajikistan","tajik","тоҷикистон","таджикистан"),
  "TM":("turkmenistan","turkmen","türkmenistan","туркменистан"),
+ "LA":("laos","lao","ລາວ"),
+ "VN":("vietnam","vietnamese","việt nam"),
+ "TH":("thailand","thai","ประเทศไทย"),
+ "MM":("myanmar","burma","မြန်မာ"),
+ "KH":("cambodia","cambodian","កម្ពុជា"),
 }
 COUNTRY_DOMAINS={
  "KZ":("gov.kz",),"UZ":("gov.uz",),"KG":("gov.kg","agro.gov.kg","stat.gov.kg"),
  "TJ":("stat.tj","moa.tj","egov.tj"),"TM":("gov.tm","tdh.gov.tm","mfa.gov.tm"),
+ "LA":("gov.la",),"VN":("gov.vn",),"TH":("go.th",),"MM":("gov.mm",),"KH":("gov.kh",),
 }
 INTERNATIONAL_DOMAINS=("fao.org","worldbank.org","un.org","unece.org","eurasiancommission.org")
 TRUSTED_DOMAINS=tuple(domain for domains in COUNTRY_DOMAINS.values() for domain in domains)+INTERNATIONAL_DOMAINS
@@ -74,11 +85,11 @@ def _documents():
    documents.append({"id":digest[:32],"country":country,"kind":"policy" if POLICY.search(title) else "news","title":title[:500],"publisher":publisher[:200],"source_url":url,"language":"en","published_at":published.isoformat(),"retrieved_at":now.isoformat(),"excerpt":title[:1000],"primary_source":primary,"verification_status":"verified","relevance_score":1.0,"content_hash":digest});seen.add(url)
    if len([d for d in documents if d['country']==country])>=5:break
  # 世界银行年度通胀仅作为宏观背景，不冒充当日变化。
- wb='https://api.worldbank.org/v2/country/KAZ;UZB;KGZ;TJK;TKM/indicator/FP.CPI.TOTL.ZG?format=json&date=2023:2026&per_page=100'
+ wb='https://api.worldbank.org/v2/country/KAZ;UZB;KGZ;TJK;TKM;LAO;VNM;THA;MMR;KHM/indicator/FP.CPI.TOTL.ZG?format=json&date=2023:2026&per_page=200'
  response=safe_get(wb,retries=2,timeout=35)
  if response:
   payload=response.json();rows=payload[1] if isinstance(payload,list) and len(payload)>1 else []
-  iso={"KAZ":"KZ","UZB":"UZ","KGZ":"KG","TJK":"TJ","TKM":"TM"}
+  iso={"KAZ":"KZ","UZB":"UZ","KGZ":"KG","TJK":"TJ","TKM":"TM","LAO":"LA","VNM":"VN","THA":"TH","MMR":"MM","KHM":"KH"}
   latest={}
   for row in rows:
    if row.get('value') is not None and row.get('countryiso3code') in iso and row.get('countryiso3code') not in latest:latest[row['countryiso3code']]=row

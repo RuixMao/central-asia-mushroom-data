@@ -3,7 +3,7 @@ import { index, integer, real, sqliteTable, text, uniqueIndex } from "drizzle-or
 export const dataSnapshots = sqliteTable("data_snapshots", {
   id: text("id").primaryKey(),
   metric: text("metric", { enum: ["trade", "price", "price_retail", "logistics", "production", "macro", "market_avg_price", "fx", "freight", "port_status", "regulation", "event_calendar", "search_query_health", "source_health"] }).notNull(),
-  country: text("country", { enum: ["KZ", "UZ", "KG", "TJ", "TM"] }).notNull(),
+  country: text("country", { enum: ["KZ", "UZ", "KG", "TJ", "TM", "LA", "VN", "TH", "MM", "KH"] }).notNull(),
   data: text("data", { mode: "json" }).$type<Record<string, unknown>>().notNull(),
   source: text("source").notNull(),
   capturedAt: integer("captured_at", { mode: "timestamp_ms" }).notNull(),
@@ -20,7 +20,7 @@ export const reports = sqliteTable("reports", {
   type: text("type", { enum: ["daily", "weekly", "monthly", "quarterly", "annual"] }).notNull(),
   summary: text("summary").notNull(),
   body: text("body").notNull(),
-  country: text("country", { enum: ["KZ", "UZ", "KG", "TJ", "TM"] }).notNull(),
+  country: text("country", { enum: ["KZ", "UZ", "KG", "TJ", "TM", "LA", "VN", "TH", "MM", "KH"] }).notNull(),
   aiGenerated: integer("ai_generated", { mode: "boolean" }).notNull().default(true),
   publishedAt: integer("published_at", { mode: "timestamp_ms" }).notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
@@ -31,7 +31,7 @@ export const reports = sqliteTable("reports", {
 
 export const marketDocuments = sqliteTable("market_documents", {
   id: text("id").primaryKey(),
-  country: text("country", { enum: ["KZ", "UZ", "KG", "TJ", "TM"] }).notNull(),
+  country: text("country", { enum: ["KZ", "UZ", "KG", "TJ", "TM", "LA", "VN", "TH", "MM", "KH"] }).notNull(),
   kind: text("kind", { enum: ["news", "policy", "macro"] }).notNull(),
   title: text("title").notNull(),
   publisher: text("publisher").notNull(),

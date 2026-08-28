@@ -44,6 +44,8 @@ class TaxonomyTest(unittest.TestCase):
   self.assertEqual(parse_package("300 г")["normalized_quantity_kg"],.3)
   self.assertEqual(parse_package("250 g × 2")["normalized_quantity_kg"],.5)
   self.assertEqual(parse_package("2 × 250 g")["normalized_quantity_kg"],.5)
+  self.assertEqual(parse_package("3 gói 150g")["normalized_quantity_kg"],.45)
+  self.assertEqual(parse_package("เห็ดเข็มทอง 200 ก.")["normalized_quantity_kg"],.2)
   self.assertIsNone(parse_package("1 pack")["normalized_quantity_kg"])
   self.assertEqual(normalize_price(120,"300 g")["price_per_kg"],400)
   self.assertEqual(normalize_price(120,"300 g",90)["price_per_kg"],300)

@@ -24,7 +24,8 @@ class MultilingualSearchTest(unittest.TestCase):
 
     def test_all_target_species_exist_in_both_languages(self):
         target = {"button_mushroom", "oyster_mushroom", "shiitake", "enoki", "king_oyster_mushroom"}
-        for country, languages in COUNTRY_SEARCH_TERMS.items():
+        for country in ("KZ", "UZ", "KG", "TJ", "TM"):
+            languages = COUNTRY_SEARCH_TERMS[country]
             for language, species in languages.items():
                 with self.subTest(country=country, language=language):
                     self.assertTrue(target.issubset(species))
@@ -42,12 +43,25 @@ class MultilingualSearchTest(unittest.TestCase):
             ("KG", "Кесилген шампиньондор 425 г", "button_mushroom"),
             ("TJ", "Шампиньон тару тоза 1 кг", "button_mushroom"),
             ("TM", "Şampinýon kömelekleri 400 gr", "button_mushroom"),
+            ("LA", "ເຫັດຫອມສົດ 100g Fresh Shitake", "shiitake"),
+            ("VN", "Nấm kim châm 150g", "enoki"),
+            ("TH", "เห็ดออรินจิ 200 ก.", "king_oyster_mushroom"),
+            ("MM", "White Shime Ji Mushroom 125g", "shimeji"),
+            ("KH", "Lucky White Button Mushrooms 200g", "button_mushroom"),
         )
         for country, title, species in cases:
             with self.subTest(country=country):
                 result = classify(title)
                 self.assertEqual(result["status"], "classified")
                 self.assertEqual(result["species_id"], species)
+
+    def test_southeast_asia_market_queries_are_present(self):
+        expected_local = {"LA": "lo", "VN": "vi", "TH": "th", "MM": "my", "KH": "km"}
+        for country, local in expected_local.items():
+            self.assertIn(local, COUNTRY_SEARCH_TERMS[country])
+            self.assertIn("en", COUNTRY_SEARCH_TERMS[country])
+            tasks = list(iter_country_queries(country, ("mushrooms",)))
+            self.assertEqual({task.language for task in tasks}, {local, "en"})
 
 
 if __name__ == "__main__":

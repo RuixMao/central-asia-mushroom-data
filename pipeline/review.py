@@ -6,7 +6,7 @@
 """
 
 
-MASS_EVIDENCE_SOURCES = {"page_title", "page_structured_data"}
+MASS_EVIDENCE_SOURCES = {"page_title", "page_structured_data", "page_recheck"}
 VOLUME_EVIDENCE_SOURCES = {"page_title_volume_estimate", "page_structured_volume_estimate"}
 
 

@@ -43,8 +43,13 @@ export type Opportunity = {
   metrics: { label: string; value: number | null; note: string }[];
 };
 
-export const countryOptions: { code: CountryCode; label: string; short: string }[] = [
-  { code: "ALL", label: "中亚五国", short: "全部" },
+export const countryOptions: { code: string; label: string; short: string }[] = [
+  { code: "ALL", label: "全部目标市场", short: "全部" },
+  { code: "LA", label: "老挝（重点）", short: "老挝" },
+  { code: "VN", label: "越南", short: "越南" },
+  { code: "TH", label: "泰国", short: "泰国" },
+  { code: "MM", label: "缅甸", short: "缅甸" },
+  { code: "KH", label: "柬埔寨", short: "柬埔寨" },
   { code: "KZ", label: "哈萨克斯坦", short: "哈萨克斯坦" },
   { code: "UZ", label: "乌兹别克斯坦", short: "乌兹别克斯坦" },
   { code: "KG", label: "吉尔吉斯斯坦", short: "吉尔吉斯斯坦" },
@@ -199,6 +204,12 @@ export const priceObservations = [
   { countryCode: "KZ" as const, city: "阿拉木图", channel: "零售", product: "鲜平菇", price: "2,095–3,000 ₸/kg", date: "2026-08", source: "Carefood / Optoffka" },
   { countryCode: "UZ" as const, city: "塔什干", channel: "电商/零售", product: "鲜双孢菇", price: "60,000–78,000 сум/kg", date: "2026-07~08", source: "OLX / Tegen / Prom" },
   { countryCode: "UZ" as const, city: "塔什干", channel: "电商平台", product: "腌制双孢菇430ml", price: "25,990 сум/罐", date: "2026-08", source: "Uzum Market" },
+];
+
+export const logisticsReferences = [
+  {countryCode:"KZ" as const,route:"乌鲁木齐—阿拉木图",mode:"铁路 40HQ",load:"26 吨，FOB",price:"US$2,350/柜",unitPrice:"约 US$0.09/kg",transit:"10–14 天",observedAt:"2026-07-31",source:"SWIFTTRANS",url:"https://swifttrans.kz/zh/rates",use:"普货整柜参考；不含冷链、清关及末端配送"},
+  {countryCode:"KZ" as const,route:"乌鲁木齐—阿拉木图",mode:"公路拼箱",load:"500 kg/托",price:"US$700/托",unitPrice:"约 US$1.40/kg",transit:"按订舱确认",observedAt:"2026-01-04",source:"Interlux Cargo",url:"https://interluxcargo.com/ch/page/",use:"普货拼箱参考；食用菌需另询温控、报关和损耗责任"},
+  {countryCode:"KZ" as const,route:"中国仓—哈萨克斯坦",mode:"汽车快递",load:"10 kg 起",price:"US$2.30/kg 起",unitPrice:"US$2.30/kg 起",transit:"6–9 天",observedAt:"2026-08-24",source:"Alemtrans",url:"https://jak.kz/en",use:"普货小批量参考；页面未承诺冷链或食品准入"},
 ];
 
 export const productionEvidence = [
