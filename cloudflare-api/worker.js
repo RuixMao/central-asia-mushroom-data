@@ -4,7 +4,7 @@ const cors = {
   "access-control-allow-headers": "Accept, Content-Type, X-Sync-Secret",
 };
 
-const countries = { KZ: "哈萨克斯坦", UZ: "乌兹别克斯坦", KG: "吉尔吉斯斯坦", TJ: "塔吉克斯坦", TM: "土库曼斯坦" };
+const countries = { KZ: "哈萨克斯坦", UZ: "乌兹别克斯坦", KG: "吉尔吉斯斯坦", TJ: "塔吉克斯坦", TM: "土库曼斯坦", LA: "老挝", VN: "越南", TH: "泰国", MM: "缅甸", KH: "柬埔寨" };
 const species = { button_mushroom: "双孢菇", oyster_mushroom: "平菇", shiitake: "香菇", enoki: "金针菇", king_oyster_mushroom: "杏鲍菇" };
 const allowedTables = new Set(["platforms", "species", "products", "price_observations", "daily_price_summaries", "collection_runs", "collection_errors"]);
 

@@ -2,7 +2,7 @@
 import {useEffect,useMemo,useState} from "react";
 type Data={product_key?:string;species_id?:string;product_form?:string;product_shape?:string;processing_state?:string;packaging_type?:string;brand?:string|null;origin_country?:string|null;original_title?:string;package_display?:string;platform_name?:string;price_local?:number;currency?:string;price_usd?:number;normalized_price_usd_per_kg?:number;observed_at?:string;source_url?:string;status?:"live"|"gap"};
 type Row={id:string;country:string;data:Data;source:string};
-const countries:Record<string,string>={KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦"};
+const countries:Record<string,string>={KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦",LA:"老挝",VN:"越南",TH:"泰国",MM:"缅甸",KH:"柬埔寨"};
 const speciesMap:Record<string,string>={button_mushroom:"双孢菇",oyster_mushroom:"平菇",shiitake:"香菇",enoki:"金针菇",king_oyster_mushroom:"杏鲍菇",morel:"羊肚菌",porcini:"牛肝菌",chanterelle:"鸡油菌",honey_fungus:"蜜环菌",suillus:"乳牛肝菌",saffron_milk_cap:"松乳菌",milk_mushroom:"乳菇",blewit:"蓝柄菇",steppe_mushroom:"阿魏菇",shimeji:"真姬菇",wood_ear:"木耳"};
 const states:Record<string,string>={fresh:"鲜品",frozen:"冷冻",dried:"干品",pickled:"腌制",canned:"罐藏",prepared_food:"调理",powder:"粉末",chilled:"冷藏"},shapes:Record<string,string>={whole:"整粒",sliced:"切片",mixed:"混合",unspecified:"未标明"},packs:Record<string,string>={bulk:"散装/称重",packaged:"定量包装",unspecified:"未标明"};
 const sources:Record<string,string>={"arbuz-kz":"Arbuz",globus:"Globus",omarket:"O!Market","lochin-uz":"Lochin","yukber-uz":"Yukber","magnit-tj":"Magnit",somon:"Somon",gipertm:"Giper",asmanexpress:"Asman"};

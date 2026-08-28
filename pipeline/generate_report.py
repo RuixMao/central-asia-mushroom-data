@@ -12,7 +12,7 @@ from config import AI_API_KEY,AI_BASE_URL,AI_MODEL,TARGET_SPECIES
 from sanity import check_usd_per_kg, review_sanity_outliers
 from utils import delete_from_site,get_site,log,post_to_site,today_str
 
-COUNTRIES={"KZ":"哈萨克斯坦","UZ":"乌兹别克斯坦","KG":"吉尔吉斯斯坦","TJ":"塔吉克斯坦","TM":"土库曼斯坦"}
+COUNTRIES={"KZ":"哈萨克斯坦","UZ":"乌兹别克斯坦","KG":"吉尔吉斯斯坦","TJ":"塔吉克斯坦","TM":"土库曼斯坦","LA":"老挝","VN":"越南","TH":"泰国","MM":"缅甸","KH":"柬埔寨"}
 FORMS={"fresh":"鲜品","chilled":"冷藏","frozen":"冷冻","dried":"干制","pickled":"腌渍","canned":"罐装","powder":"粉剂"}
 SPECIES_NAMES={"button_mushroom":"双孢菇","oyster_mushroom":"平菇","shiitake":"香菇","enoki":"金针菇","shimeji":"真姬菇","porcini":"牛肝菌","suillus":"乳牛肝菌","morel":"羊肚菌","chanterelle":"鸡油菌","king_oyster_mushroom":"杏鲍菇","wood_ear":"木耳"}
 SECTIONS=("今日要点","市场动态","机会与风险","行动建议","数据说明")
@@ -21,7 +21,7 @@ FORBIDDEN=re.compile(r"https?://|(?:price|observed|source)\s*[_-]\s*(?:usd|local
 SPECIES_HS={"button_mushroom":"070951","oyster_mushroom":"070959","shiitake":"070959","king_oyster_mushroom":"070959","enoki":"070959","wood_ear":"070959","snow_fungus":"070959","morel":"070959","matsutake":"070959","porcini":"070959","chanterelle":"070959","straw_mushroom":"070959","honey_fungus":"070959","suillus":"070959","truffle":"070959","mixed_mushrooms":"070959","unknown":"070959"}
 
 CUSTOMER_PAIN_GUIDANCE="""
-你是因恒科技的中亚食用菌市场研究日报主编，为微信公众号撰写面向老板、外贸负责人和采购负责人的每日市场文章。读者要在3分钟内看清今天发生了什么、要不要行动。
+你是因恒科技的中亚及东南亚食用菌市场研究日报主编，为微信公众号撰写面向老板、外贸负责人和采购负责人的每日市场文章。读者要在3分钟内看清今天发生了什么、要不要行动。东南亚覆盖老挝、越南、泰国、缅甸、柬埔寨；老挝为首要拓展市场，在当日事实满足发布门禁时优先呈现，但不得预设正面结论。
 
 最高原则：给客户看成品，不给客户看后厨。只呈现结论、价格、规格、渠道、事实依据、建议和风险；不得出现采集过程、复核动作、材料数量、样本统计、数据质量自评和方法说明。能判断就用数字说清楚，不能判断的内容直接省略。
 采用行业垂直媒体风格：专业但不装腔。结论先行，短段短句，一段不超过3行，关键结论加粗。同一信息只出现一次，免责边界只放文末数据说明。
@@ -33,7 +33,7 @@ CUSTOMER_PAIN_GUIDANCE="""
 
 def customer_safe(body,allowed):
  normalized=unicodedata.normalize("NFKC",body);refs=set(re.findall(r"\[(S\d+)\]",normalized))
- return 500<=len(normalized)<=2000 and "```" not in normalized and "中亚菌类市场研究日报｜" not in normalized and not FORBIDDEN.search(normalized) and not re.search(r"\|\s*(?:食用菌|菌类)\s*\|",normalized) and all(normalized.count(section)==1 for section in SECTIONS) and refs<=allowed
+ return 500<=len(normalized)<=2000 and "```" not in normalized and "食用菌出海市场日报｜" not in normalized and not FORBIDDEN.search(normalized) and not re.search(r"\|\s*(?:食用菌|菌类)\s*\|",normalized) and all(normalized.count(section)==1 for section in SECTIONS) and refs<=allowed
 
 def utf8_truncate(text,max_bytes):
  encoded=text.encode("utf-8")
@@ -66,7 +66,7 @@ def title_from(today,body,prices=None):
  else:
   match=re.search(r"\*\*(?:\d+[.、]\s*)?([^*。！？]{8,25})[。！？]?\*\*",body)
   if match:headline=match.group(1).strip("：:，,。 ")
- prefix=f"中亚食用菌市场日报｜{day.month}月{day.day}日："
+ prefix=f"食用菌出海市场日报｜{day.month}月{day.day}日："
  return prefix+utf8_truncate(headline,64-len(prefix.encode("utf-8")))
 
 def clean_analysis(body):
@@ -200,7 +200,7 @@ def decision_fallback(today,prices,evidence):
 
 ## 数据说明
 
-本报告价格来自中亚五国主流零售与电商渠道公开挂牌价，统一折算为美元/公斤。零售挂牌价与批发成交价、到岸成本存在差异，正式决策请以批量报价为准。数据来源：因恒科技监测，采集日期 {today}。如需核验具体报价来源，可联系专属客服索取。"""
+本报告价格来自中亚及东南亚目标市场主流零售与电商渠道公开挂牌价，统一折算为美元/公斤。零售挂牌价与批发成交价、到岸成本存在差异，正式决策请以批量报价为准。数据来源：因恒科技监测，采集日期 {today}。如需核验具体报价来源，可联系专属客服索取。"""
 
 def cell(value):return str(value if value not in (None,"") else "—").replace("|","/").replace("\n"," ").strip()
 
@@ -299,7 +299,7 @@ def run():
  for index,doc in enumerate(documents):evidence.append({"id":f"S{index+1}","document_id":doc["id"],"source_type":doc["kind"],"国家":COUNTRIES.get(doc["country"],doc["country"]),"类型":doc["kind"],"标题":doc["title"],"发布机构":doc["publisher"],"发布日期":str(doc["publishedAt"])[:10],"事实摘要":doc["excerpt"],"url":doc["sourceUrl"],"retrieved":str(doc["retrievedAt"])[:10]})
  allowed={item["id"] for item in evidence}
  review_findings=[{"国家":COUNTRIES.get(row["country"],row["country"]),"品类":f'{SPECIES_NAMES[row["data"]["species_id"]]}（精品）',"规格":row["data"].get("package_display"),"美元每公斤":row["data"].get("normalized_price_usd_per_kg"),"说明":row["data"].get("sanity_review_reason")} for row in specialty_prices if customer_visible_price({**row,"data":{**row["data"],"validation_status":"valid","sanity_outlier":False}})]
- prompt=f"""你是因恒科技的中亚食用菌首席市场研究员。请写一份面向进口商、渠道商、投资人与经营管理层的中文决策简报。客户为减少验证成本和错误决策付费，不为报价复述或通用建议付费。只可使用下方价格、结构化信号和证据包，不得自行补充新闻、政策、数字、来源、因果、利润或预测。
+ prompt=f"""你是因恒科技的中亚及东南亚食用菌首席市场研究员。东南亚覆盖老挝、越南、泰国、缅甸、柬埔寨，老挝为首要拓展市场；有符合门禁的当日事实时优先呈现老挝，不得预设正面结论。请写一份面向进口商、渠道商、投资人与经营管理层的中文决策简报。客户为减少验证成本和错误决策付费，不为报价复述或通用建议付费。只可使用下方价格、结构化信号和证据包，不得自行补充新闻、政策、数字、来源、因果、利润或预测。
 {CUSTOMER_PAIN_GUIDANCE}
 日期：{today}
 价格表由系统确定性生成，正文不要抄写全部数字：
@@ -343,7 +343,7 @@ def run():
  market_marker="\n## 机会与风险"
  if market_marker in analysis:
   before_risk,after_risk=analysis.split(market_marker,1);analysis=f"{before_risk}\n\n{table_text}{market_marker}{after_risk}"
- fixed_data_note=f"## 数据说明\n\n本报告价格来自中亚五国主流零售与电商渠道公开挂牌价，统一折算为美元/公斤。零售挂牌价与批发成交价、到岸成本存在差异，正式决策请以批量报价为准。数据来源：因恒科技监测，采集日期 {today}。如需核验具体报价来源，可联系专属客服索取。"
+ fixed_data_note=f"## 数据说明\n\n本报告价格来自中亚及东南亚目标市场主流零售与电商渠道公开挂牌价，统一折算为美元/公斤。零售挂牌价与批发成交价、到岸成本存在差异，正式决策请以批量报价为准。数据来源：因恒科技监测，采集日期 {today}。如需核验具体报价来源，可联系专属客服索取。"
  main_text=analysis.split(marker,1)[0] if marker in analysis else analysis
  source_note=""
  if used_evidence:

@@ -20,6 +20,11 @@ COUNTRIES = {
  "KG":{"currency":"KGS","lang":"ky","local_lang":"ky","search_languages":["ky","ru"],"reporter":417,"platforms":[("globus","https://globus-online.kg/ru-kg/search?q={q}"),("omarket","https://market.o.kg/bishkek/search?q={q}"),("lalafo","https://lalafo.kg/kyrgyzstan/q-{q}")]},
  "TJ":{"currency":"TJS","lang":"tg","local_lang":"tg","search_languages":["tg","ru"],"reporter":762,"platforms":[("zudbiyor","https://zudbiyor.tj/search?q={q}"),("magnit","https://magnit.tj/search?query={q}"),("somon","https://somon.tj/search/?q={q}")]},
  "TM":{"currency":"TMT","lang":"tk","local_lang":"tk","search_languages":["tk","ru"],"reporter":795,"platforms":[("tm_market","https://www.goshmak.com/search?q={q}"),("flagma_tm","https://flagma-tm.com/ru/products/q={q}/")]},
+ "LA":{"currency":"LAK","lang":"lo","local_lang":"lo","search_languages":["lo","en","th"],"reporter":418,"priority":"primary","platforms":[]},
+ "VN":{"currency":"VND","lang":"vi","local_lang":"vi","search_languages":["vi","en"],"reporter":704,"platforms":[]},
+ "TH":{"currency":"THB","lang":"th","local_lang":"th","search_languages":["th","en"],"reporter":764,"platforms":[]},
+ "MM":{"currency":"MMK","lang":"my","local_lang":"my","search_languages":["my","en"],"reporter":104,"platforms":[]},
+ "KH":{"currency":"KHR","lang":"km","local_lang":"km","search_languages":["km","en"],"reporter":116,"platforms":[]},
 }
 VARIETIES={
  "双孢菇":{"ru":"шампиньон","uz":"qo'ziqorin","en":"white mushroom"},
@@ -47,4 +52,4 @@ TARGET_SPECIES={
  "steppe_mushroom":{"zh":"阿魏菇","ru":"белый степной гриб","en":"white steppe mushroom"},
 }
 HS_CODES=("070951","070959","200310")
-FX_TO_CNY={"KZT":0.014,"UZS":0.00058,"KGS":0.083,"TJS":0.66,"TMT":2.04}
+FX_TO_CNY={"KZT":0.014,"UZS":0.00058,"KGS":0.083,"TJS":0.66,"TMT":2.04,"LAK":0.00033,"VND":0.00028,"THB":0.22,"MMK":0.0034,"KHR":0.0017}

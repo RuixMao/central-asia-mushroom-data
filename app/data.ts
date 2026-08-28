@@ -43,8 +43,13 @@ export type Opportunity = {
   metrics: { label: string; value: number | null; note: string }[];
 };
 
-export const countryOptions: { code: CountryCode; label: string; short: string }[] = [
-  { code: "ALL", label: "中亚五国", short: "全部" },
+export const countryOptions: { code: string; label: string; short: string }[] = [
+  { code: "ALL", label: "全部目标市场", short: "全部" },
+  { code: "LA", label: "老挝（重点）", short: "老挝" },
+  { code: "VN", label: "越南", short: "越南" },
+  { code: "TH", label: "泰国", short: "泰国" },
+  { code: "MM", label: "缅甸", short: "缅甸" },
+  { code: "KH", label: "柬埔寨", short: "柬埔寨" },
   { code: "KZ", label: "哈萨克斯坦", short: "哈萨克斯坦" },
   { code: "UZ", label: "乌兹别克斯坦", short: "乌兹别克斯坦" },
   { code: "KG", label: "吉尔吉斯斯坦", short: "吉尔吉斯斯坦" },

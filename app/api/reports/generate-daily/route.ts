@@ -4,7 +4,7 @@ import { dataSnapshots, marketDocuments, priceObservations, products, platforms,
 import { getChatGPTUser } from "../../../chatgpt-auth";
 
 export const dynamic="force-dynamic";
-const countries={KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦"} as const;
+const countries={KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦",LA:"老挝",VN:"越南",TH:"泰国",MM:"缅甸",KH:"柬埔寨"} as const;
 const species:Record<string,string>={button_mushroom:"双孢菇",oyster_mushroom:"平菇",shiitake:"香菇",enoki:"金针菇",king_oyster_mushroom:"杏鲍菇",wood_ear:"木耳",shimeji:"真姬菇",porcini:"牛肝菌",chanterelle:"鸡油菌",morel:"羊肚菌",truffle:"松露"};
 const speciesHs:Record<string,string>={button_mushroom:"070951",oyster_mushroom:"070959",shiitake:"070959",king_oyster_mushroom:"070959",enoki:"070959",wood_ear:"070959",shimeji:"070959",porcini:"070959",chanterelle:"070959",morel:"070959",truffle:"070959"};
 const forms:Record<string,string>={fresh:"鲜品",chilled:"冷藏",frozen:"冷冻",dried:"干制",pickled:"腌渍",canned:"罐装",powder:"粉剂"};
@@ -48,17 +48,18 @@ export async function POST(){
  const documents=await getDb().select().from(marketDocuments).where(and(eq(marketDocuments.verificationStatus,"verified"),gte(marketDocuments.publishedAt,new Date(start.getTime()-90*86400000)))).orderBy(desc(marketDocuments.relevanceScore),desc(marketDocuments.publishedAt)).limit(25);
  const evidence=documents.map((item,index)=>({id:`S${index+1}`,document:item,context:{证据编号:`S${index+1}`,国家:countries[item.country as keyof typeof countries],类型:item.kind,标题:item.title,发布机构:item.publisher,发布日期:item.publishedAt.toISOString().slice(0,10),事实摘要:item.excerpt}})),allowed=new Set(evidence.map(item=>item.id));
  const prompt=`你是中亚食用菌出海行业资深分析师，面向付费B端外贸客户写每日行业简报。读者是食用菌出口企业老板和外贸负责人，阅读目的是做市场判断、选品、制定出口策略和识别风险。所有内容必须服务商业决策，拒绝纯科普和空话。只可使用下方价格、同商品历史序列和已核验证据，不得虚构数据、事件、因果、需求、利润或预测。\n日期：${date}\n价格明细：\n${table}\n同商品历史序列：${JSON.stringify(trends)}\n年度进口单价参考（贸易口径，UN Comtrade）：${JSON.stringify(annualRef)}\n已核验外部证据：${JSON.stringify(evidence.map(item=>item.context))}\n\n成稿要求：\n1. 采用专业克制、务实的B端商务报告风格，结论前置、短句表达，重要信息加粗；正文300至600字。\n2. 恰好使用“【核心摘要】”“今日关键事件”“风险提示”“行动建议”四个二级标题。核心摘要列3至5条，客户只读摘要即可决定维持、核验、暂缓或行动。\n3. 今日关键事件只写当日新增政策/海关、通关、运价、认证、市场突发、重大新闻和达到门槛的价格异动。没有新增事件时直接说明，不得用普通报价凑数。\n4. 政策或新闻事实必须引用 [S1] 形式的证据编号；价格异动必须说明国家、品类、变化、证据强度、商业影响和停止条件。\n5. 风险点单独加粗，并说明潜在损失。区分挂牌价、成交价、到岸成本、需求和利润；没有真实询盘、批量报价和完整成本时，不得下利润、需求增长或扩产结论。\n6. 涉及土库曼斯坦必须原样写“**风险：海关透明度低，许可获取难度高，谨慎进入。**”；涉及鸡枞必须写“**鸡枞仅华人小众圈层，不建议作为主力出口。**”。\n7. 行动建议写1至3条，明确责任角色、国家/品类、动作、通过门槛和停止条件；不得写“持续关注”“加强合作”“把握机遇”。\n8. 不得出现生成方式、内部系统、技术字段或流程词。输出标准Markdown正文，不附来源清单或网址。`;
+ const marketScope=`市场范围为中亚五国及东南亚的老挝、越南、泰国、缅甸、柬埔寨。老挝是东南亚首要拓展市场；仅在当日事实满足发布门禁时优先呈现，不得预设正面结论。`;
  const v41=`最高优先级改用公众号日报v4.1成稿规范：给客户看成品，不给客户看采集、复核、检索、材料数量、样本统计或数据质量自评。正文恰好使用“今日要点、市场动态、机会与风险、行动建议、数据说明”五个二级标题。今日要点3至5条，每条包含结论、数字依据和建议。市场动态按鲜品、干品、冷冻分表，品类用中文规范名并清除评价、分期和营销噪音；精品小包装在品类后标注规格。行动建议固定写“决策参考、采购落地、报价规范”，引用当日价格，使用建议式语气。无事件只写“今日无新增政策与事件，市场面平稳”。数据说明只写一次零售价、美元/公斤、批发价和到岸成本边界。禁止独立“来源与资料日期”章节。`;
  let analysis="";
  for(let attempt=0;attempt<2;attempt++){
-   const request=attempt?`${prompt}\n\n${v41}\n\n上一稿未通过发布检查，请严格按v4.1五个栏目完整重写。`:`${prompt}\n\n${v41}`;
+   const request=attempt?`${marketScope}\n\n${prompt}\n\n${v41}\n\n上一稿未通过发布检查，请严格按v4.1五个栏目完整重写。`:`${marketScope}\n\n${prompt}\n\n${v41}`;
   const response=await fetch(`${(process.env.AI_BASE_URL||"https://api.deepseek.com").replace(/\/$/,"")}/chat/completions`,{method:"POST",headers:{"content-type":"application/json",authorization:`Bearer ${apiKey}`},body:JSON.stringify({model:process.env.AI_MODEL||"deepseek-v4-flash",messages:[{role:"user",content:request}],temperature:.1,stream:false,thinking:{type:"disabled"}})});
   if(!response.ok){console.error("Report generation failed",response.status,(await response.text()).slice(0,500));if(attempt===1)return Response.json({error:"日报生成失败，请稍后重试"},{status:502});continue}
   const result=await response.json() as {choices?:Array<{message?:{content?:string}}>};analysis=cleanAnalysis(result.choices?.[0]?.message?.content??"");if(customerSafe(analysis,allowed))break;
  }
  if(!customerSafe(analysis,allowed))return Response.json({error:"日报未通过研究成稿检查，请重新生成"},{status:502});
  const usedIds=new Set([...analysis.matchAll(/\[(S\d+)\]/g)].map(match=>match[1])),usedEvidence=evidence.filter(item=>usedIds.has(item.id));
- const body=`${analysis}\n\n## 今日价格全景\n${table}`,title=`中亚食用菌市场日报｜${date}`,id=crypto.randomUUID(),slug=`${date}-central-asia-mushroom-research-${id.slice(0,6)}`,now=new Date();
+ const body=`${analysis}\n\n## 今日价格全景\n${table}`,title=`食用菌出海市场日报｜${date}`,id=crypto.randomUUID(),slug=`${date}-mushroom-export-market-research-${id.slice(0,6)}`,now=new Date();
  await getDb().insert(reports).values({id,slug,title,type:"daily",summary:summaryFrom(body),body,country:"KZ",aiGenerated:true,publishedAt:now,createdAt:now});
  if(usedEvidence.length)await getDb().insert(reportSources).values(usedEvidence.map(item=>({id:crypto.randomUUID(),reportId:id,evidenceId:item.id,documentId:item.document.id,sourceType:item.document.kind,title:item.document.title,url:item.document.sourceUrl,publisher:item.document.publisher,publishedAt:item.document.publishedAt,retrievedAt:item.document.retrievedAt})));
  return Response.json({ok:true,id,slug,title,body,priceCount:current.length,evidenceCount:usedEvidence.length,trendGroups:trends.length});
