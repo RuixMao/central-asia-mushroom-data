@@ -7,13 +7,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const imageUrl = `${protocol}://${host}/og.png`;
-  const title = "中亚及东南亚食用菌出海服务平台｜因恒科技";
-  const description = "覆盖中亚五国及老挝、越南、泰国、缅甸、柬埔寨，重点拓展老挝，为菌企提供贸易、价格、渠道与市场进入决策支持。";
+  const title = "食用菌出海市场决策平台｜因恒科技";
+  const description = "为菌企提供跨区域贸易、价格、渠道、物流与市场进入决策支持，重点深化老挝市场。";
 
   return {
     title,
     description,
-    openGraph: { title, description, type: "website", locale: "zh_CN", images: [{ url: imageUrl, width: 1536, height: 1024, alt: "因恒科技中亚及东南亚数据与市场研究平台" }] },
+    openGraph: { title, description, type: "website", locale: "zh_CN", images: [{ url: imageUrl, width: 1536, height: 1024, alt: "因恒科技食用菌出海数据与市场研究平台" }] },
     twitter: { card: "summary_large_image", title, description, images: [imageUrl] },
   };
 }

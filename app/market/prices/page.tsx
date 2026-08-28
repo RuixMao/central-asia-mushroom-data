@@ -1,2 +1,2 @@
 import ProductShell from "../../product-shell"; import PriceLiveTable from "../../market-data/price-live-table";
-export default function Page(){return <ProductShell><main className="saas-main"><section className="saas-hero compact"><span>MARKET PRICES</span><h1>中亚食用菌价格行情</h1><p>换算基准以记录中的美元参考价转换人民币；同时保留当地币种、规格、来源和观察日期。挂牌价不等于实际成交价。</p></section><section className="subpage-panel"><PriceLiveTable/></section></main></ProductShell>}
+export default function Page(){return <ProductShell><main className="saas-main"><section className="saas-hero compact"><span>MARKET PRICES</span><h1>食用菌出海价格行情</h1><p>覆盖中亚与东南亚目标市场；同时保留当地币种、规格、来源和观察日期。挂牌价不等于实际成交价。</p></section><section className="subpage-panel"><PriceLiveTable/></section></main></ProductShell>}

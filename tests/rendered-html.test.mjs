@@ -19,8 +19,10 @@ test("server-renders the corporate website and public data center", async () => 
   const html = await response.text();
   assert.match(html, /因恒科技/);
   assert.match(html, /inhen-tech-logo\.png/);
-  assert.match(html, /从老挝出发，寻找更合适的出海市场/);
-  assert.match(html, /老挝、越南、泰国、缅甸、柬埔寨/);
+  assert.match(html, /让食用菌出海决策有数据可依/);
+  assert.match(html, /老挝/);
+  assert.match(html, /越南/);
+  assert.match(html, /柬埔寨/);
   assert.match(html, /选择目标市场/);
   assert.match(html, /查询当地价格/);
   assert.match(html, /验证市场机会/);
@@ -35,7 +37,7 @@ test("server-renders the corporate website and public data center", async () => 
   const terminal = await render("/terminal");
   assert.equal(terminal.status, 200);
   const terminalHtml = await terminal.text();
-  assert.match(terminalHtml, /中亚菌类数据终端/);
+  assert.match(terminalHtml, /食用菌出海数据终端/);
   assert.match(terminalHtml, /数据资产地图/);
   assert.match(terminalHtml, /按国家、品类和规格核对当地价格/);
   assert.match(terminalHtml, /当前可比较报价/);

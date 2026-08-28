@@ -1,4 +1,4 @@
-const REPORTERS = "398,860,417,762,795";
+const REPORTERS = "398,860,417,762,795,418,704,764,104,116";
 const PRODUCTS = "070951,070959,200310";
 
 type Frequency = "A" | "M";
@@ -18,6 +18,9 @@ const COUNTRY_META = [
   { code: "KZ", name: "哈萨克斯坦", reporter: 398 }, { code: "UZ", name: "乌兹别克斯坦", reporter: 860 },
   { code: "KG", name: "吉尔吉斯斯坦", reporter: 417 }, { code: "TJ", name: "塔吉克斯坦", reporter: 762 },
   { code: "TM", name: "土库曼斯坦", reporter: 795 },
+  { code: "LA", name: "老挝", reporter: 418 }, { code: "VN", name: "越南", reporter: 704 },
+  { code: "TH", name: "泰国", reporter: 764 }, { code: "MM", name: "缅甸", reporter: 104 },
+  { code: "KH", name: "柬埔寨", reporter: 116 },
 ] as const;
 const PRODUCT_NAMES: Record<string, string> = { "070951": "鲜或冷藏双孢蘑菇", "070959": "其他鲜或冷藏蘑菇", "200310": "加工保藏蘑菇" };
 

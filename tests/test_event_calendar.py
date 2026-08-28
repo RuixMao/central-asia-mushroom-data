@@ -8,9 +8,9 @@ from fetch_event_calendar import calendar_rows
 
 
 class EventCalendarTest(unittest.TestCase):
-    def test_2026_calendar_covers_all_five_countries(self):
+    def test_2026_calendar_covers_all_target_countries(self):
         rows=calendar_rows(2026)
-        self.assertEqual({row["country"] for row in rows},{"KZ","UZ","KG","TJ","TM"})
+        self.assertEqual({row["country"] for row in rows},{"KZ","UZ","KG","TJ","TM","LA","VN","TH","MM","KH"})
         self.assertEqual(len(rows),len({(row["country"],row["name_zh"],row["start_date"]) for row in rows}))
         self.assertTrue(all(row["source_url"].startswith("https://") for row in rows))
         self.assertTrue(all(row["certainty"]=="official" for row in rows))

@@ -107,6 +107,7 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 - `python pipeline/fetch_trade.py`：最近两年、十国、3 个 HS 编码。
 - `python pipeline/fetch_logistics.py`：中亚核心路线时效中位数。
+- `python pipeline/fetch_sea_logistics.py`：登记东南亚五国官方通道、口岸和运输方式；取得可追溯承运报价前不写时效或运价。
 - `python pipeline/fetch_price.py`：按 `pipeline/config.py` 的 `COUNTRIES` 与 `pipeline/fetch_price.py` 的 `SOURCES` 采集价格和来源缺口。
 - `python pipeline/generate_report.py`：读取最新快照并生成日报。
 

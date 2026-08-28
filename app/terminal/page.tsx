@@ -5,7 +5,7 @@ import MarketPanel from "./market-panel";
 const readyAssets = [
   {
     title: "UN Comtrade 菌类贸易",
-    coverage: "中亚五国 · 3类HS · 年度与月度",
+    coverage: "10个目标市场 · 3类HS · 年度与月度",
     cadence: "年度 / 月度",
     state: "实时接入",
     value: "市场规模、增长、来源国、镜像差异",
@@ -21,7 +21,7 @@ const readyAssets = [
   },
   {
     title: "FAOSTAT 农业生产与贸易",
-    coverage: "中亚五国 · 长时间序列",
+    coverage: "10个目标市场 · 长时间序列",
     cadence: "年度",
     state: "待批量接入",
     value: "供需基线、品类替代、跨国比较",
@@ -85,7 +85,7 @@ export default function TerminalPage() {
         </a>
         <div className="intel-product">
           <span>YINHENG INTELLIGENCE</span>
-          <strong>中亚菌类数据终端</strong>
+          <strong>食用菌出海数据终端</strong>
           <small>CONTINUOUS DATA · 02</small>
         </div>
         <nav>
@@ -116,7 +116,7 @@ export default function TerminalPage() {
       <main className="intel-main">
         <header className="intel-top">
           <div>
-            <span>中亚五国 / 菌类产业</span>
+            <span>中亚与东南亚 / 菌类产业</span>
             <b>{view === "market" ? "连续数据看板" : "数据资产与采集路线"}</b>
           </div>
           <div className={`freshness ${liveState}`}>
