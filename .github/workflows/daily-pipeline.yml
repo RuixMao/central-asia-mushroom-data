@@ -20,6 +20,13 @@ jobs:
       - run: pip install -r pipeline/requirements.txt
       - name: Install Chromium for rendered price sources
         run: python -m playwright install --with-deps chromium
+      - name: Fetch Laos priority trade
+        continue-on-error: true
+        timeout-minutes: 20
+        run: python pipeline/fetch_laos_trade.py
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
       - name: Fetch trade
         continue-on-error: true
         timeout-minutes: 20
