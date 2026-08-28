@@ -63,6 +63,7 @@ jobs:
       - name: Verify collector dependency graph
         run: python -c "import sys; sys.path.insert(0, 'pipeline'); import fetch_price"
       - name: Collect normalized prices
+        continue-on-error: ${{ inputs.platform == 'foodpanda-champa-market-la' }}
         run: python pipeline/fetch_price.py
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
@@ -77,6 +78,12 @@ jobs:
           WB_DESTS_JSON: ${{ secrets.WB_DESTS_JSON }}
           # 默认开启闭环：无法由可验证证据解决的记录自动隔离，下次定时采集重试。
           AUTO_REVIEW_QUARANTINE: '1'
+      - name: Backfill confirmed Laos retailer listing with relaxed package gate
+        if: ${{ inputs.platform == 'foodpanda-champa-market-la' }}
+        run: python pipeline/fetch_laos_retail_fallback.py
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
       - name: Build daily summaries
         if: ${{ inputs.dry_run != true }}
         run: curl --fail --silent --show-error -X POST "$SITE_URL/api/prices/summarize" -H "x-cron-secret:$CRON_SECRET" -H "content-type:application/json" -d '{}'
