@@ -1,0 +1,20 @@
+name: Laos Trade Deep Search
+on:
+  schedule:
+    - cron: '15 20 * * 1'
+  workflow_dispatch:
+jobs:
+  laos-trade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r pipeline/requirements.txt
+      - name: Collect Lao PDR mushroom trade and market size
+        run: python pipeline/fetch_laos_trade.py
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
