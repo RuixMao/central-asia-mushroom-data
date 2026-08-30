@@ -536,7 +536,7 @@ footer p, footer > span { font-size: 8px; }
   .network-link span { font-size: 6px; }
   .network-link i::after { width: 6px; height: 6px; top: -2.5px; }
   .network-markets { grid-column: 1/-1; grid-template-columns: 1fr 1fr; width: 100%; margin-top: 22px; gap: 8px; position: relative; }
-  .network-markets::before { content: "中亚五国市场"; grid-column: 1/-1; padding-bottom: 3px; color: var(--gold); font: 8px/1 Arial; letter-spacing: .12em; }
+  .network-markets::before { content: "菌业出海市场"; grid-column: 1/-1; padding-bottom: 3px; color: var(--gold); font: 8px/1 Arial; letter-spacing: .12em; }
   .network-markets > div { grid-template-columns: 30px 1fr 6px; min-height: 48px; text-align: left; padding: 0 11px; border: 0; background: white; box-shadow: 0 3px 14px rgba(16,55,82,.055); }
   .network-markets > div:last-child { grid-column: 1/-1; }
   .corridor-foot { padding: 15px 4px 0; border-top: 0; display: grid; gap: 9px; font-size: 7px; line-height: 1.4; }

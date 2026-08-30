@@ -1,7 +1,7 @@
 import ProductShell from "../product-shell";
 import { OpportunityRadar } from "../theme-live-data";
 
-export const metadata={title:"商机雷达｜中亚食用菌出海服务平台"};
+export const metadata={title:"商机雷达｜菌业出海服务平台"};
 
 export default function OpportunitiesPage(){return <ProductShell><main className="saas-main">
   <section className="saas-hero compact"><span>验证市场机会</span><h1>哪些机会值得继续投入时间？</h1><p>先比较市场基础、可用信息和关键风险，再决定是否询价、打样或寻找渠道。这里展示的是待验证方向，不是成交预测。</p></section>

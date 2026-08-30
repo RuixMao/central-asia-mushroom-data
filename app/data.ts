@@ -1,4 +1,4 @@
-﻿export type CountryCode = "ALL" | "KZ" | "UZ" | "KG" | "TJ" | "TM";
+﻿export type CountryCode = "ALL" | "KZ" | "UZ" | "KG" | "TJ" | "TM" | "LA" | "VN" | "TH" | "MM" | "KH";
 
 export type TradeRecord = {
   countryCode: Exclude<CountryCode, "ALL">;
@@ -197,6 +197,10 @@ export const opportunities: Opportunity[] = [
 ];
 
 export const priceObservations = [
+  { countryCode: "TH" as const, city: "曼谷", channel: "商超电商", product: "鲜金针菇 200g", price: "14 泰铢/包", date: "2026-08", source: "Big C Online" },
+  { countryCode: "TH" as const, city: "曼谷", channel: "商超电商", product: "鲜杏鲍菇 500g", price: "49 泰铢/包", date: "2026-08", source: "Makro PRO" },
+  { countryCode: "VN" as const, city: "胡志明市", channel: "电商", product: "干香菇 100g", price: "50,000 越南盾/包", date: "2026-08", source: "Tiki" },
+  { countryCode: "KH" as const, city: "金边", channel: "商超电商", product: "鲜金针菇 200g", price: "0.70–0.90 美元/包", date: "2026-08", source: "Eplus / Aplus" },
   { countryCode: "KZ" as const, city: "阿拉木图", channel: "电商/商超", product: "鲜双孢菇", price: "2,730–3,300 ₸/kg", date: "2026-08", source: "Arbuz / Carefood" },
   { countryCode: "KZ" as const, city: "阿拉木图", channel: "高端电商", product: "Freedom Fresh双孢菇", price: "6,930 ₸/kg", date: "2026-08", source: "Arbuz" },
   { countryCode: "KZ" as const, city: "阿拉木图", channel: "小批发", product: "鲜双孢菇", price: "2,600 ₸/kg", date: "2026-08", source: "Optoffka" },
@@ -220,11 +224,11 @@ export const productionEvidence = [
 ];
 
 export const dataSources = [
-  { name: "UN Comtrade", level: "A", scope: "五国贸易主表", cadence: "年/月", status: "可查询", note: "官方贸易统计；保留报告国、伙伴国、贸易流向和HS版本。", url: "https://comtradeapi.un.org" },
-  { name: "中国海关", level: "A", scope: "中国出口镜像", cadence: "月", status: "专题查询", note: "用于核对中国对中亚出口、贸易方式和境内地区。", url: "https://english.customs.gov.cn/Statistics/Statistics" },
+  { name: "UN Comtrade", level: "A", scope: "目标市场贸易主表", cadence: "年/月", status: "可查询", note: "官方贸易统计；保留报告国、伙伴国、贸易流向和HS版本。", url: "https://comtradeapi.un.org" },
+  { name: "中国海关", level: "A", scope: "中国出口镜像", cadence: "月", status: "专题查询", note: "用于核对中国对目标市场出口、贸易方式和境内地区。", url: "https://english.customs.gov.cn/Statistics/Statistics" },
   { name: "FAOSTAT", level: "A−", scope: "农业供给能力", cadence: "年", status: "分国覆盖", note: "未收录不等于零产量；塔、土两国另列企业实际产出、规划产能和出口状态，计划值不进入实际产量汇总。", url: "https://www.fao.org/faostat" },
   { name: "哈萨克斯坦统计局", level: "A", scope: "4/6/10位商品", cadence: "月", status: "专题查询", note: "可补充国别—商品、地区贸易和EAEU互贸明细。", url: "https://stat.gov.kz/en/industries/economy/foreign-market/" },
   { name: "乌兹别克斯坦统计委", level: "A", scope: "外贸与经济指标", cadence: "月/年", status: "专题查询", note: "官方页面提供CSV、JSON和XML数据出口。", url: "https://stat.uz/en/official-statistics/merchandise-trade" },
-  { name: "市场观察池", level: "B+", scope: "价格与渠道", cadence: "周", status: "7条已核验", note: "挂牌价不是成交价；每条记录绑定采集日期、来源与证据。", url: "#prices" },
+  { name: "市场观察池", level: "B+", scope: "中亚与东南亚价格及渠道", cadence: "周", status: "11条公开记录", note: "挂牌价不是成交价；每条记录绑定采集日期、来源与证据。", url: "#prices" },
 ];
 

@@ -136,7 +136,7 @@ export default function MarketPanel({ onState }: { onState: (state: "loading" | 
     const csv = [header, ...rows].map(row => row.map(cell => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
-    link.download = `中亚食用菌价格_${date || "全部日期"}.csv`;
+    link.download = `菌业出海价格_${date || "全部日期"}.csv`;
     link.click();
     URL.revokeObjectURL(link.href);
   };
