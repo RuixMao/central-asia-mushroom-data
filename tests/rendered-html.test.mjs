@@ -53,6 +53,15 @@ test("server-renders the corporate website and public data center", async () => 
   assert.match(terminalHtml, /每日 SKU 明细/);
   assert.match(terminalHtml, /来源/);
 
+  const countries = await render("/insights/country?expand=LA");
+  assert.equal(countries.status, 200);
+  const countriesHtml = await countries.text();
+  assert.match(countriesHtml, /按国家筛选全部价格/);
+  assert.match(countriesHtml, /href="\/market\/prices"/);
+  for (const code of ["LA", "VN", "TH", "MM", "KH", "KZ", "UZ", "KG", "TJ", "TM"]) {
+    assert.match(countriesHtml, new RegExp(`href="/markets/${code}#prices"`));
+  }
+
   const marketData = await render("/market-data");
   assert.equal(marketData.status, 200);
   const marketHtml = await marketData.text();
