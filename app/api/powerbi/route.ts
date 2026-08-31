@@ -42,6 +42,7 @@ export async function GET(request: Request) {
       product_form: product.productForm, original_title: product.originalTitle, brand: product.brand,
       platform_id: platform.id, platform_name: platform.name, current_price: price.currentPrice,
       promotion_price: price.promotionPrice, currency: price.currency, normalized_quantity_kg: price.normalizedQuantityKg,
+      package_value: price.packageValue, package_unit: price.packageUnit, raw_price_text: price.rawPriceText,
       normalized_price_per_kg: price.normalizedPricePerKg,
       normalized_usd_per_kg: price.normalizedPricePerKg && price.usdRateLocalPerUsd ? price.normalizedPricePerKg / price.usdRateLocalPerUsd : null,
       price_usd_per_package: price.priceUsd, in_stock: price.inStock, validation_status: price.validationStatus,

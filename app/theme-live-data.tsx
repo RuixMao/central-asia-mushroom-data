@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { mirrorRecords, opportunities } from "./data";
 
-type PriceRow = { observation_date:string; country:string; country_name?:string; species_id:string; species_name?:string; platform_name:string; original_title:string; normalized_usd_per_kg:number|null };
+type PriceRow = { observation_date:string; country:string; country_name?:string; species_id:string; species_name?:string; platform_name:string; original_title:string; normalized_usd_per_kg:number|null; current_price:number|null; currency:string; package_value:number|null; package_unit:string|null };
 type Report = { slug?:string; title:string; summary?:string; type:string; date?:string; publishedAt?:string|number|Date };
 const countryNames:Record<string,string>={KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦",LA:"老挝",VN:"越南",TH:"泰国",MM:"缅甸",KH:"柬埔寨"};
 const countryCodes=["LA","VN","TH","MM","KH","KZ","UZ","KG","TJ","TM"];
@@ -11,6 +11,8 @@ const speciesNames:Record<string,string>={button_mushroom:"双孢菇",oyster_mus
 const speciesName=(row:PriceRow)=>row.species_name&&row.species_name!==row.species_id?row.species_name:(speciesNames[row.species_id]??"其他菌菇");
 const money=(value:number)=>value?value>=1_000_000?`$${(value/1_000_000).toFixed(2)}M`:`$${Math.round(value/1000).toLocaleString("zh-CN")}K`:"—";
 const range=(values:number[])=>values.length?`$${Math.min(...values).toFixed(2)}–$${Math.max(...values).toFixed(2)}/kg`:"—";
+const packageQuote=(row:PriceRow)=>`${row.package_unit?.trim()||"未标重量"} · ${row.current_price==null?"价格未显示":`${new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format(row.current_price)} ${row.currency}`}/包`;
+const balancedRows=(rows:PriceRow[],limit=20)=>{const buckets=countryCodes.map(code=>rows.filter(row=>row.country===code));const result:PriceRow[]=[];for(let index=0;result.length<limit&&buckets.some(bucket=>index<bucket.length);index++)for(const bucket of buckets)if(bucket[index]&&result.length<limit)result.push(bucket[index]);return result;};
 
 function usePrices(){
   const [rows,setRows]=useState<PriceRow[]>([]); const [ready,setReady]=useState(false);
@@ -23,9 +25,10 @@ function usePrices(){
 export function MarketLivePreview(){
   const {today,latest,ready}=usePrices();
   const species=useMemo(()=>Array.from(new Map(today.map(r=>[r.species_id,speciesName(r)])).entries()).map(([id,name])=>({id,name,count:today.filter(r=>r.species_id===id).length})),[today]);
+  const visible=useMemo(()=>balancedRows(today),[today]);
   return <section className="theme-data-grid">
-    <article className="theme-data-card wide"><header><div><span>MARKET PRICE SNAPSHOT</span><h2>各市场最近报价</h2></div><small>更新至 {latest||"—"}</small></header><div className="theme-table"><div className="theme-row head"><span>国家</span><span>品类</span><span>USD/kg</span><span>平台</span></div>{today.slice(0,16).map((r,i)=><div className="theme-row" key={`${r.country}-${r.platform_name}-${i}`}><span>{r.country_name??countryNames[r.country]}</span><span>{speciesName(r)}</span><strong>{r.normalized_usd_per_kg==null?"按包报价":`$${Number(r.normalized_usd_per_kg).toFixed(2)}`}</strong><span>{r.platform_name}</span></div>)}{ready&&!today.length&&<p className="theme-empty">— 暂无公开价格</p>}</div></article>
-    <article className="theme-data-card"><header><div><span>SPECIES SCAN</span><h2>新品与品类扫描</h2></div></header>{species.length?<div className="theme-chip-list">{species.map(s=><div key={s.id}><b>{s.name}</b><span>{s.count} 条市场报价</span></div>)}</div>:<p className="theme-empty">— 暂无公开报价</p>}<a href="/market/scan">查看完整品类扫描 →</a></article>
+    <article className="theme-data-card wide"><header><div><span>目标市场价格</span><h2>各市场最近报价</h2></div><small>更新至 {latest||"—"}</small></header><div className="theme-table"><div className="theme-row head"><span>国家</span><span>品类</span><span>价格</span><span>平台</span></div>{visible.map((r,i)=><div className="theme-row" key={`${r.country}-${r.platform_name}-${i}`}><span>{r.country_name??countryNames[r.country]}</span><span>{speciesName(r)}</span><strong>{r.normalized_usd_per_kg==null?packageQuote(r):`$${Number(r.normalized_usd_per_kg).toFixed(2)}/kg`}</strong><span>{r.platform_name}</span></div>)}{ready&&!today.length&&<p className="theme-empty">— 暂无公开价格</p>}</div></article>
+    <article className="theme-data-card"><header><div><span>品类覆盖</span><h2>新品与品类扫描</h2></div></header>{species.length?<div className="theme-chip-list">{species.map(s=><div key={s.id}><b>{s.name}</b><span>{s.count} 条市场报价</span></div>)}</div>:<p className="theme-empty">— 暂无公开报价</p>}<a href="/market/scan">查看完整品类扫描 →</a></article>
   </section>;
 }
 
