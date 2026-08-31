@@ -103,6 +103,8 @@ actions tied to the current ChatGPT user. Leave public content anonymous.
 
 `pipeline/` 每日采集中亚五国及东南亚五国的 UN Comtrade 贸易、汇率与市场背景数据，并采集当地商超、电商和分类信息价格；东南亚任务优先验证老挝。所有结果写入 D1；无价格时写入 `status: gap`，绝不写 0。随后生成中文市场日报并写入报告表。
 
+新国家、新区域和新平台按 [食用菌新市场数据采集 SOP](docs/market-data-collection-sop.md) 接入；通用流程不随市场复制，地区差异放入市场接入包。
+
 核心入口：
 
 - `python pipeline/fetch_trade.py`：最近两年、十国、3 个 HS 编码。
