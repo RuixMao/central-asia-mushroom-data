@@ -5,7 +5,7 @@ const cors = {
 };
 
 const countries = { KZ: "哈萨克斯坦", UZ: "乌兹别克斯坦", KG: "吉尔吉斯斯坦", TJ: "塔吉克斯坦", TM: "土库曼斯坦", LA: "老挝", VN: "越南", TH: "泰国", MM: "缅甸", KH: "柬埔寨" };
-const species = { button_mushroom: "双孢菇", oyster_mushroom: "平菇", shiitake: "香菇", enoki: "金针菇", king_oyster_mushroom: "杏鲍菇" };
+const species = { mushroom_generic: "蘑菇-通用", button_mushroom: "双孢菇", oyster_mushroom: "平菇", shiitake: "香菇", wood_ear: "木耳", enoki: "金针菇", king_oyster_mushroom: "杏鲍菇" };
 const allowedTables = new Set(["platforms", "species", "products", "price_observations", "daily_price_summaries", "collection_runs", "collection_errors"]);
 
 async function authorized(request, env) {
@@ -47,12 +47,14 @@ async function powerBi(request, env) {
     result = await env.DB.prepare(`SELECT po.observation_date, po.observed_at, p.id product_id, p.country,
       p.city, p.species_id, p.product_form, p.original_title, p.brand, pf.id platform_id,
       pf.name platform_name, po.current_price, po.promotion_price, po.currency,
+      json_extract(p.classification_evidence, '$.grade') grade,
+      po.status, po.valid_until, po.raw_price_text, po.source_url, po.source_type,
       po.normalized_quantity_kg, po.normalized_price_per_kg,
       CASE WHEN po.normalized_price_per_kg IS NOT NULL AND po.usd_rate_local_per_usd IS NOT NULL
         THEN po.normalized_price_per_kg / po.usd_rate_local_per_usd END normalized_usd_per_kg,
       po.price_usd price_usd_per_package, po.in_stock, po.validation_status
       FROM price_observations po JOIN products p ON p.id=po.product_id
-      JOIN platforms pf ON pf.id=p.platform_id WHERE po.validation_status='valid' ${condition}
+      JOIN platforms pf ON pf.id=p.platform_id WHERE po.validation_status='valid' AND COALESCE(po.status,'active')='active' ${condition}
       ORDER BY po.observed_at DESC LIMIT 5000`)[dateFrom ? "bind" : "bind"](...(dateFrom ? [dateFrom] : [])).all();
   } else if (table === "daily") {
     const condition = dateFrom ? "WHERE date >= ?" : "";
