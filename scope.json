@@ -1,6 +1,6 @@
 {
   "countries": [
-    {"code":"LA","name":"老挝","region":"SEA","region_name":"东南亚","tier":1,"currency":"LAK","timezone":"Asia/Vientiane","reporter":418,"languages":["lo","en","th"],"channels":[{"id":"champa_garden","url":"https://champagardenshop.com/search?q={q}"}]},
+    {"code":"LA","name":"老挝","region":"SEA","region_name":"东南亚","tier":1,"currency":"LAK","accepted_currencies":["USD"],"timezone":"Asia/Vientiane","reporter":418,"languages":["lo","en","th"],"channels":[{"id":"champa_garden","url":"https://champagardenshop.com/search?q={q}"}]},
     {"code":"VN","name":"越南","region":"SEA","region_name":"东南亚","tier":2,"currency":"VND","timezone":"Asia/Ho_Chi_Minh","reporter":704,"languages":["vi","en"],"channels":[{"id":"bach_hoa_xanh","url":"https://www.bachhoaxanh.com/nam-tuoi/"}]},
     {"code":"TH","name":"泰国","region":"SEA","region_name":"东南亚","tier":2,"currency":"THB","timezone":"Asia/Bangkok","reporter":764,"languages":["th","en"],"channels":[{"id":"bigc_th","url":"https://www.bigc.co.th/category/mushroom"}]},
     {"code":"MM","name":"缅甸","region":"SEA","region_name":"东南亚","tier":3,"currency":"MMK","timezone":"Asia/Yangon","reporter":104,"languages":["my","en"],"channels":[{"id":"foodpanda_mm","url":"https://www.foodpanda.com.mm/en/shop/z2su/capital-hypermarket-h001-dawbon-z2su"}]},
@@ -12,6 +12,7 @@
     {"code":"TM","name":"土库曼斯坦","region":"CA","region_name":"中亚","tier":3,"currency":"TMT","timezone":"Asia/Ashgabat","reporter":795,"languages":["tk","ru"],"channels":[{"id":"tm_market","url":"https://www.goshmak.com/search?q={q}"}]}
   ],
   "species": [
+    {"slug":"mushroom_generic","name":"蘑菇-通用","priority":0,"terms":{"en":"mushroom","ru":"грибы"}},
     {"slug":"oyster_mushroom","name":"平菇","priority":1,"terms":{"en":"oyster mushroom","ru":"вешенка"}},
     {"slug":"shiitake","name":"香菇","priority":2,"terms":{"en":"shiitake","ru":"шиитаке"}},
     {"slug":"wood_ear","name":"木耳","priority":3,"terms":{"en":"wood ear","ru":"древесный гриб"}},
