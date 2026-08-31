@@ -14,9 +14,9 @@ export default function Page() {
       <div><span>核心口径</span><strong>3 类 HS 品类</strong><small>鲜冷、其他鲜菌与加工保藏</small></div>
       <div><span>更新体系</span><strong>日度 + 月度 + 年度</strong><small>渠道、官方统计与贸易基线互证</small></div>
     </section>
-    <section className="insight-section-head"><div><span>COUNTRY COVERAGE</span><h2>目标市场概览</h2></div><p>金额采用已确认的进口申报或伙伴国出口记录；尚未形成记录的市场显示为采集中。</p></section>
+    <section className="insight-section-head"><div><span>COUNTRY COVERAGE</span><h2>目标市场概览</h2></div><p>分别展示各市场已经形成的贸易或公开价格信息。</p></section>
     <section className="country-research-grid">
-      {countries.map(([code, name]) => { const rows = mirrorRecords.filter(row => row.countryCode === code); const total = rows.reduce((sum, row) => sum + Number(row.importerCifUsd ?? row.confirmedTradeUsd ?? 0), 0); const grade = rows[0]?.confidence ?? "采集中"; return <article key={code} className={code === "LA" ? "featured" : ""}><header><span>{code}</span><em>{grade}</em></header><h3>{name}</h3><strong>{rows.length?money(total):"—"}</strong><p>{rows.length?`${rows.length} 个已确认菌类贸易品类`:"统一维度采集已启动"}</p>{code === "LA" && <small>优先补充官方海关、渠道价格、物流与准入依据</small>}<a href={`/terminal/${code}`}>查看国别研究 →</a></article>; })}
+      {countries.map(([code, name]) => { const rows = mirrorRecords.filter(row => row.countryCode === code); const total = rows.reduce((sum, row) => sum + Number(row.importerCifUsd ?? row.confirmedTradeUsd ?? 0), 0); const prices:Record<string,number>={LA:2,VN:7,TH:17,MM:2,KH:8}; const count=prices[code]??0; const grade = rows[0]?.confidence ?? (count?"已有价格":"持续更新"); return <article key={code} className={code === "LA" ? "featured" : ""}><header><span>{code}</span><em>{grade}</em></header><h3>{name}</h3><strong>{rows.length?money(total):count?`${count} 条报价`:"—"}</strong><p>{rows.length?`${rows.length} 个菌类贸易品类`:count?`已形成 ${count} 个商品价格记录`:"市场信息持续更新"}</p>{code === "LA" && <small>老挝优先补充贸易、物流与更多零售渠道</small>}<a href={`/terminal/${code}`}>查看国别研究 →</a></article>; })}
     </section>
     <InsightsLivePreview/>
     <section className="detail-card-grid insight-entry-grid">

@@ -1,6 +1,8 @@
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { collectionErrors, collectionRuns, dailyPriceSummaries, platforms, priceObservations, products, species } from "../../../db/schema";
+import { env } from "cloudflare:workers";
+import { ensureSeaPriceSeed } from "../../sea-price-seed";
 
 export const dynamic = "force-dynamic";
 
@@ -16,9 +18,10 @@ const csv = (rows: Record<string, unknown>[]) => {
 };
 
 const countryNames: Record<string, string> = { KZ: "哈萨克斯坦", UZ: "乌兹别克斯坦", KG: "吉尔吉斯斯坦", TJ: "塔吉克斯坦", TM: "土库曼斯坦", LA: "老挝", VN: "越南", TH: "泰国", MM: "缅甸", KH: "柬埔寨" };
-const speciesNames: Record<string, string> = { button_mushroom: "双孢菇", oyster_mushroom: "平菇", shiitake: "香菇", enoki: "金针菇", king_oyster_mushroom: "杏鲍菇" };
+const speciesNames: Record<string, string> = { button_mushroom: "双孢菇", oyster_mushroom: "平菇", shiitake: "香菇", enoki: "金针菇", king_oyster_mushroom: "杏鲍菇", honey_fungus: "蜜环菌", suillus: "乳牛肝菌", porcini: "牛肝菌", shimeji: "真姬菇", wood_ear: "木耳", snow_fungus: "银耳", morel: "羊肚菌", chanterelle: "鸡油菌" };
 
 export async function GET(request: Request) {
+  await ensureSeaPriceSeed((env as unknown as {DB:D1Database}).DB);
   const params = new URL(request.url).searchParams;
   const table = params.get("table") ?? "prices";
   const format = params.get("format") ?? "json";
