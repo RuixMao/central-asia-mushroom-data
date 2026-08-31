@@ -13,14 +13,16 @@ export const customerPlatformName=(name:string)=>name.replace(/（老挝锚）|\
 export const speciesPriority=(id:string)=>speciesMeta[id]?.priority??99;
 const rateBounds:Record<string,[number,number]>={USD:[0.99,1.01],KGS:[40,200],KHR:[2000,10000],KZT:[200,1000],LAK:[10000,50000],MMK:[1000,10000],THB:[20,50],TJS:[5,20],TMT:[2,10],UZS:[5000,30000],VND:[15000,40000]};
 const validFxRate=(currency:string,rate:number|null|undefined)=>{const bounds=rateBounds[currency];return rate!=null&&Number.isFinite(Number(rate))&&(!bounds||(Number(rate)>=bounds[0]&&Number(rate)<=bounds[1]))};
-const packageKg=(row:LivePriceRow)=>{if(row.normalized_quantity_kg&&row.normalized_quantity_kg>0)return row.normalized_quantity_kg;const unit=row.package_unit??"";const kg=unit.match(/([\d.]+)\s*kg/i);if(kg)return Number(kg[1]);const g=unit.match(/([\d.]+)\s*g/i);return g?Number(g[1])/1000:null};
-const usdUnit=(row:LivePriceRow)=>{const kg=packageKg(row);if(kg===1)return "kg";const unit=row.package_unit??"";const grams=unit.match(/([\d.]+)\s*g/i);if(grams)return `${grams[1]}g`;const kilos=unit.match(/([\d.]+)\s*kg/i);if(kilos)return `${kilos[1]}kg`;return "包装"};
+const packageKg=(row:LivePriceRow)=>{if(row.normalized_quantity_kg&&row.normalized_quantity_kg>0)return row.normalized_quantity_kg;const unit=row.package_unit??"";const kg=unit.match(/([\d.]+)\s*kg/i);if(kg)return Number(kg[1]);const g=unit.match(/([\d.]+)\s*g/i);if(g)return Number(g[1])/1000;if(row.package_value&&/^\s*kg\s*$/i.test(unit))return row.package_value;if(row.package_value&&/^\s*g\s*$/i.test(unit))return row.package_value/1000;return null};
+const displayUnit=(row:LivePriceRow)=>{const unit=row.package_unit??"";const grams=unit.match(/([\d.]+)\s*g/i);if(grams)return `${grams[1]}g`;const kilos=unit.match(/([\d.]+)\s*kg/i);if(kilos)return Number(kilos[1])===1?"kg":`${kilos[1]}kg`;if(row.package_value&&/^\s*g\s*$/i.test(unit))return `${row.package_value}g`;if(row.package_value&&/^\s*kg\s*$/i.test(unit))return Number(row.package_value)===1?"kg":`${row.package_value}kg`;if(/plate|份/i.test(unit))return "份";if(/set|套/i.test(unit))return "套";if(/bag|包|袋/i.test(unit))return "包";if(/can|罐/i.test(unit))return "罐";return "包装"};
+const priceNumber=(value:number)=>new Intl.NumberFormat("en-US",{maximumFractionDigits:2}).format(value);
 export const rowPrice=(row:LivePriceRow)=>{
-  const local=row.raw_price_text??`${new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format(Number(row.current_price??0))} ${row.currency}${row.package_unit?`/${row.package_unit}`:""}`;
   const isRange=row.regular_price!=null&&row.current_price!=null&&row.regular_price>row.current_price;
+  const unit=displayUnit(row);
+  const amount=row.current_price==null?"—":isRange?`${priceNumber(Number(row.current_price))}–${priceNumber(Number(row.regular_price))}`:priceNumber(Number(row.current_price));
+  const local=row.currency==="USD"?`US$${amount}/${unit}`:`${amount} ${row.currency}/${unit}`;
   if(row.currency==="USD")return local;
   const rate=validFxRate(row.currency,row.usd_rate_local_per_usd)?Number(row.usd_rate_local_per_usd):null;
-  const unit=usdUnit(row);
   const usd=isRange&&rate
     ?`US$${(Number(row.current_price)/rate).toFixed(2)}–${(Number(row.regular_price)/rate).toFixed(2)}/${unit}`
     :row.price_usd_per_package!=null
