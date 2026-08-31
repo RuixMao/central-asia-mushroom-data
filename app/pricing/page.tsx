@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../native-link";
 import ProductShell from "../product-shell";
 
 const services=[

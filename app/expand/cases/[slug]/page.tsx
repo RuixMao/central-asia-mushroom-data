@@ -1,5 +1,5 @@
 import {notFound} from "next/navigation";
-import Link from "next/link";
+import Link from "../../../native-link";
 import ProductShell from "../../../product-shell";
 import {caseTopics,getCaseTopic} from "../case-data";
 

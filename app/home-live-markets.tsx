@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import Link from "./native-link";
 import {useEffect,useMemo,useState} from "react";
 import {countryNames,latestByCountry,loadLivePrices,marketCodesFromRows,marketName,prioritizedRows,rowPrice,speciesLabel,type LivePriceRow} from "./market-display";
 import {centralAsiaCodes,southeastAsiaCodes} from "./market-scope";

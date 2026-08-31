@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import Link from "../../native-link";
 import { useEffect, useMemo, useState } from "react";
 import { mirrorRecords } from "../../data";
 import {

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from "../native-link";
 import ProductShell from "../product-shell";
 import PriceLiveTable from "./price-live-table";
 import MirrorLiveGrid from "./mirror-live-grid";

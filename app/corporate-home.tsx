@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "./native-link";
 import SiteNav from "./site-nav";
 import MarketingFooter from "./marketing-footer";
 import {HomeMarketMatrix,HomeSignalOverview} from "./home-live-markets";

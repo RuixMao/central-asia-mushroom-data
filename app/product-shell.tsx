@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import Link from "./native-link";
 
 const primary=[["/opportunities","找市场"],["/market","查行情"],["/reports","市场洞察"],["/expand","出海服务"]];
 

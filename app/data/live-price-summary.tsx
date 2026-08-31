@@ -1,5 +1,5 @@
 "use client";
-import Link from "next/link";
+import Link from "../native-link";
 import {useEffect,useMemo,useState} from "react";
 import {countryNames,loadLivePrices,seaCodes,speciesLabel,type LivePriceRow} from "../market-display";
 export default function LivePriceSummary(){const [rows,setRows]=useState<LivePriceRow[]>([]);useEffect(()=>{loadLivePrices().then(setRows)},[]);const verified=rows.filter(row=>row.validation_status==="valid").length;const sea=rows.filter(row=>seaCodes.includes(row.country));const channels=useMemo(()=>Array.from(new Set(sea.map(row=>`${countryNames[row.country]} · ${row.platform_name}`))).slice(0,8),[sea]);return <><article><span>03 · 当地价格</span><h2>当地市场行情</h2><p>按原币、规格、城市、渠道和观察日期比较公开挂牌价。</p><dl><div><dt>价格样本</dt><dd>{rows.length} 条观察，其中 {verified} 条已核验</dd></div><div><dt>东南亚覆盖</dt><dd>{new Set(sea.map(row=>row.country)).size} 国 · {new Set(sea.map(row=>row.species_id)).size} 个品种</dd></div></dl><Link href="/market/prices">查看价格明细 →</Link></article><article><span>06 · 当地渠道</span><h2>东南亚销售渠道</h2><p>{channels.length?channels.join("、"):"老挝、越南、泰国、缅甸与柬埔寨渠道"}</p><div className="data-chip-list">{Array.from(new Set(sea.map(row=>speciesLabel(row.species_id)))).slice(0,6).map(name=><span key={name}>{name}</span>)}</div><Link href="/insights/channels">查看渠道地图 →</Link></article></>}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import Link from "./native-link";
 import { mirrorRecords, opportunities } from "./data";
 import {
   loadLivePrices,
