@@ -31,7 +31,9 @@ test("server-renders the corporate website and public data center", async () => 
   assert.match(html, /href="\/privacy"/);
   assert.match(html, /href="\/terms"/);
   assert.match(html, /href="\/market"/);
-  assert.match(html, /\$6\.00M/);
+  assert.match(html, /东南亚五国价格速览/);
+  assert.match(html, /href="\/markets\/LA#prices"/);
+  assert.doesNotMatch(html, /老挝（重点）|采集中/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 
   const terminal = await render("/terminal");
@@ -50,15 +52,16 @@ test("server-renders the corporate website and public data center", async () => 
   const marketData = await render("/market-data");
   assert.equal(marketData.status, 200);
   const marketHtml = await marketData.text();
-  assert.match(marketHtml, /中亚菌类市场/);
-  assert.match(marketHtml, /老挝（重点）/);
+  assert.match(marketHtml, /菌业出海/);
+  assert.match(marketHtml, /老挝/);
+  assert.doesNotMatch(marketHtml, /老挝（重点）/);
   assert.match(marketHtml, /UN Comtrade/);
   assert.match(marketHtml, /456,800/);
   assert.match(marketHtml, /249,690/);
   assert.match(marketHtml, />A\+</);
   assert.match(marketHtml, /未报告/);
   assert.doesNotMatch(marketHtml, /正在使用已核验基线|多源数据已连接|置信度|单侧证据|发布门槛/);
-  assert.match(marketHtml, /中国出口与中亚进口对比/);
+  assert.match(marketHtml, /中国出口与目标市场进口对比/);
 
   const reports = await render("/reports");
   assert.equal(reports.status, 200);
