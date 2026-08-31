@@ -30,8 +30,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
       - run: pip install -r pipeline/requirements.txt
@@ -136,7 +136,7 @@ jobs:
           VIDEO_VOICE_ID: zhixingnv
       - name: Preserve daily article and video production package
         if: ${{ inputs.validate_only != true }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: daily-content-package
           path: |
