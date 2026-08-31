@@ -11,16 +11,22 @@ export const speciesMeta:Record<string,{zh:string;en:string;priority:number}>=Ob
 export const speciesLabel=(id:string,withEnglish=false)=>{const item=speciesMeta[id];if(!item)return "其他食用菌";return withEnglish?`${item.zh} ${item.en}`:item.zh};
 export const customerPlatformName=(name:string)=>name.replace(/（老挝锚）|\(老挝锚\)/g,"").replace(/供给锚/g,"市场参考").replace(/邻国锚/g,"周边市场价格").trim();
 export const speciesPriority=(id:string)=>speciesMeta[id]?.priority??99;
+const rateBounds:Record<string,[number,number]>={USD:[0.99,1.01],KGS:[40,200],KHR:[2000,10000],KZT:[200,1000],LAK:[10000,50000],MMK:[1000,10000],THB:[20,50],TJS:[5,20],TMT:[2,10],UZS:[5000,30000],VND:[15000,40000]};
+const validFxRate=(currency:string,rate:number|null|undefined)=>{const bounds=rateBounds[currency];return rate!=null&&Number.isFinite(Number(rate))&&(!bounds||(Number(rate)>=bounds[0]&&Number(rate)<=bounds[1]))};
+const packageKg=(row:LivePriceRow)=>{if(row.normalized_quantity_kg&&row.normalized_quantity_kg>0)return row.normalized_quantity_kg;const unit=row.package_unit??"";const kg=unit.match(/([\d.]+)\s*kg/i);if(kg)return Number(kg[1]);const g=unit.match(/([\d.]+)\s*g/i);return g?Number(g[1])/1000:null};
+const usdUnit=(row:LivePriceRow)=>{const kg=packageKg(row);if(kg===1)return "kg";const unit=row.package_unit??"";const grams=unit.match(/([\d.]+)\s*g/i);if(grams)return `${grams[1]}g`;const kilos=unit.match(/([\d.]+)\s*kg/i);if(kilos)return `${kilos[1]}kg`;return "包装"};
 export const rowPrice=(row:LivePriceRow)=>{
   const local=row.raw_price_text??`${new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format(Number(row.current_price??0))} ${row.currency}${row.package_unit?`/${row.package_unit}`:""}`;
   const isRange=row.regular_price!=null&&row.current_price!=null&&row.regular_price>row.current_price;
   if(row.currency==="USD")return local;
-  const usd=isRange&&row.normalized_usd_per_kg!=null
-    ?`US$${Number(row.normalized_usd_per_kg).toFixed(2)}–${(Number(row.normalized_usd_per_kg)*(Number(row.regular_price)/Number(row.current_price))).toFixed(2)}/kg`
+  const rate=validFxRate(row.currency,row.usd_rate_local_per_usd)?Number(row.usd_rate_local_per_usd):null;
+  const unit=usdUnit(row);
+  const usd=isRange&&rate
+    ?`US$${(Number(row.current_price)/rate).toFixed(2)}–${(Number(row.regular_price)/rate).toFixed(2)}/${unit}`
     :row.price_usd_per_package!=null
-    ?`US$${Number(row.price_usd_per_package).toFixed(2)}/包装`
-    :row.current_price!=null&&row.usd_rate_local_per_usd
-      ?`US$${(row.current_price/row.usd_rate_local_per_usd).toFixed(2)}/包装`
+    ?`US$${Number(row.price_usd_per_package).toFixed(2)}/${unit}`
+    :row.current_price!=null&&rate
+      ?`US$${(row.current_price/rate).toFixed(2)}/${unit}`
       :row.normalized_usd_per_kg!=null
         ?`US$${Number(row.normalized_usd_per_kg).toFixed(2)}/kg`
         :null;
@@ -28,7 +34,18 @@ export const rowPrice=(row:LivePriceRow)=>{
 };
 export const speciesIdFromProduct=(product:string)=>speciesScope.find(item=>product.includes(item.name))?.slug??"other";
 const liveDataEndpoint="https://api.yinheng.site/api/powerbi?table=prices";
-export const loadLivePrices=()=>fetch(liveDataEndpoint,{cache:"no-store"}).then(async response=>{if(!response.ok)throw new Error("price load failed");const payload=await response.json() as {records?:LivePriceRow[]};return (payload.records??[]).map(row=>({...row,platform_name:customerPlatformName(row.platform_name)}));});
+export const loadLivePrices=()=>fetch(liveDataEndpoint,{cache:"no-store"}).then(async response=>{
+  if(!response.ok)throw new Error("price load failed");
+  const payload=await response.json() as {records?:LivePriceRow[]};
+  const rows=payload.records??[];
+  const rates=new Map<string,number>();
+  rows.forEach(row=>{if(!rates.has(row.currency)&&validFxRate(row.currency,row.usd_rate_local_per_usd)&&!/(未换算|原值)/.test(row.fx_source??""))rates.set(row.currency,Number(row.usd_rate_local_per_usd))});
+  return rows.map(row=>{
+    const rate=validFxRate(row.currency,row.usd_rate_local_per_usd)&&!/(未换算|原值)/.test(row.fx_source??"")?Number(row.usd_rate_local_per_usd):rates.get(row.currency);
+    const kg=packageKg(row);
+    return {...row,platform_name:customerPlatformName(row.platform_name),usd_rate_local_per_usd:rate??null,price_usd_per_package:rate&&row.current_price!=null?Number(row.current_price)/rate:row.price_usd_per_package,normalized_usd_per_kg:rate&&row.current_price!=null&&kg?Number(row.current_price)/rate/kg:row.normalized_usd_per_kg};
+  });
+});
 export const observationDateRank=(value:string)=>{const exact=value.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(exact)return Number(`${exact[1]}${exact[2]}${exact[3]}`);const years=value.match(/(?:19|20)\d{2}/g)?.map(Number)??[];return years.length?Math.max(...years)*10000:0};
 export const latestByCountry=(rows:LivePriceRow[])=>{const latest=new Map<string,number>();rows.forEach(row=>{const rank=observationDateRank(row.observation_date);if(rank>(latest.get(row.country)??0))latest.set(row.country,rank)});return rows.filter(row=>observationDateRank(row.observation_date)===latest.get(row.country));};
 export const prioritizedRows=(rows:LivePriceRow[],limit=10)=>[...rows].sort((a,b)=>speciesPriority(a.species_id)-speciesPriority(b.species_id)||b.observation_date.localeCompare(a.observation_date)||Number(b.normalized_usd_per_kg??0)-Number(a.normalized_usd_per_kg??0)).filter((row,index,all)=>{const peers=all.slice(0,index).filter(item=>item.country===row.country&&item.species_id===row.species_id);return peers.length<2}).slice(0,limit);

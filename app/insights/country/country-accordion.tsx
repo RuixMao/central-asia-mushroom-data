@@ -33,6 +33,7 @@ export default function CountryAccordion() {
   return <section className="country-accordion" aria-label="目标市场列表">{marketCodes.map((code) => {
     const trade = mirrorRecords.filter((row) => row.countryCode === code);
     const total = trade.reduce((sum, row) => sum + Number(row.importerCifUsd ?? row.confirmedTradeUsd ?? 0), 0);
+    const tradeYears=Array.from(new Set(trade.map(row=>row.year).filter(Boolean))).sort();
     const prices = latest.filter((row) => row.country === code);
     const channels = new Set(prices.map((row) => row.platform_name)).size;
     const date = prices.reduce((current, row) => row.observation_date > current ? row.observation_date : current, "");
@@ -40,7 +41,7 @@ export default function CountryAccordion() {
     return <article className={open ? "open" : ""} key={code}>
       <button type="button" onClick={() => toggle(code)} aria-expanded={open}><span>{code}</span><b>{prices[0]?marketName(prices[0]):countryNames[code]??code}</b><em>{prices.length ? `已有 ${prices.length} 条价格` : trade.length ? "已有贸易数据" : "市场信息"}</em><i aria-hidden="true">{open ? "−" : "＋"}</i></button>
       <div className="country-inline-panel" aria-hidden={!open}>
-        <div><span>市场规模</span><strong>{trade.length ? money(total) : "查看国家信息"}</strong></div>
+        <div><span>所列 HS 进口额</span><strong>{trade.length ? `${money(total)} · ${tradeYears.join("/")}` : "查看国家信息"}</strong></div>
         <div><span>公开价格</span><strong>{prices[0] ? rowPrice(prices[0]) : loading ? "正在加载" : "暂无公开价格"}</strong></div>
         <div><span>渠道覆盖</span><strong>{channels || "暂无渠道记录"}</strong></div>
         <div><span>更新时间</span><strong>{date || "随市场信息更新"}</strong></div>

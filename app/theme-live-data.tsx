@@ -207,7 +207,7 @@ export function InsightsLivePreview() {
             return (
               <div key={code}>
                 <b>{countryNames[code]}</b>
-                <span>进口 {money(total)}</span>
+                <span>所列 HS 进口 {money(total)}</span>
                 <span>
                   中国占比{" "}
                   {total && trade.some((r) => r.chinaFobUsd != null)
