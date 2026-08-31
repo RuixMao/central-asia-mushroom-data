@@ -6,7 +6,7 @@ export const allCodes=[...seaCodes,"KZ","UZ","KG","TJ","TM"];
 export const speciesMeta:Record<string,{zh:string;en:string;priority:number}>={
   oyster_mushroom:{zh:"平菇",en:"Oyster mushroom",priority:1},shiitake:{zh:"香菇",en:"Shiitake",priority:2},wood_ear:{zh:"木耳",en:"Wood ear",priority:3},king_oyster_mushroom:{zh:"杏鲍菇",en:"King oyster mushroom",priority:4},enoki:{zh:"金针菇",en:"Enoki",priority:5},button_mushroom:{zh:"双孢菇",en:"Button mushroom",priority:6},shimeji:{zh:"真姬菇",en:"Shimeji",priority:7},snow_fungus:{zh:"银耳",en:"Snow fungus",priority:8},porcini:{zh:"牛肝菌",en:"Porcini",priority:9},suillus:{zh:"乳牛肝菌",en:"Suillus",priority:10},honey_fungus:{zh:"蜜环菌",en:"Honey fungus",priority:11},morel:{zh:"羊肚菌",en:"Morel",priority:12},chanterelle:{zh:"鸡油菌",en:"Chanterelle",priority:13}
 };
-export const speciesLabel=(id:string,withEnglish=true)=>{const item=speciesMeta[id];if(!item)return "其他食用菌";return withEnglish?`${item.zh} ${item.en}`:item.zh};
+export const speciesLabel=(id:string,withEnglish=false)=>{const item=speciesMeta[id];if(!item)return "其他食用菌";return withEnglish?`${item.zh} ${item.en}`:item.zh};
 export const speciesPriority=(id:string)=>speciesMeta[id]?.priority??99;
 export const rowPrice=(row:LivePriceRow)=>row.normalized_usd_per_kg!=null?`$${Number(row.normalized_usd_per_kg).toFixed(2)}/kg`:`${row.package_unit||"未标重量"} · ${new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format(Number(row.current_price??0))} ${row.currency}/包`;
 let pricePromise:Promise<LivePriceRow[]>|null=null;

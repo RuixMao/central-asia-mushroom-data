@@ -193,7 +193,7 @@ export default function ScreenPage() {
   }, [trade]);
 
   const roleCopy = roles.find(item => item[0] === role)!;
-  const formatQuantity = (quantity?: number | null) => quantity == null || !Number.isFinite(Number(quantity)) ? "规格待核" : Number(quantity) >= 1 ? `${Number(quantity).toFixed(Number(quantity) % 1 ? 1 : 0)}kg 装` : `${Math.round(Number(quantity) * 1000)}g 装`;
+  const formatQuantity = (quantity?: number | null) => quantity == null || !Number.isFinite(Number(quantity)) ? "未标规格" : Number(quantity) >= 1 ? `${Number(quantity).toFixed(Number(quantity) % 1 ? 1 : 0)}kg 装` : `${Math.round(Number(quantity) * 1000)}g 装`;
 
   return <main className={`live-screen role-${role}`}>
     <header className="screen-head">

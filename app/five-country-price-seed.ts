@@ -460,11 +460,11 @@ const mm: X[] = [
 const la: X[] = [...th.slice(0, 5), ...vn.slice(0, 5)].map((x, i) => ({
   ...x,
   c: "LA",
-  n: `${x.n} / 老挝邻国参考`,
+  n: x.n,
   g: "E",
-  t: "邻国锚",
-  note: `邻国参考·${x.c === "TH" ? "泰国" : "越南"}`,
-  src: `${x.src}（老挝锚）`,
+  t: "周边市场价格",
+  note: `${x.c === "TH" ? "泰国" : "越南"}市场价格参考`,
+  src: x.src,
 }));
 const rows = [...th, ...vn, ...kh, ...mm, ...la];
 const fx: Record<string, number> = {

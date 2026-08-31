@@ -25,7 +25,7 @@ const cleanAnalysis=(body:string)=>{
  if(lines[0]?.trim()==="## 导读")lines.shift();
  return lines.join("\n").trim();
 };
-const packageLabel=(value:number|null,unit:string|null)=>value&&unit?`${Number(value.toFixed(3))} ${unit}`:"规格待核验";
+const packageLabel=(value:number|null,unit:string|null)=>value&&unit?`${Number(value.toFixed(3))} ${unit}`:"未标规格";
 const escapeCell=(value:unknown)=>String(value??"—").replace(/\|/g,"/").replace(/\r?\n/g," ").trim();
 
 export async function POST(){

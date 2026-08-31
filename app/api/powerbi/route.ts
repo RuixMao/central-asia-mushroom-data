@@ -21,6 +21,7 @@ const csv = (rows: Record<string, unknown>[]) => {
 
 const countryNames: Record<string, string> = { KZ: "哈萨克斯坦", UZ: "乌兹别克斯坦", KG: "吉尔吉斯斯坦", TJ: "塔吉克斯坦", TM: "土库曼斯坦", LA: "老挝", VN: "越南", TH: "泰国", MM: "缅甸", KH: "柬埔寨" };
 const speciesNames: Record<string, string> = { button_mushroom: "双孢菇", oyster_mushroom: "平菇", shiitake: "香菇", enoki: "金针菇", king_oyster_mushroom: "杏鲍菇", honey_fungus: "蜜环菌", suillus: "乳牛肝菌", porcini: "牛肝菌", shimeji: "真姬菇", wood_ear: "木耳", snow_fungus: "银耳", morel: "羊肚菌", chanterelle: "鸡油菌" };
+const customerText = (value: string | null) => value?.replace(/（老挝锚）|\(老挝锚\)/g, "").replace(/\s*\/\s*老挝邻国参考/g, "").replace(/供给锚/g, "市场参考").replace(/邻国锚/g, "周边市场价格").replace(/（待核）|\(待核\)/g, "") ?? value;
 
 export async function GET(request: Request) {
   await ensureSeaPriceSeed((env as unknown as {DB:D1Database}).DB);
@@ -39,8 +40,8 @@ export async function GET(request: Request) {
       observation_date: price.observationDate, observed_at: price.observedAt, product_id: product.id,
       country: product.country, country_name: countryNames[product.country] ?? product.country, city: product.city,
       species_id: product.speciesId, species_name: speciesNames[product.speciesId ?? ""] ?? product.speciesId,
-      product_form: product.productForm, original_title: product.originalTitle, brand: product.brand,
-      platform_id: platform.id, platform_name: platform.name, current_price: price.currentPrice,
+      product_form: product.productForm, original_title: customerText(product.originalTitle), brand: product.brand,
+      platform_id: platform.id, platform_name: customerText(platform.name), current_price: price.currentPrice,
       promotion_price: price.promotionPrice, currency: price.currency, normalized_quantity_kg: price.normalizedQuantityKg,
       package_value: price.packageValue, package_unit: price.packageUnit, raw_price_text: price.rawPriceText,
       normalized_price_per_kg: price.normalizedPricePerKg,
