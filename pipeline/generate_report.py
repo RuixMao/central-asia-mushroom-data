@@ -35,6 +35,11 @@ def customer_safe(body,allowed):
  normalized=unicodedata.normalize("NFKC",body);refs=set(re.findall(r"\[(S\d+)\]",normalized))
  return 500<=len(normalized)<=2000 and "```" not in normalized and "食用菌出海市场日报｜" not in normalized and not FORBIDDEN.search(normalized) and not re.search(r"\|\s*(?:食用菌|菌类)\s*\|",normalized) and all(normalized.count(section)==1 for section in SECTIONS) and refs<=allowed
 
+def covers_today_sea_markets(body,prices):
+ """Every Southeast Asian market with report-ready prices must be discussed in prose."""
+ required={COUNTRIES[row["country"]] for row in prices if row.get("country") in {"LA","VN","TH","MM","KH"}}
+ return all(name in body for name in required)
+
 def utf8_truncate(text,max_bytes):
  encoded=text.encode("utf-8")
  if len(encoded)<=max_bytes:return text
@@ -173,6 +178,13 @@ def decision_fallback(today,prices,evidence):
  event_line=(f'今日新增事件为“{today_events[0]["标题"]}”[{today_events[0]["id"]}]，建议按该事实评估受影响环节。' if today_events else "今日无新增政策与事件，市场面平稳。")
  tm=[r for r in prices if r.get("country")=="TM"]
  tm_line=(f'土库曼斯坦{SPECIES_NAMES[tm[0]["data"]["species_id"]]}在{tm[0]["data"].get("platform_name") or tm[0].get("source")}报价{float(tm[0]["data"]["normalized_price_usd_per_kg"]):.2f}美元/公斤；该国海关透明度低、许可获取难度高，谨慎进入。' if tm else "")
+ sea_lines=[]
+ for code in ("LA","VN","TH","MM","KH"):
+  rows=[r for r in prices if r.get("country")==code]
+  if not rows:continue
+  best=min(rows,key=lambda r:float(r["data"]["normalized_price_usd_per_kg"]));data=best["data"]
+  sea_lines.append(f'- **{COUNTRIES[code]}：**{data.get("platform_name") or best.get("source")}的{SPECIES_NAMES[data["species_id"]]}（{data.get("package_display")}装）为{float(data["normalized_price_usd_per_kg"]):.2f}美元/公斤；建议以同规格批量询价验证渠道空间。')
+ sea_text="\n".join(sea_lines)
  return f"""## 今日要点
 
 1. **今日已确认报价从{float(ld["normalized_price_usd_per_kg"]):.2f}至{float(hd["normalized_price_usd_per_kg"]):.2f}美元/公斤，价差主要来自品类与规格。**建议只在同品类、同形态、同净重条件下比价。
@@ -185,6 +197,10 @@ def decision_fallback(today,prices,evidence):
 **今日低价为{low_country}{low_name}，高价为{high_country}{high_name}，两者品类与规格不同，不作直接比较。**
 
 {event_line}
+
+**东南亚当日渠道价格：**
+
+{sea_text}
 
 ## 机会与风险
 
@@ -322,6 +338,8 @@ def run():
 7. 机会与风险必须具体到国家、品类、触发条件、潜在损失和规避动作。行动建议固定用“决策参考、采购落地、报价规范”三个栏目，引用当日价格，使用“建议、应”等语气。
 8. 涉及土库曼斯坦写明其海关透明度低、许可获取难度高，谨慎进入；涉及鸡枞写明其仅适合华人小众圈层，不建议作为主力出口。
 9. “数据说明”不得写样本限制，统一由程序替换为固定客户版文字。政策或事件只能引用证据包中的官方公告并写明机构与日期；价格不附网址。不得虚构批发价、物流价、政策、原因、利润或需求。输出标准 Markdown，不重复输出完整明细表或网址，后续程序会附加。"""
+ if any(row.get("country") in {"LA","VN","TH","MM","KH"} for row in prices):
+  prompt += "\n10. 当日价格表中出现的每一个东南亚国家，都必须在正文中逐国点名分析至少一次；不得只分析泰国或省略老挝、越南、缅甸、柬埔寨。"
  preview_output=os.environ.get("REPORT_PREVIEW_OUTPUT","").strip()
  if not AI_API_KEY and not preview_output:raise RuntimeError("AI_API_KEY is not configured")
  client=OpenAI(api_key=AI_API_KEY,base_url=AI_BASE_URL or "https://api.deepseek.com") if AI_API_KEY else None;analysis="";used_fallback=False
@@ -330,14 +348,14 @@ def run():
   for attempt in range(2):
    request=prompt if attempt==0 else f"{prompt}\n\n上一稿未通过发布检查。请仅使用允许的证据编号，严格保留五个公众号栏目；删除所有内部研究术语，用客户听得懂的短句和当日数字完整重写。"
    result=client.chat.completions.create(model=AI_MODEL or "deepseek-v4-flash",messages=[{"role":"user","content":request}],temperature=.15,max_tokens=5000,extra_body={"thinking":{"type":"disabled"}});analysis=clean_analysis(result.choices[0].message.content or "")
-   if customer_safe(analysis,allowed):break
+   if customer_safe(analysis,allowed) and covers_today_sea_markets(analysis,prices):break
  except (AuthenticationError,APIError,RuntimeError) as exc:
   log(f"DeepSeek unavailable, using verified fallback: {type(exc).__name__}")
   analysis=clean_analysis(decision_fallback(today,prices,evidence));used_fallback=True
- if not used_fallback and not customer_safe(analysis,allowed):
+ if not used_fallback and (not customer_safe(analysis,allowed) or not covers_today_sea_markets(analysis,prices)):
   log("模型稿未通过成稿检查，改用固定日报模板")
   analysis=clean_analysis(decision_fallback(today,prices,evidence));used_fallback=True
- if not customer_safe(analysis,allowed):raise RuntimeError("日报未通过研究成稿检查，拒绝发布")
+ if not customer_safe(analysis,allowed) or not covers_today_sea_markets(analysis,prices):raise RuntimeError("日报未完整覆盖当日东南亚市场，拒绝发布")
  used_ids=set(re.findall(r"\[(S\d+)\]",analysis));used_evidence=[(index,item) for index,item in enumerate(evidence) if item["id"] in used_ids]
  marker="\n## 数据说明"
  market_marker="\n## 机会与风险"

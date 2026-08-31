@@ -63,7 +63,7 @@ jobs:
       - name: Verify collector dependency graph
         run: python -c "import sys; sys.path.insert(0, 'pipeline'); import fetch_price"
       - name: Collect normalized prices
-        continue-on-error: ${{ inputs.platform == 'foodpanda-champa-market-la' || inputs.platform == 'verified-sea-research' || inputs.platform == 'laos-myanmar-relaxed' || inputs.platform == 'today-thailand-retail' }}
+        continue-on-error: ${{ inputs.platform == 'foodpanda-champa-market-la' || inputs.platform == 'verified-sea-research' || inputs.platform == 'laos-myanmar-relaxed' || inputs.platform == 'today-thailand-retail' || inputs.platform == 'today-sea-retail' }}
         run: python pipeline/fetch_price.py
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
@@ -99,6 +99,12 @@ jobs:
       - name: Publish today's verified Thailand prices
         if: ${{ inputs.platform == 'today-thailand-retail' }}
         run: python pipeline/publish_today_thailand_retail.py
+        env:
+          SITE_URL: ${{ secrets.SITE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+      - name: Publish today's verified Southeast Asia prices
+        if: ${{ inputs.platform == 'today-sea-retail' }}
+        run: python pipeline/publish_today_sea_retail.py
         env:
           SITE_URL: ${{ secrets.SITE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}

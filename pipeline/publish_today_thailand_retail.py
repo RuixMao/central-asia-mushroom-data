@@ -36,7 +36,7 @@ def run():
   usdkg = round(price / (grams / 1000) / rate, 2)
   post_to_site("/api/ingest/snapshot", {"metric":"price_retail","country":"TH","source":pid,"data":{
    "product_key":f"{pid}:{key}","species_id":species,"original_title":title,"product_form":"fresh",
-   "product_shape":"whole","processing_state":"fresh","packaging_type":"packaged","package_display":f"{grams:g} g",
+   "product_shape":"whole","processing_state":"fresh","packaging_type":"packaged","package_display":f"{grams:g} g","package_source":"page_title",
    "platform_name":pname,"status":"live","validation_status":"valid","price_local":price,
    "regular_price_local":regular,"currency":"THB","price_usd":round(price/rate,2),
    "normalized_price_usd_per_kg":usdkg,"observed_at":DATE,"retrieved_at":now,"source_url":url}})
