@@ -3,6 +3,7 @@ import { getDb } from "../../../db";
 import { collectionErrors, collectionRuns, dailyPriceSummaries, platforms, priceObservations, products, species } from "../../../db/schema";
 import { env } from "cloudflare:workers";
 import { ensureSeaPriceSeed } from "../../sea-price-seed";
+import { ensureLaosRawPriceIntel } from "../../laos-raw-price-intel";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ const speciesNames: Record<string, string> = { button_mushroom: "双孢菇", oys
 
 export async function GET(request: Request) {
   await ensureSeaPriceSeed((env as unknown as {DB:D1Database}).DB);
+  await ensureLaosRawPriceIntel((env as unknown as {DB:D1Database}).DB);
   const params = new URL(request.url).searchParams;
   const table = params.get("table") ?? "prices";
   const format = params.get("format") ?? "json";
