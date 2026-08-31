@@ -45,7 +45,7 @@ export type Opportunity = {
 
 export const countryOptions: { code: string; label: string; short: string }[] = [
   { code: "ALL", label: "全部目标市场", short: "全部" },
-  { code: "LA", label: "老挝（重点）", short: "老挝" },
+  { code: "LA", label: "老挝", short: "老挝" },
   { code: "VN", label: "越南", short: "越南" },
   { code: "TH", label: "泰国", short: "泰国" },
   { code: "MM", label: "缅甸", short: "缅甸" },

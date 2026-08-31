@@ -1,0 +1,1 @@
+export default function Loading(){return <main className="saas-main market-detail-page"><section className="saas-hero compact"><span>国家市场</span><h1>市场数据</h1></section><div className="country-loading"><i/><i/><i/><i/></div></main>}

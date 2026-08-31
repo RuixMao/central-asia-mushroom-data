@@ -1,5 +1,6 @@
 import ProductShell from "../product-shell";
 import { dataSources, mirrorRecords, opportunities, priceObservations, productionEvidence, tradeRecords } from "../data";
+import LivePriceSummary from "./live-price-summary";
 
 const money=(value:number|null)=>value==null?"—":value>=1_000_000?`$${(value/1_000_000).toFixed(2)}M`:`$${Math.round(value/1000)}K`;
 
@@ -25,8 +26,8 @@ export default function DataCenterPage(){
     <section className="data-center-block"><header><div><span>01 · TRADE</span><h2>贸易规模与品类结构</h2><p>先看市场容量，再进入国别、来源国和镜像差异核验。</p></div><a href="/insights/trade">查看完整贸易分析 →</a></header><div className="data-center-table"><div className="head"><b>国家</b><b>HS / 品类</b><b>2024 进口额</b><b>数据状态</b></div>{latestTrade.map(row=><div key={`${row.countryCode}-${row.hs}`}><span>{row.country}</span><span>{row.hs} · {row.product}</span><strong>{money(row.y2024)}</strong><em>已确认</em></div>)}</div></section>
 
     <section className="data-center-split">
-      <article><span>02 · LOCAL SUPPLY</span><h2>本土供给与进口依赖</h2><p>结合农业供给基线与进口规模，评估当地供给能力和外部采购空间。</p><dl><div><dt>数据来源</dt><dd>FAOSTAT + 当地生产证据</dd></div><div><dt>数据口径</dt><dd>未收录≠零产量 · 计划值单列</dd></div></dl><a href="/data-assets">查看数据口径 →</a></article>
-      <article><span>03 · PRICES</span><h2>当地市场行情</h2><p>按原币、规格、城市、渠道和观察日期比较公开挂牌价。</p><dl><div><dt>价格样本</dt><dd>{priceObservations.length} 条已核验记录</dd></div><div><dt>重点市场</dt><dd>阿拉木图 / 塔什干</dd></div></dl><a href="/market/prices">查看价格明细 →</a></article>
+      <article><span>02 · 本土供给</span><h2>本土供给与进口依赖</h2><p>结合农业供给基线与进口规模，评估当地供给能力和外部采购空间。</p><dl><div><dt>中亚来源</dt><dd>FAOSTAT 与当地生产记录</dd></div><div><dt>东南亚来源</dt><dd>FAO 老挝市场资料与进口价格参考</dd></div></dl><a href="/data-assets">查看数据口径 →</a></article>
+      <LivePriceSummary/>
     </section>
 
     <section className="data-center-block"><header><div><span>LOCAL PRODUCTION EVIDENCE</span><h2>FAOSTAT 未收录国家的生产证据</h2><p>企业实际产出、规划产能与出口状态分开保存；以下记录均不替代国家年度总产量。</p></div></header><div className="data-center-table"><div className="head"><b>国家</b><b>证据类型</b><b>数量 / 状态</b><b>统计处理</b></div>{productionEvidence.map((row,index)=><div key={`${row.countryCode}-${row.type}-${index}`}><span>{row.country}<small>{row.source}</small></span><span>{row.type}</span><strong>{row.value}</strong><em>{row.status}｜{row.note}</em></div>)}</div></section>
@@ -36,7 +37,6 @@ export default function DataCenterPage(){
     <section className="data-center-block"><header><div><span>05 · SIGNALS</span><h2>需求信号与决策参考</h2><p>结合贸易变化与价格观察，识别值得进一步核验的市场机会。</p></div><a href="/opportunities">查看全部商机 →</a></header><div className="data-signal-grid">{signals.map(item=><article key={item.id}><small>{item.country} · HS {item.hs}</small><h3>{item.product}</h3><strong>{item.status}</strong><p>{item.signal}</p><b>建议关注：{item.nextAction}</b></article>)}</div></section>
 
     <section className="data-center-split">
-      <article><span>06 · CHANNELS</span><h2>当地销售渠道</h2><p>按国家、平台和覆盖品类寻找适合进一步接洽的市场渠道。</p><a href="/insights/channels">查看渠道地图 →</a></article>
       <article><span>07 · CORRIDOR & ACCESS</span><h2>贸易通道、物流与准入</h2><p>围绕具体产品核对线路报价、运输时效、报关要求和市场准入条件。</p><div className="data-status-row"><span>政策要求：按品类查询</span><span>线路成本：按路线询价</span><span>产品准入：逐项核验</span></div><a href="/expand/contact">提交验证需求 →</a></article>
     </section>
 

@@ -62,5 +62,5 @@ export async function GET(request: Request) {
   } else return Response.json({ error: "不支持的数据表" }, { status: 400 });
 
   if (format === "csv") return new Response(csv(records), { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `inline; filename=${table}.csv`, "cache-control": "public, max-age=300" } });
-  return Response.json({ records, count: records.length, generated_at: new Date().toISOString() });
+  return Response.json({ records, count: records.length, generated_at: new Date().toISOString() },{headers:{"cache-control":"public, max-age=60, stale-while-revalidate=600"}});
 }

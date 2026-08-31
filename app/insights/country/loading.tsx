@@ -1,0 +1,1 @@
+export default function Loading(){return <main className="saas-main"><section className="saas-hero compact"><span>目标市场</span><h1>目标市场需求画像</h1></section><div className="country-loading" aria-label="国家数据加载中">{Array.from({length:6},(_,i)=><i key={i}/>)}</div></main>}

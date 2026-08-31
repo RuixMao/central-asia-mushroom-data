@@ -1,0 +1,15 @@
+export type LivePriceRow={observation_date:string;country:string;country_name?:string;city?:string;species_id:string;species_name?:string;platform_name:string;current_price:number|null;currency:string;package_unit:string|null;normalized_usd_per_kg:number|null;validation_status?:string};
+
+export const countryNames:Record<string,string>={LA:"老挝",VN:"越南",TH:"泰国",MM:"缅甸",KH:"柬埔寨",KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦"};
+export const seaCodes=["LA","VN","TH","MM","KH"];
+export const allCodes=[...seaCodes,"KZ","UZ","KG","TJ","TM"];
+export const speciesMeta:Record<string,{zh:string;en:string;priority:number}>={
+  oyster_mushroom:{zh:"平菇",en:"Oyster mushroom",priority:1},shiitake:{zh:"香菇",en:"Shiitake",priority:2},wood_ear:{zh:"木耳",en:"Wood ear",priority:3},king_oyster_mushroom:{zh:"杏鲍菇",en:"King oyster mushroom",priority:4},enoki:{zh:"金针菇",en:"Enoki",priority:5},button_mushroom:{zh:"双孢菇",en:"Button mushroom",priority:6},shimeji:{zh:"真姬菇",en:"Shimeji",priority:7},snow_fungus:{zh:"银耳",en:"Snow fungus",priority:8},porcini:{zh:"牛肝菌",en:"Porcini",priority:9},suillus:{zh:"乳牛肝菌",en:"Suillus",priority:10},honey_fungus:{zh:"蜜环菌",en:"Honey fungus",priority:11},morel:{zh:"羊肚菌",en:"Morel",priority:12},chanterelle:{zh:"鸡油菌",en:"Chanterelle",priority:13}
+};
+export const speciesLabel=(id:string,withEnglish=true)=>{const item=speciesMeta[id];if(!item)return "其他食用菌";return withEnglish?`${item.zh} ${item.en}`:item.zh};
+export const speciesPriority=(id:string)=>speciesMeta[id]?.priority??99;
+export const rowPrice=(row:LivePriceRow)=>row.normalized_usd_per_kg!=null?`$${Number(row.normalized_usd_per_kg).toFixed(2)}/kg`:`${row.package_unit||"未标重量"} · ${new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format(Number(row.current_price??0))} ${row.currency}/包`;
+let pricePromise:Promise<LivePriceRow[]>|null=null;
+export const loadLivePrices=()=>pricePromise??=(fetch("/api/powerbi?table=prices",{cache:"force-cache"}).then(async response=>{if(!response.ok)throw new Error("price load failed");const payload=await response.json() as {records?:LivePriceRow[]};return payload.records??[]}).catch(error=>{pricePromise=null;throw error}));
+export const latestByCountry=(rows:LivePriceRow[])=>{const latest=new Map<string,string>();rows.forEach(row=>{if(row.observation_date>(latest.get(row.country)??""))latest.set(row.country,row.observation_date)});return rows.filter(row=>row.observation_date===latest.get(row.country));};
+export const prioritizedRows=(rows:LivePriceRow[],limit=10)=>[...rows].sort((a,b)=>speciesPriority(a.species_id)-speciesPriority(b.species_id)||b.observation_date.localeCompare(a.observation_date)||Number(b.normalized_usd_per_kg??0)-Number(a.normalized_usd_per_kg??0)).filter((row,index,all)=>{const peers=all.slice(0,index).filter(item=>item.country===row.country&&item.species_id===row.species_id);return peers.length<2}).slice(0,limit);

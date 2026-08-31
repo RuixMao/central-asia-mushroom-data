@@ -2,7 +2,7 @@
 import { FormEvent, useState } from "react";
 import ProductShell from "../../product-shell";
 
-const markets = ["老挝（重点）", "越南", "泰国", "缅甸", "柬埔寨", "哈萨克斯坦", "乌兹别克斯坦", "吉尔吉斯斯坦", "塔吉克斯坦", "土库曼斯坦", "尚未确定"];
+const markets = ["老挝", "越南", "泰国", "缅甸", "柬埔寨", "哈萨克斯坦", "乌兹别克斯坦", "吉尔吉斯斯坦", "塔吉克斯坦", "土库曼斯坦", "尚未确定"];
 
 export default function Page() {
   const [draft, setDraft] = useState("");
