@@ -10,7 +10,7 @@ export default function Page() {
   return <ProductShell><main className="saas-main insight-landing">
     <section className="saas-hero compact"><span>DEMAND INSIGHTS</span><h1>食用菌出海需求分析</h1><p>以贸易规模、渠道价格与供应结构为核心，持续评估中亚与东南亚目标市场的品类需求和进入机会。</p></section>
     <section className="insight-brief" aria-label="研究摘要">
-      <div><span>研究范围</span><strong>10 个目标市场</strong><small>逐国呈现，不以缺报代替零值</small></div>
+      <div><span>覆盖范围</span><strong>10 个目标市场</strong><small>中亚五国与东南亚五国</small></div>
       <div><span>核心口径</span><strong>3 类 HS 品类</strong><small>鲜冷、其他鲜菌与加工保藏</small></div>
       <div><span>更新体系</span><strong>日度 + 月度 + 年度</strong><small>渠道、官方统计与贸易基线互证</small></div>
     </section>

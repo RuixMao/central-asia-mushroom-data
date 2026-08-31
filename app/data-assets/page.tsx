@@ -13,5 +13,5 @@ const capabilities=[
 export default function AssetsPage(){return <div className="marketing-site"><SiteNav/><main className="subpage data-assets-page">
   <section className="subhero"><span>PLATFORM CAPABILITIES</span><h1>从市场数据到出海行动</h1><p>覆盖贸易规模、价格监测、国别研究、采购基准、物流与准入验证。</p></section>
   <section className="asset-section"><div className="landing-heading"><span>CAPABILITY STATUS</span><h2>平台能力与交付</h2><p>按目标国家、产品和业务阶段选择相应的数据与市场服务。</p></div><div className="capability-status-grid">{capabilities.map(item=><article key={item.title}><header><span className={`capability-status status-${item.status}`}>{item.status}</span><h2>{item.title}</h2></header><dl><div><dt>覆盖内容</dt><dd>{item.scope}</dd></div><div><dt>数据来源</dt><dd>{item.source}</dd></div><div><dt>更新频率</dt><dd>{item.cadence}</dd></div><div><dt>客户可获得</dt><dd>{item.delivery}</dd></div></dl></article>)}</div></section>
-  <section className="asset-pipeline" aria-label="数据形成流程"><span>多源采集</span><i>→</i><span>字段标准化</span><i>→</i><span>来源与置信等级</span><i>→</i><span>持续验证</span><i>→</i><strong>市场判断 · 验证清单 · 持续监测</strong></section>
+  <section className="asset-pipeline" aria-label="数据服务范围"><span>市场价格</span><i>→</i><span>贸易规模</span><i>→</i><span>渠道信息</span><i>→</i><span>物流参考</span><i>→</i><strong>菌业出海决策支持</strong></section>
 </main><MarketingFooter/></div>}

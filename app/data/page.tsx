@@ -13,7 +13,7 @@ export default function DataCenterPage(){
   const latestTrade=tradeRecords.filter(row=>row.y2024!=null).sort((a,b)=>Number(b.y2024)-Number(a.y2024)).slice(0,6);
   const signals=opportunities.filter(item=>item.status!=="暂缓").slice(0,3);
   return <ProductShell><main className="saas-main data-center-page">
-    <section className="saas-hero compact"><span>全部市场依据</span><h1>用哪些信息判断一个市场值不值得进入？</h1><p>从市场规模、当地供给、公开价格、销售渠道和进入条件逐项核对。建议先看结论，再按需要查看这里的完整依据。</p></section>
+    <section className="saas-hero compact"><span>市场数据</span><h1>判断一个市场是否值得进入</h1><p>查看市场规模、当地供给、公开价格、销售渠道和进入条件。</p></section>
 
     <section className="data-center-kpis">
       <article><span>已确认贸易规模</span><strong>{money(total)}</strong><small>2024 年；UN Comtrade 与伙伴国镜像</small></article>
