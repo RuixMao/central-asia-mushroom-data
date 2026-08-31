@@ -31,7 +31,10 @@ test("server-renders the corporate website and public data center", async () => 
   assert.match(html, /href="\/privacy"/);
   assert.match(html, /href="\/terms"/);
   assert.match(html, /href="\/market"/);
-  assert.match(html, /东南亚五国价格速览/);
+  assert.match(html, /目标市场价格速览/);
+  assert.match(html, /全部市场/);
+  assert.match(html, /中亚/);
+  assert.match(html, /东南亚/);
   assert.match(html, /href="\/markets\/LA#prices"/);
   assert.doesNotMatch(html, /老挝（重点）|采集中/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
