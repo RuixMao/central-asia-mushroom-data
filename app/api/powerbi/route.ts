@@ -38,7 +38,7 @@ export async function GET(request: Request) {
     const rows = await getDb().select({ price: priceObservations, product: products, platform: platforms }).from(priceObservations).innerJoin(products, eq(priceObservations.productId, products.id)).innerJoin(platforms, eq(products.platformId, platforms.id)).where(and(...filters)).orderBy(desc(priceObservations.observedAt)).limit(5000);
     records = rows.filter(row => !dateFrom || row.price.observationDate >= dateFrom).map(({ price, product, platform }) => ({
       observation_date: price.observationDate, observed_at: price.observedAt, product_id: product.id,
-      country: product.country, country_name: countryNames[product.country] ?? product.country, city: product.city,
+      country: product.country, country_name: countryNames[product.country] ?? product.country, city: customerText(product.city),
       species_id: product.speciesId, species_name: speciesNames[product.speciesId ?? ""] ?? product.speciesId,
       product_form: product.productForm, original_title: customerText(product.originalTitle), brand: product.brand,
       platform_id: platform.id, platform_name: customerText(platform.name), current_price: price.currentPrice,
