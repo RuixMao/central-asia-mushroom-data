@@ -33,6 +33,7 @@ test("server-renders the corporate website and public data center", async () => 
   assert.match(html, /href="\/market"/);
   assert.match(html, /目标市场价格速览/);
   assert.match(html, /全部市场/);
+  assert.match(html, /全部国家/);
   assert.match(html, /中亚/);
   assert.match(html, /东南亚/);
   assert.match(html, /href="\/markets\/LA#prices"/);
