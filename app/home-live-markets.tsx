@@ -24,12 +24,14 @@ export function HomeSignalOverview(){
     const build=(code:string):MarketSignal|null=>{
       const countryRows=summary.current.filter(row=>row.country===code);
       if(!countryRows.length)return null;
+      const representative=representativeRows(countryRows,1)[0];
+      if(!representative)return null;
       const channels=new Set(countryRows.map(row=>row.platform_name)).size;
       const species=new Set(countryRows.map(row=>speciesLabel(row.species_id,false))).size;
       return {
         code,
         title:`${marketName(countryRows[0])}已有可比较价格`,
-        metric:rowPrice(representativeRows(countryRows,1)[0]),
+        metric:rowPrice(representative),
         meaning:`${channels} 个渠道，覆盖 ${species} 个品种。`,
         action:`查看${marketName(countryRows[0])}市场`,
       };
