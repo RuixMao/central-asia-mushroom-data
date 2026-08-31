@@ -21,7 +21,7 @@ function response(body, status = 200, headers = {}) {
 }
 
 function json(value, status = 200) {
-  return response(JSON.stringify(value), status, { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=300" });
+  return response(JSON.stringify(value), status, { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=60, stale-while-revalidate=120" });
 }
 
 function csvCell(value) {
@@ -44,15 +44,18 @@ async function powerBi(request, env) {
 
   if (table === "prices") {
     const condition = dateFrom ? "AND po.observation_date >= ?" : "";
-    result = await env.DB.prepare(`SELECT po.observation_date, po.observed_at, p.id product_id, p.country,
+    result = await env.DB.prepare(`SELECT po.observation_date, po.observed_at, po.created_at, p.id product_id, p.country,
       p.city, p.species_id, p.product_form, p.original_title, p.brand, pf.id platform_id,
-      pf.name platform_name, po.current_price, po.promotion_price, po.currency,
+      pf.name platform_name, po.current_price, po.regular_price, po.promotion_price, po.currency,
       json_extract(p.classification_evidence, '$.grade') grade,
+      json_extract(p.classification_evidence, '$.price_type') price_type,
+      json_extract(p.classification_evidence, '$.notes') price_notes,
       po.status, po.valid_until, po.raw_price_text, po.source_url, po.source_type,
-      po.normalized_quantity_kg, po.normalized_price_per_kg,
+      po.normalized_quantity_kg, po.package_value, po.package_unit, po.normalized_price_per_kg,
       CASE WHEN po.normalized_price_per_kg IS NOT NULL AND po.usd_rate_local_per_usd IS NOT NULL
         THEN po.normalized_price_per_kg / po.usd_rate_local_per_usd END normalized_usd_per_kg,
-      po.price_usd price_usd_per_package, po.in_stock, po.validation_status
+      po.price_usd price_usd_per_package, po.usd_rate_local_per_usd, po.fx_source, po.fx_timestamp,
+      po.in_stock, po.validation_status, po.sanity_outlier, po.sanity_reason
       FROM price_observations po JOIN products p ON p.id=po.product_id
       JOIN platforms pf ON pf.id=p.platform_id WHERE po.validation_status='valid' AND COALESCE(po.status,'active')='active' ${condition}
       ORDER BY po.observed_at DESC LIMIT 5000`)[dateFrom ? "bind" : "bind"](...(dateFrom ? [dateFrom] : [])).all();
