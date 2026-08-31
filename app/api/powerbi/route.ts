@@ -32,12 +32,15 @@ export async function GET(request: Request) {
     const rows = await getDb().select({ price: priceObservations, product: products, platform: platforms }).from(priceObservations).innerJoin(products, eq(priceObservations.productId, products.id)).innerJoin(platforms, eq(products.platformId, platforms.id)).where(eq(priceObservations.status,"active")).orderBy(desc(priceObservations.observedAt)).limit(5000);
     records = rows.filter(row => !dateFrom || row.price.observationDate >= dateFrom).map(({ price, product, platform }) => ({
       observation_date: price.observationDate, observed_at: price.observedAt, product_id: product.id,
+      created_at: price.createdAt,
       country: product.country, country_name: countryNames[product.country] ?? product.country, city: customerText(product.city),
       species_id: product.speciesId, species_name: speciesNames[product.speciesId ?? ""] ?? product.speciesId,
       product_form: product.productForm, original_title: customerText(product.originalTitle), brand: product.brand,
       grade: typeof product.classificationEvidence?.grade === "string" ? product.classificationEvidence.grade : null,
+      price_type: typeof product.classificationEvidence?.price_type === "string" ? product.classificationEvidence.price_type : null,
+      price_notes: typeof product.classificationEvidence?.notes === "string" ? product.classificationEvidence.notes : null,
       status: price.status, valid_until: price.validUntil, is_current: !price.validUntil || countryTiers[product.country]===3 || price.validUntil>=new Date().toISOString().slice(0,10),
-      platform_id: platform.id, platform_name: customerText(platform.name), current_price: price.currentPrice,
+      platform_id: platform.id, platform_name: customerText(platform.name), current_price: price.currentPrice, regular_price: price.regularPrice,
       promotion_price: price.promotionPrice, currency: price.currency, normalized_quantity_kg: price.normalizedQuantityKg,
       package_value: price.packageValue, package_unit: price.packageUnit, raw_price_text: price.rawPriceText,
       source_url: price.sourceUrl, source_type: price.sourceType,

@@ -1,7 +1,7 @@
 "use client";
 import Link from "./native-link";
 import {useEffect,useMemo,useState} from "react";
-import {countryNames,latestByCountry,loadLivePrices,marketCodesFromRows,marketName,prioritizedRows,rowPrice,speciesLabel,type LivePriceRow} from "./market-display";
+import {countryNames,getMarketSummary,loadLivePrices,marketCodesFromRows,marketName,representativeRows,rowPrice,speciesLabel,type LivePriceRow} from "./market-display";
 import {centralAsiaCodes,southeastAsiaCodes} from "./market-scope";
 import {marketReadiness} from "./market-readiness";
 
@@ -19,23 +19,23 @@ export function HomeSignalOverview(){
   const [rows,setRows]=useState<LivePriceRow[]>([]);
   const [ready,setReady]=useState(false);
   useEffect(()=>{loadLivePrices().then(setRows).catch(()=>setRows([])).finally(()=>setReady(true))},[]);
-  const latest=useMemo(()=>latestByCountry(rows),[rows]);
-  const signals=useMemo(()=>{
+  const summary=useMemo(()=>getMarketSummary(rows),[rows]);
+  const signals=(()=>{
     const build=(code:string):MarketSignal|null=>{
-      const countryRows=latest.filter(row=>row.country===code&&row.is_current!==false);
+      const countryRows=summary.current.filter(row=>row.country===code);
       if(!countryRows.length)return null;
       const channels=new Set(countryRows.map(row=>row.platform_name)).size;
       const species=new Set(countryRows.map(row=>speciesLabel(row.species_id,false))).size;
       return {
         code,
         title:`${marketName(countryRows[0])}已有可比较价格`,
-        metric:rowPrice(prioritizedRows(countryRows,1)[0]),
+        metric:rowPrice(representativeRows(countryRows,1)[0]),
         meaning:`${channels} 个渠道，覆盖 ${species} 个品种。`,
         action:`查看${marketName(countryRows[0])}市场`,
       };
     };
-    return marketCodesFromRows(latest).sort((a,b)=>latest.filter(row=>row.country===b&&row.is_current!==false).length-latest.filter(row=>row.country===a&&row.is_current!==false).length).map(build).filter((item):item is MarketSignal=>item!=null).slice(0,3);
-  },[latest]);
+    return marketCodesFromRows(summary.current).sort((a,b)=>summary.current.filter(row=>row.country===b).length-summary.current.filter(row=>row.country===a).length).map(build).filter((item):item is MarketSignal=>item!=null).slice(0,3);
+  })();
   const visibleSignals=signals;
   return <section className="decision-section home-signal-section">
     <header><span>市场机会</span><h2>近期值得关注的市场</h2></header>
@@ -48,11 +48,8 @@ export function HomeMarketMatrix(){
  const [rows,setRows]=useState<LivePriceRow[]>([]);
  const [ready,setReady]=useState(false);
  useEffect(()=>{loadLivePrices().then(setRows).catch(()=>setRows([])).finally(()=>setReady(true))},[]);
- const markets=useMemo(()=>marketCodesFromRows(rows).filter(code=>rows.some(row=>row.country===code)).map(code=>{
-   const items=rows.filter(row=>row.country===code);
-   const dated=items.map(row=>row.observation_date).filter(date=>/^\d{4}-\d{2}-\d{2}$/.test(date)).sort().at(-1)??"";
-   return {code,name:marketName(items[0]),state:marketReadiness(items),updated:dated};
- }),[rows]);
+ const summary=useMemo(()=>getMarketSummary(rows),[rows]);
+ const markets=useMemo(()=>marketCodesFromRows(summary.rows).filter(code=>summary.rows.some(row=>row.country===code)).map(code=>{const items=summary.rows.filter(row=>row.country===code);return {code,name:marketName(items[0]),state:marketReadiness(items),updated:summary.updated}}),[summary]);
  return <section className="decision-section home-market-matrix"><header><span>市场覆盖</span><h2>价格数据覆盖市场</h2></header>{!ready?<div className="price-skeleton"><i/><i/><i/></div>:markets.length?<div className="home-market-matrix-grid">{markets.map(market=><Link href={`/markets/${market.code}`} key={market.code}><span className="market-card-code">{market.code}</span><b>{market.name}</b><span className={`market-card-status ${market.state.level==="L0"?"available":"tracking"}`}>{market.state.level==="L0"?"价格已更新":"持续跟踪"}</span><small>{market.updated??""}</small></Link>)}</div>:<p className="market-neutral-state">价格数据更新后将在此显示。</p>}</section>
 }
 
@@ -62,13 +59,13 @@ export function HomePriceOverview(){
   const [region,setRegion]=useState<Region>("ALL");
   const [country,setCountry]=useState("ALL");
   useEffect(()=>{loadLivePrices().then(setRows).catch(()=>setRows([])).finally(()=>setReady(true))},[]);
-  const dataCodes=useMemo(()=>marketCodesFromRows(rows).filter(code=>rows.some(row=>row.country===code)),[rows]);
+  const summary=useMemo(()=>getMarketSummary(rows),[rows]);
+  const dataCodes=useMemo(()=>marketCodesFromRows(summary.rows).filter(code=>summary.rows.some(row=>row.country===code)),[summary]);
   const regionCodes=region==="SEA"?dataCodes.filter(code=>southeastAsiaCodes.includes(code)):region==="CA"?dataCodes.filter(code=>centralAsiaCodes.includes(code)):dataCodes;
-  const latest=useMemo(()=>latestByCountry(rows),[rows]);
   const visible=useMemo(()=>{
     const codes=country==="ALL"?regionCodes:[country];
-    return codes.flatMap(code=>prioritizedRows(latest.filter(row=>row.country===code&&row.is_current!==false),2));
-  },[latest,country,regionCodes]);
+    return representativeRows(summary.rows.filter(row=>codes.includes(row.country)),5);
+  },[summary,country,regionCodes]);
   function chooseRegion(nextRegion:Region){setRegion(nextRegion);setCountry("ALL")}
   return <section className="decision-section home-price-overview" id="prices">
     <header><span>目标市场价格速览</span><h2>先看各国具体报价</h2><p>先选择区域，再按国家查看当地公开价格与代表性渠道。</p></header>

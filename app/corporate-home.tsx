@@ -2,12 +2,14 @@ import Image from "next/image";
 import Link from "./native-link";
 import SiteNav from "./site-nav";
 import MarketingFooter from "./marketing-footer";
-import {HomeMarketMatrix,HomeSignalOverview} from "./home-live-markets";
+import {HomeMarketMatrix,HomePriceOverview,HomeSignalOverview} from "./home-live-markets";
 
 export default function CorporateHome(){return <div className="marketing-site decision-home">
   <SiteNav/>
   <main>
     <section className="decision-hero"><div><span>因恒科技市场情报</span><h1>食用菌跨境市场数据与研究咨询</h1><p>持续跟踪中亚、东南亚及新增目标市场的海关贸易、电商零售、渠道与物流数据。</p><div><Link className="corp-primary" href="/market">查看市场数据</Link><Link className="corp-secondary" href="/expand/contact">提交需求 →</Link></div></div><Image src="/central-asia-corridor.png" alt="连接中国与海外市场的跨境贸易走廊" width={1536} height={1024} priority/></section>
+
+    <HomePriceOverview/>
 
     <section className="decision-section"><header><span>平台能力</span><h2>从市场数据到专项研究</h2></header><div className="decision-capability-grid">{[["海关贸易数据库","按国家、伙伴国、HS 编码和年度查询进出口规模与结构。","/insights/trade","查看贸易数据"],["电商零售监测","跟踪商品名称、规格、原币价格、标准化价格、渠道与采集日期。","/market","查看价格行情"],["市场与渠道研究","整合国别市场、销售渠道、物流路线、准入条件与商业机会。","/opportunities","比较目标市场"],["定制研究咨询","围绕产品、目标国家和业务问题提供专题数据与研究交付。","/expand/contact","提交需求"]].map(([title,copy,href,cta],index)=><Link href={href} key={title}><span>{String(index+1).padStart(2,"0")}</span><h3>{title}</h3><p>{copy}</p><b>{cta} →</b></Link>)}</div></section>
 

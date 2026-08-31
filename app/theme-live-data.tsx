@@ -5,11 +5,10 @@ import Link from "./native-link";
 import { mirrorRecords, opportunities } from "./data";
 import {
   loadLivePrices,
-  marketCodesFromRows,
+  getMarketSummary,
   marketName,
   rowPrice,
   speciesLabel,
-  speciesPriority,
 } from "./market-display";
 import { southeastAsiaCodes, targetMarketCodes, targetMarketNames } from "./market-scope";
 
@@ -54,36 +53,6 @@ const range = (values: number[]) =>
   values.length
     ? `$${Math.min(...values).toFixed(2)}–$${Math.max(...values).toFixed(2)}/kg`
     : "—";
-const balancedRows = (rows: PriceRow[], limit = 20) => {
-  const sorted = [...rows].sort(
-    (a, b) =>
-      speciesPriority(a.species_id) - speciesPriority(b.species_id) ||
-      Number(b.normalized_usd_per_kg ?? 0) -
-        Number(a.normalized_usd_per_kg ?? 0),
-  );
-  const kept = sorted.filter(
-    (row, index, all) =>
-      all
-        .slice(0, index)
-        .filter(
-          (item) =>
-            item.country === row.country && item.species_id === row.species_id,
-        ).length < 2,
-  );
-  const buckets = marketCodesFromRows(kept).map((code) =>
-    kept.filter((row) => row.country === code),
-  );
-  const result: PriceRow[] = [];
-  for (
-    let index = 0;
-    result.length < limit && buckets.some((bucket) => index < bucket.length);
-    index++
-  )
-    for (const bucket of buckets)
-      if (bucket[index] && result.length < limit) result.push(bucket[index]);
-  return result;
-};
-
 function usePrices() {
   const [rows, setRows] = useState<PriceRow[]>([]);
   const [ready, setReady] = useState(false);
@@ -93,28 +62,12 @@ function usePrices() {
       .catch(() => setRows([]))
       .finally(() => setReady(true));
   }, []);
-  const latest = useMemo(
-    () =>
-      rows.reduce(
-        (d, r) => (r.observation_date > d ? r.observation_date : d),
-        "",
-      ),
-    [rows],
-  );
-  const today = useMemo(() => {
-    const latestByCountry = new Map<string, string>();
-    for (const row of rows)
-      if (row.observation_date > (latestByCountry.get(row.country) ?? ""))
-        latestByCountry.set(row.country, row.observation_date);
-    return rows.filter(
-      (row) => row.observation_date === latestByCountry.get(row.country),
-    );
-  }, [rows]);
-  return { rows, today, latest, ready };
+  const summary=useMemo(()=>getMarketSummary(rows),[rows]);
+  return { rows:summary.rows, today:summary.current, latest:summary.updated, summary, ready };
 }
 
 export function MarketLivePreview() {
-  const { today, latest, ready } = usePrices();
+  const { today, latest, summary, ready } = usePrices();
   const species = useMemo(
     () =>
       Array.from(
@@ -126,15 +79,10 @@ export function MarketLivePreview() {
       })),
     [today],
   );
-  const comparable = useMemo(() => today.filter((row) => row.normalized_usd_per_kg != null), [today]);
-  const displayable = today.filter((row) => row.is_current !== false);
-  const visible = useMemo(() => balancedRows(displayable, 12), [displayable]);
-  const summary = useMemo(() => {
-    const countries = new Set(displayable.map((row) => row.country)).size;
-    const channels = new Set(
-      displayable.map((row) => `${row.country}-${row.platform_name}`),
-    ).size;
-    const speciesCount = new Set(displayable.map((row) => row.species_id)).size;
+  const comparable = summary.retailComparable.filter((row) => row.normalized_usd_per_kg != null);
+  const displayable = summary.current;
+  const visible = summary.representatives.slice(0,12);
+  const marketStats = useMemo(() => {
     const widest = countryCodes
       .map((code) => {
         const values = comparable
@@ -146,14 +94,14 @@ export function MarketLivePreview() {
         };
       })
       .sort((a, b) => b.spread - a.spread)[0];
-    return { countries, channels, speciesCount, widest };
-  }, [comparable,displayable]);
+    return { widest };
+  }, [comparable]);
   return (
     <>
     <section className="market-summary-strip" aria-label="价格行情摘要">
-      <article><span>覆盖市场</span><strong>{ready ? summary.countries : "—"} 个国家</strong><small>包含原币挂牌价及可换算价格</small></article>
-      <article><span>渠道与品种</span><strong>{ready ? summary.channels : "—"} 个渠道</strong><small>{ready ? `${summary.speciesCount} 个规范品种` : "正在读取"}</small></article>
-      <article><span>优先观察</span><strong>{ready && summary.widest?.spread ? countryNames[summary.widest.code] : "—"}</strong><small>当前公开价格跨度较大，需结合规格与渠道解释</small></article>
+      <article><span>覆盖市场</span><strong>{ready ? summary.countryCount : "—"} 个国家</strong><small>按 active 价格记录实时统计</small></article>
+      <article><span>渠道与品种</span><strong>{ready ? summary.channelCount : "—"} 个渠道</strong><small>{ready ? `${summary.speciesCount} 个规范品种` : "正在读取"}</small></article>
+      <article><span>优先观察</span><strong>{ready && marketStats.widest?.spread ? countryNames[marketStats.widest.code] : "—"}</strong><small>零售商品价格跨度较大，需结合规格与渠道解释</small></article>
     </section>
     <section className="theme-data-grid market-price-overview">
       <article className="theme-data-card wide">

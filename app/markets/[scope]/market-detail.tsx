@@ -4,8 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { mirrorRecords } from "../../data";
 import {
   countryNames,
+  getMarketSummary,
   loadLivePrices,
   marketName,
+  priceCategory,
+  priceCategoryLabels,
   rowPrice,
   speciesLabel,
   type LivePriceRow,
@@ -44,11 +47,11 @@ export default function MarketDetail({ code }: { code: string }) {
   const tradeYear=tradeYears.length?Math.max(...tradeYears):legacyYear;
   const currentTrade=tradeSnapshots.filter(row=>row.data.status==="live"&&row.data.year===tradeYear&&(row.data.value_usd!=null||row.data.estimate_lower_usd!=null));
   const channels = Array.from(new Set(pageRows.map((row) => row.platform_name).filter(Boolean)));
-  const liveLatest = pageRows.reduce(
-    (date, row) => (row.observation_date > date ? row.observation_date : date),
-    "",
-  );
-  const latest = liveLatest;
+  const summary=getMarketSummary(pageRows);
+  const latest = summary.updated;
+  const categoryOrder=["retail","dining","wholesale","historical","neighbor"] as const;
+  const groupedPrices=categoryOrder.map(category=>({category,rows:pageRows.filter(row=>priceCategory(row)===category)})).filter(group=>group.rows.length);
+  const retailSpecies=Array.from(new Set(pageRows.filter(row=>priceCategory(row)==="retail"&&row.normalized_usd_per_kg!=null).map(row=>row.species_id))).map(speciesId=>{const values=pageRows.filter(row=>row.species_id===speciesId&&priceCategory(row)==="retail").map(row=>Number(row.normalized_usd_per_kg)).filter(Number.isFinite);return {speciesId,min:Math.min(...values),max:Math.max(...values)}});
   const configuredChannels=targetMarkets.find(market=>market.code===code)?.channels.map(channel=>{try{return new URL(channel.url).hostname.replace(/^www\./,"")}catch{return channel.id}})??[];
   return (
     <main className="saas-main market-detail-page">
@@ -79,19 +82,21 @@ export default function MarketDetail({ code }: { code: string }) {
             <i />
           </div>
         ) : directRows.length ? (
-          <div className="market-price-list">
-            {directRows.map((row, index) => (
-              <article key={`${row.species_id}-${row.platform_name}-${index}`}>
+          <div className="market-price-groups">
+            {retailSpecies.length>0&&<div className="market-species-ranges" aria-label="零售商品价格区间">{retailSpecies.map(item=><span key={item.speciesId}><b>{speciesLabel(item.speciesId)}</b>{item.min===item.max?`US$${item.min.toFixed(2)}/kg`:`US$${item.min.toFixed(2)}–${item.max.toFixed(2)}/kg`}</span>)}</div>}
+            {groupedPrices.map(group=><section className="market-price-group" key={group.category}><header><h3>{priceCategoryLabels[group.category]}</h3><span>{group.rows.length} 条</span></header><div className="market-price-list">
+            {group.rows.map((row, index) => (
+              <article key={`${row.species_id}-${row.platform_name}-${row.observation_date}-${index}`}>
                 <div>
                   <b>{row.original_title||speciesLabel(row.species_id)}</b>
-                  <span>{row.city || displayCountryName}</span>
+                  <span>{speciesLabel(row.species_id)} · {row.city || displayCountryName}</span>
                 </div>
                 <strong>{rowPrice(row)}</strong>
                 <small>{row.platform_name} · {row.source_type||"公开来源"}</small>
                 <em>{row.grade?`${row.grade} 级`:"等级待补"}</em>
                 {row.source_url?<a href={row.source_url} target="_blank" rel="noreferrer">查看来源</a>:<span>来源链接待补</span>}
               </article>
-            ))}
+            ))}</div></section>)}
           </div>
         ) : (
           <div className="market-neutral-state">
@@ -185,7 +190,7 @@ export default function MarketDetail({ code }: { code: string }) {
             </article>
             <article>
               <b>邻国参考</b>
-              <p>{neighborRows.length?neighborRows.map(row=>`${row.platform_name}：${rowPrice(row)}`).join("；"):"暂无 E 级邻国参考"}</p>
+              <p>{neighborRows.length?neighborRows.map(row=>`${row.platform_name} ${speciesLabel(row.species_id)}（${row.price_notes?.includes("泰国")?"泰国参考":row.price_notes?.includes("越南")?"越南参考":"邻国参考"}）：${rowPrice(row)}`).join("；"):"暂无 E 级邻国参考"}</p>
             </article>
             <article>
               <b>渠道清单</b>
