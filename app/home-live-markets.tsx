@@ -48,8 +48,12 @@ export function HomeMarketMatrix(){
  const [rows,setRows]=useState<LivePriceRow[]>([]);
  const [ready,setReady]=useState(false);
  useEffect(()=>{loadLivePrices().then(setRows).catch(()=>setRows([])).finally(()=>setReady(true))},[]);
- const markets=useMemo(()=>marketCodesFromRows(rows).filter(code=>rows.some(row=>row.country===code)).map(code=>{const items=rows.filter(row=>row.country===code);return {code,name:marketName(items[0]),state:marketReadiness(items),updated:items.reduce((date,row)=>row.observation_date>date?row.observation_date:date,"")}}),[rows]);
- return <section className="decision-section home-market-matrix"><header><span>市场覆盖</span><h2>价格数据覆盖市场</h2></header>{!ready?<div className="price-skeleton"><i/><i/><i/></div>:markets.length?<div className="home-market-matrix-grid">{markets.map(market=><Link href={`/markets/${market.code}`} key={market.code}><b>{market.name}</b><span>{market.state.level==="L0"?"已有公开报价":"市场信息持续更新"}</span><small>{market.updated?`更新于 ${market.updated}`:"查看市场信息"}</small></Link>)}</div>:<p className="market-neutral-state">价格数据更新后将在此显示。</p>}</section>
+ const markets=useMemo(()=>marketCodesFromRows(rows).filter(code=>rows.some(row=>row.country===code)).map(code=>{
+   const items=rows.filter(row=>row.country===code);
+   const dated=items.map(row=>row.observation_date).filter(date=>/^\d{4}-\d{2}-\d{2}$/.test(date)).sort().at(-1)??"";
+   return {code,name:marketName(items[0]),state:marketReadiness(items),updated:dated};
+ }),[rows]);
+ return <section className="decision-section home-market-matrix"><header><span>市场覆盖</span><h2>价格数据覆盖市场</h2></header>{!ready?<div className="price-skeleton"><i/><i/><i/></div>:markets.length?<div className="home-market-matrix-grid">{markets.map(market=><Link href={`/markets/${market.code}`} key={market.code}><span className="market-card-code">{market.code}</span><b>{market.name}</b><span className={`market-card-status ${market.state.level==="L0"?"available":"tracking"}`}>{market.state.level==="L0"?"价格已更新":"持续跟踪"}</span><small>{market.updated??""}</small></Link>)}</div>:<p className="market-neutral-state">价格数据更新后将在此显示。</p>}</section>
 }
 
 export function HomePriceOverview(){
