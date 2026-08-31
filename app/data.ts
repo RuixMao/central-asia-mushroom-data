@@ -24,6 +24,7 @@ export type MirrorRecord = {
   confirmedPartners?: string[];
   confidence: "A+" | "A" | "B+" | "B";
   confidenceBasis: string;
+  year?: number;
 };
 
 export type Opportunity = {
@@ -45,16 +46,7 @@ export type Opportunity = {
 
 export const countryOptions: { code: string; label: string; short: string }[] = [
   { code: "ALL", label: "全部目标市场", short: "全部" },
-  { code: "LA", label: "老挝", short: "老挝" },
-  { code: "VN", label: "越南", short: "越南" },
-  { code: "TH", label: "泰国", short: "泰国" },
-  { code: "MM", label: "缅甸", short: "缅甸" },
-  { code: "KH", label: "柬埔寨", short: "柬埔寨" },
-  { code: "KZ", label: "哈萨克斯坦", short: "哈萨克斯坦" },
-  { code: "UZ", label: "乌兹别克斯坦", short: "乌兹别克斯坦" },
-  { code: "KG", label: "吉尔吉斯斯坦", short: "吉尔吉斯斯坦" },
-  { code: "TJ", label: "塔吉克斯坦", short: "塔吉克斯坦" },
-  { code: "TM", label: "土库曼斯坦", short: "土库曼斯坦" },
+  ...targetMarkets.map(({ code, name }) => ({ code, label: name, short: name })),
 ];
 
 export const countrySummaries = [
@@ -78,6 +70,24 @@ export const tradeRecords: TradeRecord[] = [
 ];
 
 export const mirrorRecords: MirrorRecord[] = [
+  { countryCode: "KZ", country: "哈萨克斯坦", hs: "070951", product: "鲜或冷藏双孢蘑菇", importerCifUsd: 6_541_206.12, chinaFobUsd: null, officialQuantityKg: 4_625_903.10, confidence: "A", confidenceBasis: "哈萨克斯坦进口申报，含金额与净重", year: 2025 },
+  { countryCode: "KZ", country: "哈萨克斯坦", hs: "070959", product: "其他鲜或冷藏蘑菇", importerCifUsd: 221_074.71, chinaFobUsd: null, officialQuantityKg: 181_239.63, confidence: "A", confidenceBasis: "哈萨克斯坦进口申报，含金额与净重", year: 2025 },
+  { countryCode: "KZ", country: "哈萨克斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 1_470_897.53, chinaFobUsd: null, officialQuantityKg: 1_420_568.68, confidence: "A", confidenceBasis: "哈萨克斯坦进口申报，含金额与净重", year: 2025 },
+  { countryCode: "KG", country: "吉尔吉斯斯坦", hs: "070951", product: "鲜或冷藏双孢蘑菇", importerCifUsd: 88_040, chinaFobUsd: null, officialQuantityKg: 43_700, confidence: "A", confidenceBasis: "吉尔吉斯斯坦进口申报，含金额与净重", year: 2025 },
+  { countryCode: "KG", country: "吉尔吉斯斯坦", hs: "070959", product: "其他鲜或冷藏蘑菇", importerCifUsd: 436_448, chinaFobUsd: null, officialQuantityKg: 197_329, confidence: "A", confidenceBasis: "吉尔吉斯斯坦进口申报，含金额与净重", year: 2025 },
+  { countryCode: "KG", country: "吉尔吉斯斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 86_570, chinaFobUsd: null, officialQuantityKg: 76_396, confidence: "A", confidenceBasis: "吉尔吉斯斯坦进口申报，含金额与净重", year: 2025 },
+  { countryCode: "VN", country: "越南", hs: "070951", product: "鲜或冷藏双孢蘑菇", importerCifUsd: 62_522.62, chinaFobUsd: null, officialQuantityKg: 22_431.11, confidence: "A", confidenceBasis: "越南进口申报，含金额与净重", year: 2023 },
+  { countryCode: "VN", country: "越南", hs: "070959", product: "其他鲜或冷藏蘑菇", importerCifUsd: 49_728_199.45, chinaFobUsd: null, officialQuantityKg: 11_833_034.33, confidence: "A", confidenceBasis: "越南进口申报，含金额与净重", year: 2023 },
+  { countryCode: "VN", country: "越南", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 154_083.36, chinaFobUsd: null, officialQuantityKg: 67_637.60, confidence: "A", confidenceBasis: "越南进口申报，含金额与净重", year: 2023 },
+  { countryCode: "TH", country: "泰国", hs: "070951", product: "鲜或冷藏双孢蘑菇", importerCifUsd: 10_016_326.86, chinaFobUsd: null, officialQuantityKg: 6_158_689, confidence: "A", confidenceBasis: "泰国进口申报，含金额与净重", year: 2025 },
+  { countryCode: "TH", country: "泰国", hs: "070959", product: "其他鲜或冷藏蘑菇", importerCifUsd: 70_108_661.62, chinaFobUsd: null, officialQuantityKg: 50_752_785, confidence: "A", confidenceBasis: "泰国进口申报，含金额与净重", year: 2025 },
+  { countryCode: "TH", country: "泰国", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 2_051_012.90, chinaFobUsd: null, officialQuantityKg: 1_234_043.26, confidence: "A", confidenceBasis: "泰国进口申报，含金额与净重", year: 2025 },
+  { countryCode: "MM", country: "缅甸", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 1_734, chinaFobUsd: null, officialQuantityKg: 2_040, confidence: "A", confidenceBasis: "缅甸进口申报，含金额与净重", year: 2023 },
+  { countryCode: "KH", country: "柬埔寨", hs: "070951", product: "鲜或冷藏双孢蘑菇", importerCifUsd: 1_114.48, chinaFobUsd: null, officialQuantityKg: 123.12, confidence: "A", confidenceBasis: "柬埔寨进口申报，含金额与净重", year: 2024 },
+  { countryCode: "KH", country: "柬埔寨", hs: "070959", product: "其他鲜或冷藏蘑菇", importerCifUsd: 188_135.19, chinaFobUsd: null, officialQuantityKg: 326_623.09, confidence: "A", confidenceBasis: "柬埔寨进口申报，含金额与净重", year: 2024 },
+  { countryCode: "KH", country: "柬埔寨", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 7_490.58, chinaFobUsd: null, officialQuantityKg: 7_590.30, confidence: "A", confidenceBasis: "柬埔寨进口申报，含金额与净重", year: 2024 },
+  { countryCode: "LA", country: "老挝", hs: "070959", product: "其他鲜或冷藏蘑菇", importerCifUsd: 164_226.70, chinaFobUsd: null, officialQuantityKg: 197_589, confidence: "A", confidenceBasis: "老挝进口申报，含金额与净重", year: 2023 },
+  { countryCode: "LA", country: "老挝", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 184.27, chinaFobUsd: null, officialQuantityKg: 45.24, confidence: "A", confidenceBasis: "老挝进口申报，含金额与净重", year: 2023 },
   { countryCode: "KZ", country: "哈萨克斯坦", hs: "070951", product: "鲜或冷藏蘑菇", importerCifUsd: 4_647_430, chinaFobUsd: 498_280, officialQuantityKg: 4_015_820, confidence: "A+", confidenceBasis: "进口国完整申报，含数量与来源国" },
   { countryCode: "KZ", country: "哈萨克斯坦", hs: "200310", product: "加工保藏蘑菇", importerCifUsd: 1_353_310, chinaFobUsd: 1_099_830, officialQuantityKg: 1_627_780, confidence: "A+", confidenceBasis: "进口国完整申报，含数量与来源国" },
   { countryCode: "UZ", country: "乌兹别克斯坦", hs: "070951", product: "鲜或冷藏蘑菇", importerCifUsd: 456_800, chinaFobUsd: null, officialQuantityKg: 197_396, confidence: "A+", confidenceBasis: "进口国完整申报，含数量与来源国" },
@@ -89,6 +99,86 @@ export const mirrorRecords: MirrorRecord[] = [
 ];
 
 export const opportunities: Opportunity[] = [
+  {
+    id: "la-retail-channel",
+    countryCode: "LA",
+    country: "老挝",
+    hs: "零售渠道",
+    product: "平菇、香菇等鲜品",
+    score: 0,
+    coverage: 0,
+    confidence: "B",
+    status: "优先验证",
+    marketUsd: 0,
+    change: 0,
+    signal: "已形成多渠道、多品种公开价格记录，适合优先核对批量采购、包装和末端配送条件。",
+    nextAction: "先核对万象餐饮与商超渠道的批量采购价，再测算中国—老挝线路的到岸成本。",
+    metrics: [],
+  },
+  {
+    id: "vn-mushroom-channel",
+    countryCode: "VN",
+    country: "越南",
+    hs: "零售渠道",
+    product: "香菇及鲜食菌",
+    score: 0,
+    coverage: 0,
+    confidence: "B",
+    status: "值得跟进",
+    marketUsd: 0,
+    change: 0,
+    signal: "电商与零售渠道已有香菇等品种公开价格，可用于识别规格和消费端价格带。",
+    nextAction: "按鲜品、干品和包装规格拆分比较，并补充胡志明市渠道采购条件。",
+    metrics: [],
+  },
+  {
+    id: "th-modern-retail",
+    countryCode: "TH",
+    country: "泰国",
+    hs: "零售渠道",
+    product: "金针菇、杏鲍菇等鲜品",
+    score: 0,
+    coverage: 0,
+    confidence: "B+",
+    status: "值得跟进",
+    marketUsd: 0,
+    change: 0,
+    signal: "Big C、Makro 等现代零售渠道已有金针菇和杏鲍菇公开价格，适合进行同规格比较。",
+    nextAction: "核对曼谷商超的供货规格、采购频次和冷链配送要求。",
+    metrics: [],
+  },
+  {
+    id: "mm-retail-wholesale",
+    countryCode: "MM",
+    country: "缅甸",
+    hs: "渠道价格",
+    product: "平菇等鲜品",
+    score: 0,
+    coverage: 0,
+    confidence: "B",
+    status: "信息有限",
+    marketUsd: 0,
+    change: 0,
+    signal: "零售与批发渠道已出现公开报价，但不同渠道价格差异需要结合规格和履约条件解释。",
+    nextAction: "先确认仰光渠道的包装、净重和交付范围，再判断价格是否可比。",
+    metrics: [],
+  },
+  {
+    id: "kh-modern-retail",
+    countryCode: "KH",
+    country: "柬埔寨",
+    hs: "零售渠道",
+    product: "金针菇等鲜品",
+    score: 0,
+    coverage: 0,
+    confidence: "B",
+    status: "信息有限",
+    marketUsd: 0,
+    change: 0,
+    signal: "金边商超电商渠道已有鲜金针菇公开价格，可作为小包装产品的渠道观察起点。",
+    nextAction: "补充同规格竞品、进口来源和商超采购条件，避免直接用零售价判断利润。",
+    metrics: [],
+  },
   {
     id: "kz-070951",
     countryCode: "KZ",
@@ -194,20 +284,38 @@ export const opportunities: Opportunity[] = [
       { label: "渠道可达", value: null, note: "加工品渠道尚未核验" },
     ],
   },
-];
-
-export const priceObservations = [
-  { countryCode: "TH" as const, city: "曼谷", channel: "商超电商", product: "鲜金针菇 200g", price: "14 泰铢/包", date: "2026-08", source: "Big C Online" },
-  { countryCode: "TH" as const, city: "曼谷", channel: "商超电商", product: "鲜杏鲍菇 500g", price: "49 泰铢/包", date: "2026-08", source: "Makro PRO" },
-  { countryCode: "VN" as const, city: "胡志明市", channel: "电商", product: "干香菇 100g", price: "50,000 越南盾/包", date: "2026-08", source: "Tiki" },
-  { countryCode: "KH" as const, city: "金边", channel: "商超电商", product: "鲜金针菇 200g", price: "0.70–0.90 美元/包", date: "2026-08", source: "Eplus / Aplus" },
-  { countryCode: "KZ" as const, city: "阿拉木图", channel: "电商/商超", product: "鲜双孢菇", price: "2,730–3,300 ₸/kg", date: "2026-08", source: "Arbuz / Carefood" },
-  { countryCode: "KZ" as const, city: "阿拉木图", channel: "高端电商", product: "Freedom Fresh双孢菇", price: "6,930 ₸/kg", date: "2026-08", source: "Arbuz" },
-  { countryCode: "KZ" as const, city: "阿拉木图", channel: "小批发", product: "鲜双孢菇", price: "2,600 ₸/kg", date: "2026-08", source: "Optoffka" },
-  { countryCode: "KZ" as const, city: "阿拉木图", channel: "批发", product: "鲜平菇", price: "1,300–1,500 ₸/kg", date: "2026-08", source: "Flagma" },
-  { countryCode: "KZ" as const, city: "阿拉木图", channel: "零售", product: "鲜平菇", price: "2,095–3,000 ₸/kg", date: "2026-08", source: "Carefood / Optoffka" },
-  { countryCode: "UZ" as const, city: "塔什干", channel: "电商/零售", product: "鲜双孢菇", price: "60,000–78,000 сум/kg", date: "2026-07~08", source: "OLX / Tegen / Prom" },
-  { countryCode: "UZ" as const, city: "塔什干", channel: "电商平台", product: "腌制双孢菇430ml", price: "25,990 сум/罐", date: "2026-08", source: "Uzum Market" },
+  {
+    id: "tj-200310",
+    countryCode: "TJ",
+    country: "塔吉克斯坦",
+    hs: "200310",
+    product: "加工保藏蘑菇",
+    score: 0,
+    coverage: 0,
+    confidence: "B",
+    status: "信息有限",
+    marketUsd: 286_590,
+    change: 0,
+    signal: "伙伴国贸易记录已形成市场规模线索，但仍需补充进口国申报和当地销售渠道。",
+    nextAction: "核对进口主体、渠道流向和到岸成本，再判断加工品是否适合继续投入。",
+    metrics: [],
+  },
+  {
+    id: "tm-200310",
+    countryCode: "TM",
+    country: "土库曼斯坦",
+    hs: "200310",
+    product: "加工保藏蘑菇",
+    score: 0,
+    coverage: 0,
+    confidence: "B",
+    status: "信息有限",
+    marketUsd: 249_690,
+    change: 0,
+    signal: "中国、土耳其和亚美尼亚的伙伴国记录提供了加工保藏蘑菇贸易线索。",
+    nextAction: "补充进口国申报、经销渠道和结算条件，确认伙伴国记录对应的实际市场流向。",
+    metrics: [],
+  },
 ];
 
 export const logisticsReferences = [
@@ -232,3 +340,4 @@ export const dataSources = [
   { name: "市场观察池", level: "B+", scope: "中亚与东南亚价格及渠道", cadence: "周", status: "11条公开记录", note: "挂牌价不是成交价；每条记录绑定采集日期、来源与证据。", url: "#prices" },
 ];
 
+import { targetMarkets } from "./market-scope";

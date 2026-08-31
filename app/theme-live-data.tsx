@@ -1,12 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { mirrorRecords, opportunities } from "./data";
 import {
   loadLivePrices,
+  marketCodesFromRows,
+  marketName,
+  rowPrice,
   speciesLabel,
   speciesPriority,
 } from "./market-display";
+import { southeastAsiaCodes, targetMarketCodes, targetMarketNames } from "./market-scope";
 
 type PriceRow = {
   observation_date: string;
@@ -21,6 +26,12 @@ type PriceRow = {
   currency: string;
   package_value: number | null;
   package_unit: string | null;
+  raw_price_text?: string;
+  price_usd_per_package?: number | null;
+  usd_rate_local_per_usd?: number | null;
+  fx_source?: string | null;
+  fx_timestamp?: string | null;
+  is_current?: boolean;
 };
 type Report = {
   slug?: string;
@@ -30,30 +41,8 @@ type Report = {
   date?: string;
   publishedAt?: string | number | Date;
 };
-const countryNames: Record<string, string> = {
-  KZ: "哈萨克斯坦",
-  UZ: "乌兹别克斯坦",
-  KG: "吉尔吉斯斯坦",
-  TJ: "塔吉克斯坦",
-  TM: "土库曼斯坦",
-  LA: "老挝",
-  VN: "越南",
-  TH: "泰国",
-  MM: "缅甸",
-  KH: "柬埔寨",
-};
-const countryCodes = [
-  "LA",
-  "VN",
-  "TH",
-  "MM",
-  "KH",
-  "KZ",
-  "UZ",
-  "KG",
-  "TJ",
-  "TM",
-];
+const countryNames = targetMarketNames;
+const countryCodes = [...targetMarketCodes];
 const speciesName = (row: PriceRow) => speciesLabel(row.species_id);
 const money = (value: number) =>
   value
@@ -65,8 +54,6 @@ const range = (values: number[]) =>
   values.length
     ? `$${Math.min(...values).toFixed(2)}–$${Math.max(...values).toFixed(2)}/kg`
     : "—";
-const packageQuote = (row: PriceRow) =>
-  `${row.package_unit?.trim() || "未标重量"} · ${row.current_price == null ? "价格未显示" : `${new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 }).format(row.current_price)} ${row.currency}`}/包`;
 const balancedRows = (rows: PriceRow[], limit = 20) => {
   const sorted = [...rows].sort(
     (a, b) =>
@@ -83,7 +70,7 @@ const balancedRows = (rows: PriceRow[], limit = 20) => {
             item.country === row.country && item.species_id === row.species_id,
         ).length < 2,
   );
-  const buckets = countryCodes.map((code) =>
+  const buckets = marketCodesFromRows(kept).map((code) =>
     kept.filter((row) => row.country === code),
   );
   const result: PriceRow[] = [];
@@ -139,14 +126,41 @@ export function MarketLivePreview() {
       })),
     [today],
   );
-  const visible = useMemo(() => balancedRows(today), [today]);
+  const comparable = useMemo(() => today.filter((row) => row.normalized_usd_per_kg != null), [today]);
+  const displayable = today.filter((row) => row.is_current !== false);
+  const visible = useMemo(() => balancedRows(displayable, 12), [displayable]);
+  const summary = useMemo(() => {
+    const countries = new Set(displayable.map((row) => row.country)).size;
+    const channels = new Set(
+      displayable.map((row) => `${row.country}-${row.platform_name}`),
+    ).size;
+    const speciesCount = new Set(displayable.map((row) => row.species_id)).size;
+    const widest = countryCodes
+      .map((code) => {
+        const values = comparable
+          .filter((row) => row.country === code)
+          .map((row) => Number(row.normalized_usd_per_kg));
+        return {
+          code,
+          spread: values.length ? Math.max(...values) - Math.min(...values) : 0,
+        };
+      })
+      .sort((a, b) => b.spread - a.spread)[0];
+    return { countries, channels, speciesCount, widest };
+  }, [comparable,displayable]);
   return (
-    <section className="theme-data-grid">
+    <>
+    <section className="market-summary-strip" aria-label="价格行情摘要">
+      <article><span>覆盖市场</span><strong>{ready ? summary.countries : "—"} 个国家</strong><small>包含原币挂牌价及可换算价格</small></article>
+      <article><span>渠道与品种</span><strong>{ready ? summary.channels : "—"} 个渠道</strong><small>{ready ? `${summary.speciesCount} 个规范品种` : "正在读取"}</small></article>
+      <article><span>优先观察</span><strong>{ready && summary.widest?.spread ? countryNames[summary.widest.code] : "—"}</strong><small>当前公开价格跨度较大，需结合规格与渠道解释</small></article>
+    </section>
+    <section className="theme-data-grid market-price-overview">
       <article className="theme-data-card wide">
         <header>
           <div>
-            <span>目标市场价格</span>
-            <h2>各市场最近报价</h2>
+            <span>可比价格</span>
+            <h2>各市场近期公开挂牌价</h2>
           </div>
           <small>更新至 {latest || "—"}</small>
         </header>
@@ -162,26 +176,24 @@ export function MarketLivePreview() {
               className="theme-row"
               key={`${r.country}-${r.platform_name}-${i}`}
             >
-              <span>{r.country_name ?? countryNames[r.country]}</span>
+              <span>{marketName(r)}</span>
               <span>{speciesName(r)}</span>
-              <strong>
-                {r.normalized_usd_per_kg == null
-                  ? packageQuote(r)
-                  : `$${Number(r.normalized_usd_per_kg).toFixed(2)}/kg`}
-              </strong>
+              <strong>{rowPrice(r)}</strong>
               <span>{r.platform_name}</span>
             </div>
           ))}
-          {ready && !today.length && (
+          {ready && !displayable.length && (
             <p className="theme-empty">— 暂无公开价格</p>
           )}
         </div>
+        <small className="theme-source">括号内美元价按各条记录采集日汇率折算。</small>
+        <a href="/market/prices">筛选完整价格 →</a>
       </article>
       <article className="theme-data-card">
         <header>
           <div>
             <span>品类覆盖</span>
-            <h2>新品与品类扫描</h2>
+            <h2>当前覆盖品种</h2>
           </div>
         </header>
         {species.length ? (
@@ -196,9 +208,10 @@ export function MarketLivePreview() {
         ) : (
           <p className="theme-empty">— 暂无公开报价</p>
         )}
-        <a href="/market/scan">查看完整品类扫描 →</a>
+        <a href="/market/prices">按品种筛选价格 →</a>
       </article>
     </section>
+    </>
   );
 }
 
@@ -323,7 +336,7 @@ export function ExpandLivePreview() {
           <h2>企业拓展路径</h2>
           <p className="theme-empty">案例收集中</p>
           <small>仅收录具备公开来源、可回溯核验的企业案例。</small>
-          <a href="/expand/cases">查看案例库 →</a>
+          <Link href="/expand/cases">查看案例库 →</Link>
         </article>
         <article className="theme-data-card daily-intelligence-card">
           <header>
@@ -372,7 +385,22 @@ export function ExpandLivePreview() {
 }
 
 export function OpportunityRadar({ compact = false }: { compact?: boolean }) {
-  const visible = compact ? opportunities.slice(0, 3) : opportunities;
+  const [region, setRegion] = useState<"ALL" | "SEA" | "CA">("ALL");
+  const seaCodes = [...southeastAsiaCodes];
+  const orderedCodes = [...targetMarketCodes];
+  const regionOpportunities = opportunities.filter((item) =>
+    region === "ALL"
+      ? true
+      : region === "SEA"
+        ? seaCodes.includes(item.countryCode)
+        : !seaCodes.includes(item.countryCode),
+  );
+  const visible = compact
+    ? opportunities.filter((item) => ["LA", "VN", "KZ"].includes(item.countryCode)).slice(0, 3)
+    : regionOpportunities;
+  const countryGroups = orderedCodes
+    .map((code) => ({ code, items: visible.filter((item) => item.countryCode === code) }))
+    .filter((group) => group.items.length);
   const stages = ["发现信号", "补充证据", "成本测算", "渠道验证", "报价/打样"];
   return (
     <section
@@ -382,35 +410,38 @@ export function OpportunityRadar({ compact = false }: { compact?: boolean }) {
       <header className="opportunity-radar-head">
         <div>
           <span>OPPORTUNITY RADAR</span>
-          <h2>商机雷达</h2>
+          <h2>按国家查看市场机会</h2>
           <p>
-            将贸易规模、变化幅度、渠道覆盖和证据质量合并为验证优先级；机会分不是成交预测。
+            东南亚以价格与渠道验证为主，中亚同时结合贸易规模与变化。先看国家，再决定需要补充哪些落地条件。
           </p>
         </div>
-        {compact && <a href="/expand/radar">查看全部商机 →</a>}
+        {compact && <a href="/opportunities">查看全部市场机会 →</a>}
       </header>
-      <div className="opportunity-radar-grid">
-        {visible.map((item, index) => (
+      {!compact && <nav className="opportunity-region-tabs" aria-label="选择商机区域">
+        {[["ALL", "全部市场"], ["SEA", "东南亚"], ["CA", "中亚"]].map(([value, label]) => <button type="button" key={value} className={region === value ? "active" : ""} aria-pressed={region === value} onClick={() => setRegion(value as "ALL" | "SEA" | "CA")}>{label}</button>)}
+      </nav>}
+      <div className="opportunity-country-groups">
+        {countryGroups.map((group) => <section className="opportunity-country-group" key={group.code} aria-labelledby={`opportunity-${group.code}`}>
+          <header><div><span>{seaCodes.includes(group.code) ? "东南亚市场" : "中亚市场"}</span><h3 id={`opportunity-${group.code}`}>{countryNames[group.code]}</h3></div><a href={`/markets/${group.code}`}>查看国家工作台 →</a></header>
+          <div className="opportunity-radar-grid">{group.items.map((item, index) => (
           <article key={item.id}>
             <div className="radar-rank">
               <span>
-                {String(index + 1).padStart(2, "0")} · {item.country}
+                {String(index + 1).padStart(2, "0")} · {item.product}
               </span>
             </div>
             <div className="radar-tags">
               <b>{item.status}</b>
-              <span>证据 {item.confidence}</span>
-              <span>覆盖 {item.coverage}%</span>
+              <span>{seaCodes.includes(item.countryCode) ? "价格与渠道验证" : "贸易与市场验证"}</span>
             </div>
-            <h3>{item.product}</h3>
-            <p>{item.signal}</p>
+            <h4>{item.signal}</h4>
             <div className="radar-progress" aria-label="验证进度">
               {stages.map((stage, stageIndex) => (
                 <span
                   className={
                     stageIndex === 0
                       ? "done"
-                      : stageIndex === 1 && item.coverage >= 70
+                      : stageIndex === 1 && item.status !== "暂缓"
                         ? "active"
                         : ""
                   }
@@ -425,12 +456,12 @@ export function OpportunityRadar({ compact = false }: { compact?: boolean }) {
               <b>{item.nextAction}</b>
             </div>
             <footer>
-              <span>HS {item.hs}</span>
-              <span>市场规模 {money(item.marketUsd)}</span>
-              <span>
+              <span>{item.hs.startsWith("0") || item.hs.startsWith("2") ? `HS ${item.hs}` : item.hs}</span>
+              {item.marketUsd > 0 && <span>市场规模 {money(item.marketUsd)}</span>}
+              {item.change !== 0 && <span>
                 {item.change > 0 ? "+" : ""}
                 {item.change}%
-              </span>
+              </span>}
             </footer>
             {!compact && (
               <div className="radar-actions">
@@ -444,7 +475,8 @@ export function OpportunityRadar({ compact = false }: { compact?: boolean }) {
               </div>
             )}
           </article>
-        ))}
+          ))}</div>
+        </section>)}
       </div>
       {!compact && (
         <div className="radar-method">

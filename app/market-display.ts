@@ -1,17 +1,30 @@
-export type LivePriceRow={observation_date:string;country:string;country_name?:string;city?:string;species_id:string;species_name?:string;platform_name:string;current_price:number|null;currency:string;package_unit:string|null;normalized_usd_per_kg:number|null;validation_status?:string};
+import { southeastAsiaCodes, speciesScope, targetMarketCodes, targetMarketNames } from "./market-scope";
 
-export const countryNames:Record<string,string>={LA:"老挝",VN:"越南",TH:"泰国",MM:"缅甸",KH:"柬埔寨",KZ:"哈萨克斯坦",UZ:"乌兹别克斯坦",KG:"吉尔吉斯斯坦",TJ:"塔吉克斯坦",TM:"土库曼斯坦"};
-export const seaCodes=["LA","VN","TH","MM","KH"];
-export const allCodes=[...seaCodes,"KZ","UZ","KG","TJ","TM"];
-export const speciesMeta:Record<string,{zh:string;en:string;priority:number}>={
-  oyster_mushroom:{zh:"平菇",en:"Oyster mushroom",priority:1},shiitake:{zh:"香菇",en:"Shiitake",priority:2},wood_ear:{zh:"木耳",en:"Wood ear",priority:3},king_oyster_mushroom:{zh:"杏鲍菇",en:"King oyster mushroom",priority:4},enoki:{zh:"金针菇",en:"Enoki",priority:5},button_mushroom:{zh:"双孢菇",en:"Button mushroom",priority:6},shimeji:{zh:"真姬菇",en:"Shimeji",priority:7},snow_fungus:{zh:"银耳",en:"Snow fungus",priority:8},porcini:{zh:"牛肝菌",en:"Porcini",priority:9},suillus:{zh:"乳牛肝菌",en:"Suillus",priority:10},honey_fungus:{zh:"蜜环菌",en:"Honey fungus",priority:11},morel:{zh:"羊肚菌",en:"Morel",priority:12},chanterelle:{zh:"鸡油菌",en:"Chanterelle",priority:13}
-};
+export type LivePriceRow={observation_date:string;country:string;country_name?:string;city?:string;species_id:string;species_name?:string;original_title?:string;platform_name:string;current_price:number|null;currency:string;package_unit:string|null;normalized_usd_per_kg:number|null;price_usd_per_package?:number|null;usd_rate_local_per_usd?:number|null;fx_source?:string|null;fx_timestamp?:string|null;validation_status?:string;raw_price_text?:string;grade?:string;source_url?:string;source_type?:string;status?:"active"|"archived"|"deleted";valid_until?:string|null;is_current?:boolean};
+
+export const countryNames = targetMarketNames;
+export const seaCodes = [...southeastAsiaCodes];
+export const allCodes = [...targetMarketCodes];
+export const marketCodesFromRows=(rows:Pick<LivePriceRow,"country">[])=>Array.from(new Set([...allCodes,...rows.map(row=>row.country)]));
+export const marketName=(row:Pick<LivePriceRow,"country"|"country_name">)=>row.country_name||countryNames[row.country]||row.country;
+export const speciesMeta:Record<string,{zh:string;en:string;priority:number}>=Object.fromEntries(speciesScope.map(item=>[item.slug,{zh:item.name,en:item.terms.en,priority:item.priority}]));
 export const speciesLabel=(id:string,withEnglish=false)=>{const item=speciesMeta[id];if(!item)return "其他食用菌";return withEnglish?`${item.zh} ${item.en}`:item.zh};
 export const customerPlatformName=(name:string)=>name.replace(/（老挝锚）|\(老挝锚\)/g,"").replace(/供给锚/g,"市场参考").replace(/邻国锚/g,"周边市场价格").trim();
 export const speciesPriority=(id:string)=>speciesMeta[id]?.priority??99;
-export const rowPrice=(row:LivePriceRow)=>row.normalized_usd_per_kg!=null?`$${Number(row.normalized_usd_per_kg).toFixed(2)}/kg`:`${row.package_unit||"未标重量"} · ${new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format(Number(row.current_price??0))} ${row.currency}/包`;
-let pricePromise:Promise<LivePriceRow[]>|null=null;
-export const loadLivePrices=()=>pricePromise??=(fetch("/api/powerbi?table=prices",{cache:"no-store"}).then(async response=>{if(!response.ok)throw new Error("price load failed");const payload=await response.json() as {records?:LivePriceRow[]};return (payload.records??[]).map(row=>({...row,platform_name:customerPlatformName(row.platform_name)}))}).catch(error=>{pricePromise=null;throw error}));
+export const rowPrice=(row:LivePriceRow)=>{
+  const local=row.raw_price_text??`${new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format(Number(row.current_price??0))} ${row.currency}${row.package_unit?`/${row.package_unit}`:""}`;
+  if(row.currency==="USD")return local;
+  const usd=row.price_usd_per_package!=null
+    ?`US$${Number(row.price_usd_per_package).toFixed(2)}/包装`
+    :row.current_price!=null&&row.usd_rate_local_per_usd
+      ?`US$${(row.current_price/row.usd_rate_local_per_usd).toFixed(2)}/包装`
+      :row.normalized_usd_per_kg!=null
+        ?`US$${Number(row.normalized_usd_per_kg).toFixed(2)}/kg`
+        :null;
+  return usd?`${local}（约 ${usd}）`:local;
+};
+export const speciesIdFromProduct=(product:string)=>speciesScope.find(item=>product.includes(item.name))?.slug??"other";
+export const loadLivePrices=()=>fetch("/api/powerbi?table=prices",{cache:"no-store"}).then(async response=>{if(!response.ok)throw new Error("price load failed");const payload=await response.json() as {records?:LivePriceRow[]};return (payload.records??[]).map(row=>({...row,platform_name:customerPlatformName(row.platform_name)}));});
 export const observationDateRank=(value:string)=>{const exact=value.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(exact)return Number(`${exact[1]}${exact[2]}${exact[3]}`);const years=value.match(/(?:19|20)\d{2}/g)?.map(Number)??[];return years.length?Math.max(...years)*10000:0};
 export const latestByCountry=(rows:LivePriceRow[])=>{const latest=new Map<string,number>();rows.forEach(row=>{const rank=observationDateRank(row.observation_date);if(rank>(latest.get(row.country)??0))latest.set(row.country,rank)});return rows.filter(row=>observationDateRank(row.observation_date)===latest.get(row.country));};
 export const prioritizedRows=(rows:LivePriceRow[],limit=10)=>[...rows].sort((a,b)=>speciesPriority(a.species_id)-speciesPriority(b.species_id)||b.observation_date.localeCompare(a.observation_date)||Number(b.normalized_usd_per_kg??0)-Number(a.normalized_usd_per_kg??0)).filter((row,index,all)=>{const peers=all.slice(0,index).filter(item=>item.country===row.country&&item.species_id===row.species_id);return peers.length<2}).slice(0,limit);

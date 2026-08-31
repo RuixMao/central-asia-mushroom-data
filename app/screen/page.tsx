@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { mirrorRecords } from "../data";
+import { rowPrice, type LivePriceRow } from "../market-display";
+import { targetMarkets } from "../market-scope";
 
 type PriceRow = {
   observation_date: string;
@@ -19,6 +21,11 @@ type PriceRow = {
   normalized_usd_per_kg: number | null;
   normalized_quantity_kg?: number | null;
   current_price?: number | null;
+  currency: string;
+  package_unit: string | null;
+  raw_price_text?: string;
+  price_usd_per_package?: number | null;
+  usd_rate_local_per_usd?: number | null;
   promotion_price?: number | null;
   in_stock?: boolean | null;
 };
@@ -33,13 +40,8 @@ const roles = [
   ["investor", "投资与决策", "规模、趋势、集中度"], ["researcher", "研究与分析", "来源、口径、可信度"],
 ] as const;
 type Role = typeof roles[number][0];
-const countries = [
-  ["KZ", "哈萨克斯坦", "阿拉木图"], ["UZ", "乌兹别克斯坦", "塔什干"],
-  ["KG", "吉尔吉斯斯坦", "比什凯克"], ["TJ", "塔吉克斯坦", "杜尚别"],
-  ["TM", "土库曼斯坦", "阿什哈巴德"],
-  ["LA", "老挝", "万象"], ["VN", "越南", "胡志明市"],
-  ["TH", "泰国", "曼谷"], ["MM", "缅甸", "仰光"], ["KH", "柬埔寨", "金边"],
-];
+const countries = targetMarkets.map((market) => [market.code, market.name, market.timezone] as const);
+const targetCountryCount = countries.length;
 
 const median = (values: number[]) => {
   if (!values.length) return null;
@@ -63,7 +65,7 @@ export default function ScreenPage() {
     const queryRole = new URLSearchParams(window.location.search).get("role") as Role | null;
     const savedRole = window.localStorage.getItem("screen-role") as Role | null;
     const valid = roles.map(item => item[0]);
-    setRole(valid.includes(queryRole as Role) ? queryRole! : valid.includes(savedRole as Role) ? savedRole! : "researcher");
+    queueMicrotask(() => setRole(valid.includes(queryRole as Role) ? queryRole! : valid.includes(savedRole as Role) ? savedRole! : "researcher"));
   }, []);
 
   const chooseRole = (nextRole: Role) => {
@@ -209,14 +211,14 @@ export default function ScreenPage() {
     <div className="screen-quality">
       <span><i />最新数据日 {latestDate || "—"}</span>
       <b>有效价格 {latestRows.length} 条</b>
-      <b>国家覆盖 {stats.countries}/10（今日）</b>
+      <b>国家覆盖 {stats.countries}/{targetCountryCount}（今日）</b>
       <em>数据评级 {qualitySummary.grade} · 在库率 {qualitySummary.stockRate == null ? "—" : `${qualitySummary.stockRate.toFixed(0)}%`} · 核验来源 {verifiedTradeSources.length} 项</em>
       <strong>市场挂牌参考价，不代表最终成交价</strong>
     </div>
 
     <section className="screen-kpis">
       <article><span>有效价格记录</span><b>{rows.length}</b><small>已纳入分析的价格样本</small></article>
-      <article><span>国家覆盖</span><b>{stats.countries}<em>/10（今日）</em></b><small>{countries.filter(([code])=>!latestRows.some(row=>row.country===code)).map(([,name])=>name).join("、")||"全部目标市场"}{stats.countries<10?"今日无有效价格":"今日均有有效价格"}</small></article>
+      <article><span>国家覆盖</span><b>{stats.countries}<em>/{targetCountryCount}（今日）</em></b><small>{countries.filter(([code])=>!latestRows.some(row=>row.country===code)).map(([,name])=>name).join("、")||"全部目标市场"}{stats.countries<targetCountryCount?"今日暂无报价":"今日均有报价"}</small></article>
       <article><span>菌种覆盖</span><b>{stats.species}</b><small>{speciesOptions.map(([, name]) => name).join("、") || "—"}</small></article>
       <article><span>渠道覆盖</span><b>{stats.platforms}</b><small>可核验市场渠道</small></article>
       <article className="range-kpi"><span>{comparableOnly ? "同规格价格范围" : "挂牌价格范围"}</span><b>${priceRange[0].toFixed(2)}—${priceRange[1].toFixed(2)}</b><small>USD/kg · {comparableOnly && dominantQuantity != null ? formatQuantity(dominantQuantity) : "已逐行标注包装规格"}</small></article>
@@ -224,8 +226,8 @@ export default function ScreenPage() {
 
     <section className={`role-insights role-${role}`}>
       <header><span>关键市场信号</span><b>{roleCopy[1]}视角</b></header>
-      {role === "buyer" && marketSignals.slice(0, 3).map(signal => <article key={signal.speciesId}><small>{signal.name}价格洼地</small><b>{signal.low.country_name ?? signal.low.country} · ${Number(signal.low.normalized_usd_per_kg).toFixed(2)}/kg</b><span>{formatQuantity(signal.low.normalized_quantity_kg)} · 较中位价低 {signal.discount.toFixed(0)}%</span></article>)}
-      {role === "supplier" && marketSignals.slice(0, 3).map(signal => <article key={signal.speciesId}><small>{signal.name}高价市场</small><b>{signal.high.country_name ?? signal.high.country} · ${Number(signal.high.normalized_usd_per_kg).toFixed(2)}/kg</b><span>提示潜在供给空间，建议结合贸易规模综合判断</span></article>)}
+      {role === "buyer" && marketSignals.slice(0, 3).map(signal => <article key={signal.speciesId}><small>{signal.name}价格洼地</small><b>{signal.low.country_name ?? signal.low.country} · {rowPrice(signal.low as LivePriceRow)}</b><span>{formatQuantity(signal.low.normalized_quantity_kg)} · 较中位价低 {signal.discount.toFixed(0)}%</span></article>)}
+      {role === "supplier" && marketSignals.slice(0, 3).map(signal => <article key={signal.speciesId}><small>{signal.name}高价市场</small><b>{signal.high.country_name ?? signal.high.country} · {rowPrice(signal.high as LivePriceRow)}</b><span>提示潜在供给空间，建议结合贸易规模综合判断</span></article>)}
       {role === "investor" && <><article><small>贸易市场规模</small><b>{tradeOverview.total ? `$${(tradeOverview.total / 1_000_000).toFixed(2)}M` : "—"}</b><span>贸易统计与零售挂牌价格分别计算</span></article><article><small>中国来源占比</small><b>{tradeOverview.share == null ? "—" : `${tradeOverview.share.toFixed(1)}%`}</b><span>估算数据均配有可信度标识</span></article><article><small>综合数据评级</small><b>{qualitySummary.grade}</b><span>已核验 {verifiedTradeSources.length} 项数据来源</span></article></>}
       {role === "researcher" && <><article><small>价格样本</small><b>{rows.length} 条</b><span>最新数据日 {latestDate || "—"}</span></article><article><small>市场观察</small><b>{daily.length} 组</b><span>综合数据评级 {qualitySummary.grade}</span></article><article><small>来源透明度</small><b>{verifiedTradeSources.length} 项</b><span>贸易数据来源已核验并保留统计口径</span></article></>}
     </section>
@@ -273,7 +275,7 @@ export default function ScreenPage() {
                 return <div className="species-price-row" key={productId}>
                   <span title={latest.original_title}>{latest.city} · {latest.platform_name}<small>{formatQuantity(latest.normalized_quantity_kg)} · {latest.in_stock === false ? "缺货" : "在库"}{latest.promotion_price != null ? " · 促销" : ""}</small></span>
                   <span className="mini-trend" aria-label="近七次价格趋势">{history.map((item, index) => <i key={`${item.observation_date}-${index}`} style={{height: `${Math.max(18, Number(item.normalized_usd_per_kg) / max * 100)}%`}} />)}</span>
-                  <em className={tone}>${price.toFixed(2)}{previous != null && previous !== price && <b>{price > previous ? "↑" : "↓"}</b>}<small>USD / 公斤 {productIndex === 0 ? "· 洼地" : productIndex === speciesGroup.products.length - 1 ? "· 高位" : ""}</small></em>
+                  <em className={tone}>{rowPrice(latest as LivePriceRow)}{previous != null && previous !== price && <b>{price > previous ? "↑" : "↓"}</b>}<small>{productIndex === 0 ? "价格较低" : productIndex === speciesGroup.products.length - 1 ? "价格较高" : ""}</small></em>
                 </div>;
               })}
             </article>)}</div> : <p className="country-collecting">今日暂无可核验价格，历史数据仍可用于趋势参考</p>}

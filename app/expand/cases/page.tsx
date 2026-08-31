@@ -1,3 +1,4 @@
 import ProductShell from "../../product-shell";
-const modes=["出口意向","境外园区","菌包产能","智慧方舱"];
-export default function Page(){return <ProductShell><main className="saas-main"><section className="saas-hero compact"><span>出海案例</span><h1>中国菌企出海拓展图谱</h1><p>呈现中国菌企在中亚与东南亚市场的渠道进入、合作与项目落地案例。</p></section><section className="detail-card-grid">{modes.map(x=><article key={x}><span>{x}</span><h2>案例收集中</h2><p>取得企业公开公告、政府项目文件或权威媒体原文后更新。</p></article>)}</section></main></ProductShell>}
+import Link from "next/link";
+import {caseTopics} from "./case-data";
+export default function Page(){return <ProductShell><main className="saas-main"><section className="saas-hero compact"><span>出海案例</span><h1>食用菌跨境项目案例库</h1><p>按出口、海外项目、菌包产能和智慧设施浏览公开案例。</p></section><section className="detail-card-grid case-topic-grid">{caseTopics.map(topic=><article key={topic.slug}><span>{topic.label}</span><h2>{topic.title}</h2><p>{topic.intro}</p><strong>{topic.cases.length} 个公开案例</strong><Link href={`/expand/cases/${topic.slug}`}>查看案例与原文 →</Link></article>)}</section></main></ProductShell>}

@@ -1,4 +1,6 @@
 "use client";
+import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import MarketPanel from "./market-panel";
 
@@ -75,14 +77,14 @@ export default function TerminalPage() {
   return (
     <div className="intel-app">
       <aside className="intel-side">
-        <a href="/" className="intel-brand">
-          <img
+        <Link href="/" className="intel-brand">
+          <Image
             src="/inhen-tech-logo.png"
             alt="因恒科技"
             width="282"
             height="90"
           />
-        </a>
+        </Link>
         <div className="intel-product">
           <span>YINHENG INTELLIGENCE</span>
           <strong>食用菌出海数据终端</strong>
@@ -101,12 +103,12 @@ export default function TerminalPage() {
           >
             <i>02</i>数据资产地图
           </button>
-          <a href="/market-data">
+          <Link href="/market-data">
             <i>03</i>公开数据页
-          </a>
-          <a href="/#contact">
+          </Link>
+          <Link href="/#contact">
             <i>04</i>申请完整数据
-          </a>
+          </Link>
         </nav>
         <div className="intel-side-note">
           <b>数据原则</b>
@@ -143,8 +145,8 @@ export default function TerminalPage() {
               <div className="asset-summary">
                 <strong>3</strong>
                 <span>年度 / 月度 / 日度数据层</span>
-                <strong>5</strong>
-                <span>持续覆盖的中亚国家</span>
+                <strong>10</strong>
+                <span>持续覆盖的中亚与东南亚国家</span>
               </div>
             </section>
             <section className="asset-section">

@@ -1,8 +1,9 @@
 import { and, desc, eq, gte } from "drizzle-orm";
 import { getDb } from "../../../db";
 import { marketDocuments } from "../../../db/schema";
+import { targetMarketCodes } from "../../market-scope";
 
-const countries=new Set(["KZ","UZ","KG","TJ","TM"]),kinds=new Set(["news","policy","macro"]);
+const countries=new Set<string>(targetMarketCodes),kinds=new Set(["news","policy","macro"]);
 
 export async function GET(request:Request){
  const params=new URL(request.url).searchParams,filters=[];

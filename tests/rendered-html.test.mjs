@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import {marketReadiness} from "../app/market-readiness.ts";
 
 async function render(path = "/") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -19,24 +20,28 @@ test("server-renders the corporate website and public data center", async () => 
   const html = await response.text();
   assert.match(html, /因恒科技/);
   assert.match(html, /inhen-tech-logo\.png/);
-  assert.match(html, /让食用菌出海决策有数据可依/);
+  assert.match(html, /食用菌跨境市场数据与研究咨询/);
+  assert.match(html, /海关贸易数据库/);
+  assert.match(html, /电商零售监测/);
+  assert.match(html, /市场与渠道研究/);
+  assert.match(html, /定制研究咨询/);
+  assert.doesNotMatch(html, /US\$4,647,430|14 泰铢\/包|Big C Online/);
+  assert.match(html, /提交需求/);
   assert.match(html, /老挝/);
-  assert.match(html, /越南/);
-  assert.match(html, /柬埔寨/);
-  assert.match(html, /选择目标市场/);
-  assert.match(html, /查询当地价格/);
-  assert.match(html, /验证市场机会/);
-  assert.match(html, /了解出海步骤/);
-  assert.match(html, /提交我的具体情况/);
+  assert.match(html, /东南亚/);
+  assert.match(html, /找市场/);
+  assert.match(html, /查行情/);
+  assert.match(html, /市场洞察/);
+  assert.match(html, /出海服务/);
+  assert.match(html, /提交需求/);
   assert.match(html, /href="\/privacy"/);
   assert.match(html, /href="\/terms"/);
   assert.match(html, /href="\/market"/);
-  assert.match(html, /目标市场价格速览/);
-  assert.match(html, /全部市场/);
-  assert.match(html, /全部国家/);
+  assert.match(html, /近期值得关注的市场/);
+  assert.match(html, /您现在要做什么/);
+  assert.doesNotMatch(html, /重点国家|现在要完成哪项判断/);
   assert.match(html, /中亚/);
   assert.match(html, /东南亚/);
-  assert.match(html, /href="\/markets\/LA#prices"/);
   assert.doesNotMatch(html, /老挝（重点）|采集中/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 
@@ -56,10 +61,10 @@ test("server-renders the corporate website and public data center", async () => 
   const countries = await render("/insights/country?expand=LA");
   assert.equal(countries.status, 200);
   const countriesHtml = await countries.text();
-  assert.match(countriesHtml, /按国家筛选全部价格/);
-  assert.match(countriesHtml, /href="\/market\/prices"/);
+  assert.match(countriesHtml, /比较目标市场/);
+  assert.match(countriesHtml, /href="\/market"/);
   for (const code of ["LA", "VN", "TH", "MM", "KH", "KZ", "UZ", "KG", "TJ", "TM"]) {
-    assert.match(countriesHtml, new RegExp(`href="/markets/${code}#prices"`));
+    assert.match(countriesHtml, new RegExp(`href="/markets/${code}"`));
   }
 
   const marketData = await render("/market-data");
@@ -90,4 +95,77 @@ test("server-renders the corporate website and public data center", async () => 
   const encodedReportDetail = await render("/reports/%E4%B8%AD%E4%BA%9A%E8%8F%8C%E7%B1%BB%E6%97%A5%E6%8A%A5");
   assert.equal(encodedReportDetail.status, 200);
   assert.match(await encodedReportDetail.text(), /正在读取报告/);
+});
+
+test("country and case detail pages show traceable evidence", async () => {
+  const laos = await render("/markets/LA");
+  assert.equal(laos.status, 200);
+  const laosHtml = await laos.text();
+  assert.match(laosHtml, /鲜平菇 100g/);
+  assert.match(laosHtml, /20,000 基普\/包/);
+  assert.match(laosHtml, /Foodpanda Laos/);
+  assert.match(laosHtml, /164,226\.7/);
+  assert.doesNotMatch(laosHtml, /共 0 条价格观察|更新于 —/);
+
+  const cases = await render("/expand/cases");
+  assert.equal(cases.status, 200);
+  const casesHtml = await cases.text();
+  assert.match(casesHtml, /食用菌跨境项目案例库/);
+  assert.doesNotMatch(casesHtml, /案例收集中/);
+
+  const exportCases = await render("/expand/cases/export");
+  assert.equal(exportCases.status, 200);
+  const exportHtml = await exportCases.text();
+  assert.match(exportHtml, /出口创汇超过390万美元/);
+  assert.match(exportHtml, /查看原文/);
+});
+
+test("every target market appears in the customer decision journey", async () => {
+  const codes = ["LA", "VN", "TH", "MM", "KH", "KZ", "UZ", "KG", "TJ", "TM"];
+  const names = ["老挝", "越南", "泰国", "缅甸", "柬埔寨", "哈萨克斯坦", "乌兹别克斯坦", "吉尔吉斯斯坦", "塔吉克斯坦", "土库曼斯坦"];
+
+  const tradeResponse = await render("/insights/trade");
+  assert.equal(tradeResponse.status, 200);
+  const tradeHtml = await tradeResponse.text();
+  assert.match(tradeHtml, /全部市场/);
+  assert.match(tradeHtml, /东南亚/);
+  assert.match(tradeHtml, /中亚/);
+  assert.match(tradeHtml, /各国最新可得年度/);
+  assert.match(tradeHtml, /2025/);
+  for (const name of names) assert.match(tradeHtml, new RegExp(name));
+
+  const opportunitiesResponse = await render("/opportunities");
+  assert.equal(opportunitiesResponse.status, 200);
+  const opportunitiesHtml = await opportunitiesResponse.text();
+  assert.match(opportunitiesHtml, /东南亚市场/);
+  assert.match(opportunitiesHtml, /中亚市场/);
+  for (let index = 0; index < codes.length; index += 1) {
+    assert.match(opportunitiesHtml, new RegExp(`href="/markets/${codes[index]}"`));
+    assert.match(opportunitiesHtml, new RegExp(names[index]));
+  }
+
+  const contactResponse = await render("/expand/contact");
+  assert.equal(contactResponse.status, 200);
+  const contactHtml = await contactResponse.text();
+  for (const name of names) assert.match(contactHtml, new RegExp(name));
+
+  const channelsResponse = await render("/insights/channels");
+  assert.equal(channelsResponse.status, 200);
+  const channelsHtml = await channelsResponse.text();
+  for (const name of names) assert.match(channelsHtml, new RegExp(name));
+});
+
+test("country pages follow the objective readiness state machine",async()=>{
+  const expected={LA:["L0",5,2],VN:["L1",1,1],TH:["L1",2,0],MM:["L2",0,0],KH:["L1",1,0],KZ:["L0",5,1],UZ:["L1",2,0],KG:["L2",0,0],TJ:["L2",0,0],TM:["L2",0,0]};
+  for(const [code,[level,N,S]] of Object.entries(expected)){
+    const response=await render(`/markets/${code}`);
+    assert.equal(response.status,200);
+    const html=(await response.text()).replaceAll("<!-- -->","");
+    assert.match(html,new RegExp(`${level} ·`));
+    assert.match(html,new RegExp(`N=${N} · S=${S}`));
+    for(const section of ["价格","贸易","渠道","市场参考"])assert.match(html,new RegExp(section));
+    assert.doesNotMatch(html,/共 0 条价格观察|更新于 —/);
+  }
+  const malaysia=marketReadiness([{grade:"B",species_id:"oyster_mushroom"},{grade:"C",species_id:"enoki"}]);
+  assert.deepEqual({level:malaysia.level,N:malaysia.N,S:malaysia.S},{level:"L1",N:2,S:1});
 });

@@ -1,20 +1,8 @@
 import ProductShell from "../product-shell";
 import { mirrorRecords } from "../data";
 import { InsightsLivePreview } from "../theme-live-data";
+import { marketScopeLabel, southeastAsiaCodes, targetMarkets } from "../market-scope";
 export const metadata = { title: "需求分析｜食用菌出海服务平台" };
-
-const countries = [
-  ["LA", "老挝"],
-  ["VN", "越南"],
-  ["TH", "泰国"],
-  ["MM", "缅甸"],
-  ["KH", "柬埔寨"],
-  ["KZ", "哈萨克斯坦"],
-  ["UZ", "乌兹别克斯坦"],
-  ["KG", "吉尔吉斯斯坦"],
-  ["TJ", "塔吉克斯坦"],
-  ["TM", "土库曼斯坦"],
-] as const;
 const money = (value: number) =>
   value >= 1_000_000
     ? `$${(value / 1_000_000).toFixed(2)}M`
@@ -35,7 +23,7 @@ export default function Page() {
           <div>
             <span>覆盖范围</span>
             <strong>10 个目标市场</strong>
-            <small>中亚五国与东南亚五国</small>
+            <small>{marketScopeLabel}</small>
           </div>
           <div>
             <span>核心口径</span>
@@ -56,7 +44,7 @@ export default function Page() {
           <p>分别展示各市场已经形成的贸易或公开价格信息。</p>
         </section>
         <section className="country-research-grid">
-          {countries.map(([code, name]) => {
+          {targetMarkets.map(({ code, name }) => {
             const rows = mirrorRecords.filter(
               (row) => row.countryCode === code,
             );
@@ -65,7 +53,7 @@ export default function Page() {
                 sum + Number(row.importerCifUsd ?? row.confirmedTradeUsd ?? 0),
               0,
             );
-            const hasPrice = ["LA", "VN", "TH", "MM", "KH"].includes(code);
+            const hasPrice = southeastAsiaCodes.includes(code as typeof southeastAsiaCodes[number]);
             const grade = rows[0]?.confidence ?? (hasPrice ? "已有价格" : "市场信息");
             return (
               <article key={code}>

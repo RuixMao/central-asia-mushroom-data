@@ -1,2 +1,3 @@
-import ProductShell from "../../product-shell"; import {mirrorRecords} from "../../data";
-export default function Page(){return <ProductShell><main className="saas-main"><section className="saas-hero compact"><span>TRADE DATA</span><h1>食用菌出海贸易数据</h1><p>统一按国家、HS 品类和可信度展示中亚与东南亚目标市场；新市场记录通过校验后自动加入。</p></section><section className="detail-card-grid">{mirrorRecords.map(r=><article key={r.countryCode+r.hs}><em>{r.confidence}</em><span>{r.country} · HS {r.hs}</span><h2>{r.product}</h2><strong>${Number(r.importerCifUsd??r.confirmedTradeUsd).toLocaleString("en-US")}</strong><p>{r.confidenceBasis}</p></article>)}</section></main></ProductShell>}
+import ProductShell from "../../product-shell";
+import TradeBrowser from "./trade-browser";
+export default function Page(){return <ProductShell><main className="saas-main"><section className="saas-hero compact"><span>TRADE DATA</span><h1>食用菌跨境贸易数据</h1><p>按区域、国家和 HS 编码查询各国最新可得进口数据。</p></section><TradeBrowser/></main></ProductShell>}

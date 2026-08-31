@@ -1,0 +1,29 @@
+{
+  "countries": [
+    {"code":"LA","name":"老挝","region":"SEA","region_name":"东南亚","tier":1,"currency":"LAK","timezone":"Asia/Vientiane","reporter":418,"languages":["lo","en","th"],"channels":[{"id":"champa_garden","url":"https://champagardenshop.com/search?q={q}"}]},
+    {"code":"VN","name":"越南","region":"SEA","region_name":"东南亚","tier":2,"currency":"VND","timezone":"Asia/Ho_Chi_Minh","reporter":704,"languages":["vi","en"],"channels":[{"id":"bach_hoa_xanh","url":"https://www.bachhoaxanh.com/nam-tuoi/"}]},
+    {"code":"TH","name":"泰国","region":"SEA","region_name":"东南亚","tier":2,"currency":"THB","timezone":"Asia/Bangkok","reporter":764,"languages":["th","en"],"channels":[{"id":"bigc_th","url":"https://www.bigc.co.th/category/mushroom"}]},
+    {"code":"MM","name":"缅甸","region":"SEA","region_name":"东南亚","tier":3,"currency":"MMK","timezone":"Asia/Yangon","reporter":104,"languages":["my","en"],"channels":[{"id":"foodpanda_mm","url":"https://www.foodpanda.com.mm/en/shop/z2su/capital-hypermarket-h001-dawbon-z2su"}]},
+    {"code":"KH","name":"柬埔寨","region":"SEA","region_name":"东南亚","tier":3,"currency":"KHR","accepted_currencies":["KHR","USD"],"timezone":"Asia/Phnom_Penh","reporter":116,"languages":["km","en"],"channels":[{"id":"lucky_foodpanda_kh","url":"https://www.foodpanda.com.kh/en/shop/bq32/lucky-supermarket-olympia"}]},
+    {"code":"KZ","name":"哈萨克斯坦","region":"CA","region_name":"中亚","tier":1,"currency":"KZT","timezone":"Asia/Almaty","reporter":398,"languages":["kk","ru"],"channels":[{"id":"arbuz","url":"https://arbuz.kz/ru/almaty/search?query={q}"},{"id":"carefood","url":"https://carefood.kz/search/?q={q}"},{"id":"flagma_kz","url":"https://flagma.kz/ru/products/q={q}/"}]},
+    {"code":"UZ","name":"乌兹别克斯坦","region":"CA","region_name":"中亚","tier":1,"currency":"UZS","timezone":"Asia/Tashkent","reporter":860,"languages":["uz","ru"],"channels":[{"id":"uzum","url":"https://uzum.uz/ru/search?query={q}"},{"id":"korzinka","url":"https://korzinka.uz/catalog/?q={q}"},{"id":"makro","url":"https://makromarket.uz/catalog"}]},
+    {"code":"KG","name":"吉尔吉斯斯坦","region":"CA","region_name":"中亚","tier":2,"currency":"KGS","timezone":"Asia/Bishkek","reporter":417,"languages":["ky","ru"],"channels":[{"id":"globus","url":"https://globus-online.kg/ru-kg/search?q={q}"},{"id":"omarket","url":"https://market.o.kg/bishkek/search?q={q}"}]},
+    {"code":"TJ","name":"塔吉克斯坦","region":"CA","region_name":"中亚","tier":3,"currency":"TJS","timezone":"Asia/Dushanbe","reporter":762,"languages":["tg","ru"],"channels":[{"id":"zudbiyor","url":"https://zudbiyor.tj/search?q={q}"},{"id":"somon","url":"https://somon.tj/search/?q={q}"}]},
+    {"code":"TM","name":"土库曼斯坦","region":"CA","region_name":"中亚","tier":3,"currency":"TMT","timezone":"Asia/Ashgabat","reporter":795,"languages":["tk","ru"],"channels":[{"id":"tm_market","url":"https://www.goshmak.com/search?q={q}"}]}
+  ],
+  "species": [
+    {"slug":"oyster_mushroom","name":"平菇","priority":1,"terms":{"en":"oyster mushroom","ru":"вешенка"}},
+    {"slug":"shiitake","name":"香菇","priority":2,"terms":{"en":"shiitake","ru":"шиитаке"}},
+    {"slug":"wood_ear","name":"木耳","priority":3,"terms":{"en":"wood ear","ru":"древесный гриб"}},
+    {"slug":"king_oyster_mushroom","name":"杏鲍菇","priority":4,"terms":{"en":"king oyster mushroom","ru":"эринги"}},
+    {"slug":"enoki","name":"金针菇","priority":5,"terms":{"en":"enoki","ru":"эноки"}},
+    {"slug":"button_mushroom","name":"双孢菇","priority":6,"terms":{"en":"button mushroom","ru":"шампиньон"}},
+    {"slug":"shimeji","name":"真姬菇","priority":7,"terms":{"en":"shimeji","ru":"шимеджи"}},
+    {"slug":"snow_fungus","name":"银耳","priority":8,"terms":{"en":"snow fungus","ru":"снежный гриб"}},
+    {"slug":"porcini","name":"牛肝菌","priority":9,"terms":{"en":"porcini","ru":"белый гриб"}},
+    {"slug":"suillus","name":"乳牛肝菌","priority":10,"terms":{"en":"suillus","ru":"маслята"}},
+    {"slug":"honey_fungus","name":"蜜环菌","priority":11,"terms":{"en":"honey fungus","ru":"опята"}},
+    {"slug":"morel","name":"羊肚菌","priority":12,"terms":{"en":"morel","ru":"сморчки"}},
+    {"slug":"chanterelle","name":"鸡油菌","priority":13,"terms":{"en":"chanterelle","ru":"лисички"}}
+  ]
+}
