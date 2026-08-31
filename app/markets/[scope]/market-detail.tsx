@@ -10,8 +10,11 @@ import {
   speciesLabel,
   type LivePriceRow,
 } from "../../market-display";
+type TradeSnapshot = { country:string; source:string; data:{ hs?:string; year?:number; partner_code?:string; value_usd?:number|null; estimate_lower_usd?:number|null; estimate_upper_usd?:number|null; status?:string } };
+const tradeProductNames:Record<string,string>={"070951":"鲜或冷藏双孢蘑菇","070959":"其他鲜或冷藏蘑菇","200310":"加工保藏蘑菇"};
 export default function MarketDetail({ code }: { code: string }) {
   const [rows, setRows] = useState<LivePriceRow[]>([]);
+  const [tradeSnapshots,setTradeSnapshots]=useState<TradeSnapshot[]>([]);
   const [ready, setReady] = useState(false);
   useEffect(() => {
     loadLivePrices()
@@ -19,12 +22,16 @@ export default function MarketDetail({ code }: { code: string }) {
       .finally(() => setReady(true));
   }, []);
   const country = Boolean(countryNames[code]);
+  useEffect(()=>{if(!country)return;fetch(`/api/ingest/snapshot?metric=trade&country=${code}&limit=10000`,{cache:"no-store"}).then(async response=>response.ok?response.json():{records:[]}).then((payload:{records?:TradeSnapshot[]})=>setTradeSnapshots(payload.records??[])).catch(()=>setTradeSnapshots([]))},[code,country]);
   const scope = country ? code : code.toLowerCase();
   const prices = useMemo(
     () => latestByCountry(rows).filter((row) => country ? row.country === code : row.species_id === scope),
     [rows, code, country, scope],
   );
-  const trade = country ? mirrorRecords.filter((row) => row.countryCode === code) : [];
+  const legacyTrade = country ? mirrorRecords.filter((row) => row.countryCode === code) : [];
+  const tradeYears=tradeSnapshots.filter(row=>row.data.status==="live"&&(row.data.value_usd!=null||row.data.estimate_lower_usd!=null)).map(row=>Number(row.data.year??0));
+  const tradeYear=tradeYears.length?Math.max(...tradeYears):legacyTrade.length?2024:0;
+  const currentTrade=tradeSnapshots.filter(row=>row.data.status==="live"&&row.data.year===tradeYear&&(row.data.value_usd!=null||row.data.estimate_lower_usd!=null));
   const channels = Array.from(new Set(prices.map((row) => row.platform_name)));
   const latest = prices.reduce(
     (date, row) => (row.observation_date > date ? row.observation_date : date),
@@ -92,11 +99,24 @@ export default function MarketDetail({ code }: { code: string }) {
             <span>贸易规模</span>
             <h2>进口与品类结构</h2>
           </div>
-          <small>更新于 2024</small>
+          <small>更新于 {tradeYear || "—"}</small>
         </header>
-        {trade.length ? (
+        {currentTrade.length ? (
           <div className="market-trade-list">
-            {trade.map((row) => (
+            {currentTrade.map((row,index) => {
+              const marketSize=row.data.partner_code==="MARKET_SIZE";
+              const value=Number(row.data.value_usd??row.data.estimate_lower_usd??0);
+              return <article key={`${row.data.hs??"market"}-${row.source}-${index}`}>
+                <span>{marketSize?"市场规模":`HS ${row.data.hs}`}</span>
+                <b>{marketSize?"食用菌进口市场规模":tradeProductNames[row.data.hs??""]??"食用菌产品"}</b>
+                <strong>${value.toLocaleString("en-US",{maximumFractionDigits:0})}</strong>
+                <em>{row.source}</em>
+              </article>
+            })}
+          </div>
+        ) : legacyTrade.length ? (
+          <div className="market-trade-list">
+            {legacyTrade.map((row) => (
               <article key={row.hs}>
                 <span>HS {row.hs}</span>
                 <b>{row.product}</b>
@@ -112,8 +132,8 @@ export default function MarketDetail({ code }: { code: string }) {
           </div>
         ) : (
           <div className="market-neutral-state">
-            <b>贸易金额暂未形成同口径记录</b>
-            <span>可先使用本页价格与渠道信息判断零售端价格空间。</span>
+            <b>暂无可展示的食用菌贸易金额</b>
+            <span>可先查看本页价格与渠道信息。</span>
           </div>
         )}
       </section>
