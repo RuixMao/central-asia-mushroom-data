@@ -23,7 +23,7 @@ from adapters.yandex import YandexMarketAdapter
 from adapters.gipertm import GiperAdapter
 from adapters.asmanexpress import AsmanAdapter
 from adapters.arbuz import ArbuzAdapter
-from adapters.catalog_search import CatalogSearchAdapter
+from adapters.catalog_search import CatalogSearchAdapter, RenderedCatalogSearchAdapter
 from adapters.wildberries import DESTINATIONS as WB_DESTINATIONS,WildberriesAdapter
 from adapters.flagma import FlagmaAdapter
 from adapters.uzum import UzumAdapter
@@ -76,13 +76,13 @@ SOURCES=[
 (FlagmaAdapter,{"platform":"flagma-kg","platform_name":"Flagma.kg","platform_product_id":"catalog-search","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://flagma-kg.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"KGS","language":"ru"}),
 (FlagmaAdapter,{"platform":"flagma-tj","platform_name":"Flagma.tj","platform_product_id":"catalog-search","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://flagma-tj.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"TJS","language":"ru"}),
 (FlagmaAdapter,{"platform":"flagma-tm","platform_name":"Flagma-TM","platform_product_id":"catalog-search","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://flagma-tm.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"TMT","language":"ru"}),
-(CatalogSearchAdapter,{"platform":"foodpanda-champa-market-la","platform_name":"Foodpanda Laos / Champa Market","platform_product_id":"fresh-produce-category","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.foodpanda.la/en/shop/s8f0/champa-market/category/4908d63c-388a-43f4-9866-3ae2a936cc6a","title":"ຜັກ/ໝາກໄມ້ Fresh produce","package":"","currency":"LAK","language":"lo"}),
-(CatalogSearchAdapter,{"platform":"foodpanda-champa-market-la","platform_name":"Foodpanda Laos / Champa Market","platform_product_id":"store-catalog","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.foodpanda.la/en/shop/s8f0/champa-market","title":"Champa Market","package":"","currency":"LAK","language":"lo"}),
+(RenderedCatalogSearchAdapter,{"platform":"foodpanda-champa-market-la","platform_name":"Foodpanda Laos / Champa Market","platform_product_id":"fresh-produce-category","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.foodpanda.la/en/shop/s8f0/champa-market/category/4908d63c-388a-43f4-9866-3ae2a936cc6a","title":"ຜັກ/ໝາກໄມ້ Fresh produce","package":"","currency":"LAK","language":"lo"}),
+(RenderedCatalogSearchAdapter,{"platform":"foodpanda-champa-market-la","platform_name":"Foodpanda Laos / Champa Market","platform_product_id":"store-catalog","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.foodpanda.la/en/shop/s8f0/champa-market","title":"Champa Market","package":"","currency":"LAK","language":"lo"}),
 (CatalogSearchAdapter,{"platform":"vgmart-la","platform_name":"VG Mart","platform_product_id":"online-grocery-catalog","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.vgmart.la/","title":"Vientiane online grocery","package":"","currency":"LAK","language":"en"}),
-(CatalogSearchAdapter,{"platform":"bach-hoa-xanh-vn","platform_name":"Bách hoá XANH","platform_product_id":"fresh-mushroom-category","country":"VN","city":"Ho Chi Minh City","collection_point_id":"HCMC_POINT_01","url":"https://www.bachhoaxanh.com/nam-tuoi/","title":"Nấm các loại","package":"","currency":"VND","language":"vi"}),
-(CatalogSearchAdapter,{"platform":"bigc-th","platform_name":"Big C Online","platform_product_id":"mushroom-category","country":"TH","city":"Bangkok","collection_point_id":"BANGKOK_POINT_01","url":"https://www.bigc.co.th/category/mushroom","title":"เห็ด","package":"","currency":"THB","language":"th"}),
-(CatalogSearchAdapter,{"platform":"foodpanda-mm","platform_name":"Capital Hypermarket / foodpanda","platform_product_id":"capital-hypermarket-mushrooms","country":"MM","city":"Yangon","collection_point_id":"YANGON_POINT_01","url":"https://www.foodpanda.com.mm/en/shop/z2su/capital-hypermarket-h001-dawbon-z2su","title":"Mushrooms","package":"","currency":"MMK","language":"en"}),
-(CatalogSearchAdapter,{"platform":"lucky-foodpanda-kh","platform_name":"Lucky Supermarket / foodpanda","platform_product_id":"lucky-olympia-mushrooms","country":"KH","city":"Phnom Penh","collection_point_id":"PHNOM_PENH_POINT_01","url":"https://www.foodpanda.com.kh/en/shop/bq32/lucky-supermarket-olympia","title":"Fresh mushrooms","package":"","currency":"USD","language":"en"}),
+(RenderedCatalogSearchAdapter,{"platform":"bach-hoa-xanh-vn","platform_name":"Bách hoá XANH","platform_product_id":"fresh-mushroom-category","country":"VN","city":"Ho Chi Minh City","collection_point_id":"HCMC_POINT_01","url":"https://www.bachhoaxanh.com/nam-tuoi/","title":"Nấm các loại","package":"","currency":"VND","language":"vi"}),
+(RenderedCatalogSearchAdapter,{"platform":"bigc-th","platform_name":"Big C Online","platform_product_id":"mushroom-category","country":"TH","city":"Bangkok","collection_point_id":"BANGKOK_POINT_01","url":"https://www.bigc.co.th/category/mushroom","title":"เห็ด","package":"","currency":"THB","language":"th"}),
+(RenderedCatalogSearchAdapter,{"platform":"foodpanda-mm","platform_name":"Capital Hypermarket / foodpanda","platform_product_id":"capital-hypermarket-mushrooms","country":"MM","city":"Yangon","collection_point_id":"YANGON_POINT_01","url":"https://www.foodpanda.com.mm/en/shop/z2su/capital-hypermarket-h001-dawbon-z2su","title":"Mushrooms","package":"","currency":"MMK","language":"en"}),
+(RenderedCatalogSearchAdapter,{"platform":"lucky-foodpanda-kh","platform_name":"Lucky Supermarket / foodpanda","platform_product_id":"lucky-olympia-mushrooms","country":"KH","city":"Phnom Penh","collection_point_id":"PHNOM_PENH_POINT_01","url":"https://www.foodpanda.com.kh/en/shop/bq32/lucky-supermarket-olympia","title":"Fresh mushrooms","package":"","currency":"USD","language":"en"}),
 ]
 
 # 中亚任务使用本地语言和俄语，东南亚任务使用本地语言和英语。对可靠的商品搜索站扫描全品类；
@@ -154,7 +154,11 @@ def rates():
 #   static(默认):只跑静态源,日常 5 分钟内完成
 #   rendered:    只跑渲染源(独立 workflow 用)
 #   all:         全部(手动补采用)
-RENDERED_PLATFORMS = {"kaspi-kz", "yandex-uz", "uzum-uz"}
+RENDERED_PLATFORMS = {
+ "kaspi-kz", "yandex-uz", "uzum-uz",
+ "foodpanda-champa-market-la", "bach-hoa-xanh-vn", "bigc-th",
+ "foodpanda-mm", "lucky-foodpanda-kh",
+}
 # 长期无产出的平台(面议 B2B / 无蘑菇数据),日常模式跳过避免空跑,
 # 仅在 expanded/all 模式或显式指定 PLATFORM 时采集(降频不删除)。
 LOW_FREQUENCY_PLATFORMS = {
