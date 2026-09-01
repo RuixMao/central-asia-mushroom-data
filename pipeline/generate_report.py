@@ -15,6 +15,9 @@ from utils import delete_from_site,get_site,log,post_to_site,today_str
 COUNTRIES={"KZ":"哈萨克斯坦","UZ":"乌兹别克斯坦","KG":"吉尔吉斯斯坦","TJ":"塔吉克斯坦","TM":"土库曼斯坦","LA":"老挝","VN":"越南","TH":"泰国","MM":"缅甸","KH":"柬埔寨"}
 FORMS={"fresh":"鲜品","chilled":"冷藏","frozen":"冷冻","dried":"干制","pickled":"腌渍","canned":"罐装","powder":"粉剂"}
 SPECIES_NAMES={"button_mushroom":"双孢菇","oyster_mushroom":"平菇","shiitake":"香菇","enoki":"金针菇","shimeji":"真姬菇","porcini":"牛肝菌","suillus":"乳牛肝菌","morel":"羊肚菌","chanterelle":"鸡油菌","king_oyster_mushroom":"杏鲍菇","wood_ear":"木耳"}
+CENTRAL_ASIA=("KZ","UZ","KG","TJ","TM")
+SOUTHEAST_ASIA=("LA","VN","TH","MM","KH")
+REPORT_SPECIES_PRIORITY=("oyster_mushroom","shiitake","wood_ear","king_oyster_mushroom","enoki","button_mushroom","shimeji")
 SECTIONS=("今日要点","市场动态","机会与风险","行动建议","数据说明")
 FORBIDDEN=re.compile(r"https?://|(?:price|observed|source)\s*[_-]\s*(?:usd|local|cny|at|url)|\b(?:AI|API|JSON|LLM|GPT|ChatGPT|DeepSeek|SQL|D1|null|live|gap|prompt|price_retail|n\s*=)\b|人工智能|大模型|语言模型|模型生成|智能生成|自动生成|机器生成|算法生成|数据库|字段|代码|键值|请求|响应|自动采集|采集管线|抓取|爬虫|入库|接口|算法|置信度|离散度|无事件窗口|Executive Summary|样本量|口径|样本有限|报价有限|数据有限|仅作参考|仅供参考|只用于发现询价线索|自动复核|已核验材料|检索到\s*\d+\s*条材料|经核验|有效参考价|有效报价|有效观察|不作外推|不据此判断整体涨跌|不直接推导批发利润|本报告暂不|给老板|给采购|给外贸|来源与资料日期|待进一步确认|待确认的价格|原因待确认|原因待查|详见正文|详见上表",re.I)
 # 品类 → HS 编码（用于把 UN Comtrade 年度进口单价映射到报告品类）
@@ -50,6 +53,32 @@ def customer_visible_price(row):
  d=row.get("data",{})
  return d.get("status")=="live" and d.get("validation_status","valid")=="valid" and not d.get("sanity_outlier") and d.get("species_id") in SPECIES_NAMES and d.get("package_display") not in (None,"") and d.get("normalized_price_usd_per_kg") is not None and d.get("price_local") is not None and d.get("currency") and d.get("package_source") in {"page_title","page_structured_data"}
 
+def select_report_prices(live,today,max_age_days=7):
+ """Use today's qualified rows, then add each missing SEA market's latest qualified rows."""
+ today_date=date.fromisoformat(today);selected=[row for row in live if row.get("data",{}).get("observed_at")==today]
+ covered={row.get("country") for row in selected}
+ for code in SOUTHEAST_ASIA:
+  if code in covered:continue
+  recent=[]
+  for row in live:
+   if row.get("country")!=code:continue
+   observed=row.get("data",{}).get("observed_at")
+   try:observed_date=date.fromisoformat(str(observed))
+   except (TypeError,ValueError):continue
+   if today_date-timedelta(days=max_age_days)<=observed_date<=today_date:recent.append(row)
+  if not recent:continue
+  latest=max(row["data"]["observed_at"] for row in recent)
+  latest_rows=[row for row in recent if row["data"]["observed_at"]==latest]
+  latest_rows.sort(key=lambda row:(REPORT_SPECIES_PRIORITY.index(row["data"].get("species_id")) if row["data"].get("species_id") in REPORT_SPECIES_PRIORITY else len(REPORT_SPECIES_PRIORITY),float(row["data"]["normalized_price_usd_per_kg"])))
+  representatives=[];species=set()
+  for row in latest_rows:
+   species_id=row["data"].get("species_id")
+   if species_id in species:continue
+   representatives.append(row);species.add(species_id)
+   if len(representatives)==2:break
+  selected.extend(representatives)
+ return selected
+
 def summary_from(body):
  paragraphs=[part.strip() for part in re.split(r"\n\s*\n",body) if part.strip() and not re.match(r"^#{1,6}\s",part.strip())]
  plain=re.sub(r"[#*_>`~-]"," ",paragraphs[0] if paragraphs else body).replace("\n"," ").strip()
@@ -64,7 +93,7 @@ def display_usd_per_kg(value):
 
 def title_from(today,body,prices=None):
  day=date.fromisoformat(today);headline="市场平稳无异常"
- buttons=[r for r in prices or [] if r.get("data",{}).get("species_id")=="button_mushroom"]
+ buttons=[r for r in prices or [] if r.get("data",{}).get("species_id")=="button_mushroom" and r.get("data",{}).get("observed_at") in (None,today)]
  if len(buttons)>=2:
   values=[float(r["data"]["normalized_price_usd_per_kg"]) for r in buttons]
   headline=f"双孢菇价差{max(values)/min(values):.1f}倍"
@@ -183,22 +212,22 @@ def decision_fallback(today,prices,evidence):
   rows=[r for r in prices if r.get("country")==code]
   if not rows:continue
   best=min(rows,key=lambda r:float(r["data"]["normalized_price_usd_per_kg"]));data=best["data"]
-  sea_lines.append(f'- **{COUNTRIES[code]}：**{data.get("platform_name") or best.get("source")}的{SPECIES_NAMES[data["species_id"]]}（{data.get("package_display")}装）为{float(data["normalized_price_usd_per_kg"]):.2f}美元/公斤；建议以同规格批量询价验证渠道空间。')
+  sea_lines.append(f'- **{COUNTRIES[code]}：**{data.get("platform_name") or best.get("source")}的{SPECIES_NAMES[data["species_id"]]}（{data.get("package_display")}装）为{float(data["normalized_price_usd_per_kg"]):.2f}美元/公斤，观察日期{data.get("observed_at")}；建议以同规格批量询价验证渠道空间。')
  sea_text="\n".join(sea_lines)
  return f"""## 今日要点
 
-1. **今日已确认报价从{float(ld["normalized_price_usd_per_kg"]):.2f}至{float(hd["normalized_price_usd_per_kg"]):.2f}美元/公斤，价差主要来自品类与规格。**建议只在同品类、同形态、同净重条件下比价。
+1. **本期展示报价从{float(ld["normalized_price_usd_per_kg"]):.2f}至{float(hd["normalized_price_usd_per_kg"]):.2f}美元/公斤，价差主要来自品类与规格。**建议只在同品类、同形态、同净重条件下比价。
 2. **{button_country}{bd.get("package_display")}装双孢菇在{button_channel}报价{float(bd["normalized_price_usd_per_kg"]):.2f}美元/公斤。**建议采购端据此询问批量价格、库存和最小起订量。
 3. **{event_line}**{'建议维持现有出货节奏。' if not today_events else '建议核对现有出货安排。'}
 4. **{tm_line or '今日各市场按已确认报价正常跟踪。'}**
 
 ## 市场动态
 
-**今日低价为{low_country}{low_name}，高价为{high_country}{high_name}，两者品类与规格不同，不作直接比较。**
+**本期低价为{low_country}{low_name}，高价为{high_country}{high_name}，两者品类与规格不同，不作直接比较。**
 
 {event_line}
 
-**东南亚当日渠道价格：**
+**东南亚近期渠道价格：**
 
 {sea_text}
 
@@ -252,7 +281,7 @@ def run():
  live=[r for r in snapshots if customer_visible_price(r)]
  review_prices=[r for r in snapshots if r.get("data",{}).get("status")=="live" and (r.get("data",{}).get("validation_status")=="needs_review" or r.get("data",{}).get("sanity_outlier")) and r.get("data",{}).get("observed_at")==today]
  specialty_prices=[r for r in review_prices if r.get("data",{}).get("sanity_review_status")=="explained"]
- prices=[r for r in live if r["data"].get("observed_at")==today]
+ prices=select_report_prices(live,today)
  if not prices:raise RuntimeError(f"{today} 没有可用于客户版的已确认价格，拒绝生成误导性日报")
  # 同一商品同日去重，避免重复运行把样本量放大。
  latest_prices={}
@@ -266,7 +295,7 @@ def run():
  for row in prices+specialty_prices:
   d=row["data"];form=d.get("product_form") or "other";name=SPECIES_NAMES.get(d.get("species_id"),d.get("species_zh") or "食用菌");spec=cell(d.get("package_display"));premium=row in specialty_prices
   product=f'{name}（精品{spec}装）' if premium else f'{name}（{spec}装）'
-  table_groups[form].append(f'| {COUNTRIES.get(row["country"],row["country"])} | {product} | {cell(d.get("platform_name") or row.get("source"))} | {cell(d.get("price_local"))} {cell(d.get("currency"))} | {float(d["normalized_price_usd_per_kg"]):.2f} | {today} |')
+  table_groups[form].append(f'| {COUNTRIES.get(row["country"],row["country"])} | {product} | {cell(d.get("platform_name") or row.get("source"))} | {cell(d.get("price_local"))} {cell(d.get("currency"))} | {float(d["normalized_price_usd_per_kg"]):.2f} | {cell(d.get("observed_at"))} |')
  table_parts=[]
  for form in ("fresh","dried","frozen","chilled","pickled","canned","other"):
   if form not in table_groups:continue
@@ -315,7 +344,7 @@ def run():
  for index,doc in enumerate(documents):evidence.append({"id":f"S{index+1}","document_id":doc["id"],"source_type":doc["kind"],"国家":COUNTRIES.get(doc["country"],doc["country"]),"类型":doc["kind"],"标题":doc["title"],"发布机构":doc["publisher"],"发布日期":str(doc["publishedAt"])[:10],"事实摘要":doc["excerpt"],"url":doc["sourceUrl"],"retrieved":str(doc["retrievedAt"])[:10]})
  allowed={item["id"] for item in evidence}
  review_findings=[{"国家":COUNTRIES.get(row["country"],row["country"]),"品类":f'{SPECIES_NAMES[row["data"]["species_id"]]}（精品）',"规格":row["data"].get("package_display"),"美元每公斤":row["data"].get("normalized_price_usd_per_kg"),"说明":row["data"].get("sanity_review_reason")} for row in specialty_prices if customer_visible_price({**row,"data":{**row["data"],"validation_status":"valid","sanity_outlier":False}})]
- prompt=f"""你是因恒科技的中亚及东南亚食用菌首席市场研究员。东南亚覆盖老挝、越南、泰国、缅甸、柬埔寨，老挝为首要拓展市场；有符合门禁的当日事实时优先呈现老挝，不得预设正面结论。请写一份面向进口商、渠道商、投资人与经营管理层的中文决策简报。客户为减少验证成本和错误决策付费，不为报价复述或通用建议付费。只可使用下方价格、结构化信号和证据包，不得自行补充新闻、政策、数字、来源、因果、利润或预测。
+ prompt=f"""你是因恒科技的中亚及东南亚食用菌首席市场研究员。日报必须同时研究中亚与东南亚，东南亚覆盖老挝、越南、泰国、缅甸、柬埔寨，老挝为首要拓展市场；有符合门禁的当日或最近可用事实时优先呈现老挝，不得预设正面结论。请写一份面向进口商、渠道商、投资人与经营管理层的中文决策简报。客户为减少验证成本和错误决策付费，不为报价复述或通用建议付费。只可使用下方价格、结构化信号和证据包，不得自行补充新闻、政策、数字、来源、因果、利润或预测。
 {CUSTOMER_PAIN_GUIDANCE}
 日期：{today}
 价格表由系统确定性生成，正文不要抄写全部数字：
@@ -339,7 +368,7 @@ def run():
 8. 涉及土库曼斯坦写明其海关透明度低、许可获取难度高，谨慎进入；涉及鸡枞写明其仅适合华人小众圈层，不建议作为主力出口。
 9. “数据说明”不得写样本限制，统一由程序替换为固定客户版文字。政策或事件只能引用证据包中的官方公告并写明机构与日期；价格不附网址。不得虚构批发价、物流价、政策、原因、利润或需求。输出标准 Markdown，不重复输出完整明细表或网址，后续程序会附加。"""
  if any(row.get("country") in {"LA","VN","TH","MM","KH"} for row in prices):
-  prompt += "\n10. 当日价格表中出现的每一个东南亚国家，都必须在正文中逐国点名分析至少一次；不得只分析泰国或省略老挝、越南、缅甸、柬埔寨。"
+  prompt += "\n10. 价格表中出现的每一个东南亚国家，都必须在正文中逐国点名分析至少一次，并保留真实观察日期；不得只分析泰国或省略老挝、越南、缅甸、柬埔寨。"
  preview_output=os.environ.get("REPORT_PREVIEW_OUTPUT","").strip()
  if not AI_API_KEY and not preview_output:raise RuntimeError("AI_API_KEY is not configured")
  client=OpenAI(api_key=AI_API_KEY,base_url=AI_BASE_URL or "https://api.deepseek.com") if AI_API_KEY else None;analysis="";used_fallback=False

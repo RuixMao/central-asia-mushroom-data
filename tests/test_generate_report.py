@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "pipeline"))
 
-from generate_report import customer_safe, customer_visible_price, display_usd_per_kg, title_from, utf8_truncate
+from generate_report import customer_safe, customer_visible_price, display_usd_per_kg, select_report_prices, title_from, utf8_truncate
 
 
 def test_display_usd_per_kg_formats_numeric_price():
@@ -40,6 +40,34 @@ def test_title_uses_verified_same_species_spread():
     assert title.endswith("双孢菇价差3.6倍")
     assert len(title.encode("utf-8")) <= 64
     assert "待确认" not in title
+
+
+def test_report_prices_backfill_missing_southeast_asia_with_recent_rows():
+    def row(country, observed_at, product):
+        return {"country": country, "data": {"observed_at": observed_at, "product_key": product, "species_id": "oyster_mushroom", "normalized_price_usd_per_kg": 1}}
+
+    live = [
+        row("KZ", "2026-09-01", "kz-today"),
+        row("LA", "2026-08-31", "la-latest"),
+        {"country": "LA", "data": {"observed_at": "2026-08-31", "product_key": "la-second", "species_id": "shiitake", "normalized_price_usd_per_kg": 2}},
+        {"country": "LA", "data": {"observed_at": "2026-08-31", "product_key": "la-third", "species_id": "enoki", "normalized_price_usd_per_kg": 3}},
+        row("LA", "2026-08-29", "la-older"),
+        row("VN", "2026-08-31", "vn-latest"),
+        row("TH", "2026-08-20", "th-too-old"),
+    ]
+    selected = select_report_prices(live, "2026-09-01")
+    keys = {item["data"]["product_key"] for item in selected}
+    assert "kz-today" in keys and "vn-latest" in keys
+    assert len([item for item in selected if item["country"] == "LA"]) == 2
+
+
+def test_title_does_not_mix_historical_prices_into_today_spread():
+    prices = [
+        {"country": "KG", "data": {"species_id": "button_mushroom", "normalized_price_usd_per_kg": 4.90, "observed_at": "2026-09-01"}},
+        {"country": "TH", "data": {"species_id": "button_mushroom", "normalized_price_usd_per_kg": 17.50, "observed_at": "2026-08-31"}},
+    ]
+    title = title_from("2026-09-01", "## 今日要点\n\n**市场平稳无异常。**", prices)
+    assert "价差" not in title
 
 
 def test_utf8_truncate_never_splits_chinese_character():

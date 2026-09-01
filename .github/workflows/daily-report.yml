@@ -77,7 +77,7 @@ jobs:
               for row in today_records
               if row.get("product", {}).get("country")
           })
-          expected = {"KZ", "UZ", "KG", "TJ", "TM"}
+          expected = {"KZ", "UZ", "KG", "TJ", "TM", "LA", "VN", "TH", "MM", "KH"}
           missing = sorted(expected - set(countries))
           print(f"Today's production prices: {len(today_records)} records; countries: {', '.join(countries)}")
           if missing:
