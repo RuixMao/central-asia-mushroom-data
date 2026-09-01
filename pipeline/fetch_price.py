@@ -29,7 +29,7 @@ from adapters.flagma import FlagmaAdapter
 from adapters.uzum import UzumAdapter
 from adapters.magnum import MagnumAdapter
 from config import TARGET_SPECIES
-from search_queries import SearchQuery,iter_country_queries
+from search_queries import COUNTRY_SEARCH_TERMS, SearchQuery,iter_country_queries
 from taxonomy import classify,normalize_price,parse_package
 from utils import log,post_to_data,post_to_site,safe_get,today_str
 
@@ -95,7 +95,13 @@ def _search_config(base, task, url):
          "query_language":task.language,"query_term":task.term,"query_species":task.species_id}
 
 # daily: 双语总词搜索页一次返回多商品；expanded: 周期性扫描再逐菌种搜索。
-search_species=("mushrooms",*TARGET_SPECIES) if os.getenv("SEARCH_QUERY_MODE", "daily").lower()=="expanded" else ("mushrooms",)
+expanded_species = tuple(dict.fromkeys(
+ species
+ for languages in COUNTRY_SEARCH_TERMS.values()
+ for terms in languages.values()
+ for species in terms
+))
+search_species=("mushrooms",*expanded_species) if os.getenv("SEARCH_QUERY_MODE", "daily").lower()=="expanded" else ("mushrooms",)
 
 for task in iter_country_queries("KZ", search_species):
  SOURCES.append((KaspiAdapter,_search_config(
