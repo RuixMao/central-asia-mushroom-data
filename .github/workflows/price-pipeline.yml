@@ -70,13 +70,17 @@ jobs:
           PLATFORM: ${{ inputs.platform }}
           COLLECTION_POINT: ${{ inputs.collection_point }}
           DRY_RUN: ${{ inputs.dry_run }}
-          COLLECTION_MODE: ${{ inputs.collection_mode }}
+          COLLECTION_MODE: ${{ inputs.collection_mode || 'all' }}
+          AUDIT_OUTPUT: tmp/price-pipeline-audit.json
           UZUM_DEBUG: ${{ inputs.uzum_debug && '1' || '0' }}
           MAGNUM_DEBUG: ${{ inputs.magnum_debug && '1' || '0' }}
           PROXY_BASE: ${{ secrets.PROXY_BASE }}
           WB_DESTS_JSON: ${{ secrets.WB_DESTS_JSON }}
           # 默认开启闭环：无法由可验证证据解决的记录自动隔离，下次定时采集重试。
           AUTO_REVIEW_QUARANTINE: '1'
+      - name: Report Southeast Asia collection coverage
+        if: ${{ always() && inputs.dry_run != true }}
+        run: python pipeline/report_sea_coverage.py tmp/price-pipeline-audit.json
       - name: Build daily summaries
         if: ${{ inputs.dry_run != true }}
         run: curl --fail --silent --show-error -X POST "$SITE_URL/api/prices/summarize" -H "x-cron-secret:$CRON_SECRET" -H "content-type:application/json" -d '{}'

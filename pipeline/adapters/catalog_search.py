@@ -2,6 +2,7 @@
 import hashlib
 import json
 import re
+from types import SimpleNamespace
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
@@ -55,6 +56,14 @@ class CatalogSearchAdapter:
             return [], "unreachable"
         # 统一 UTF-8 解码(防 charset 错标导致本地语言乱码)
         html = response_text(response)
+        return self.parse_html(html, response.url, response.content, "search_page")
+
+    def parse_html(self, html, response_url, response_content=None, source_type="search_page"):
+        """Parse server HTML and browser-rendered HTML with the same rules."""
+        response = SimpleNamespace(
+            url=response_url,
+            content=response_content if response_content is not None else html.encode("utf-8"),
+        )
         soup = BeautifulSoup(html, "html.parser")
         rows = {}
         # React 目录页通常把商品卡片直接内嵌在 HTML 中，标题和价格并不在同一个链接里。
@@ -110,10 +119,26 @@ class CatalogSearchAdapter:
                 url = urljoin(response.url, anchor["href"])
                 product_id = re.sub(r"\W+", "-", url.rstrip("/").split("/")[-1])[:120]
                 rows[product_id] = self._row(product_id, title, price, url, response)
-        return (list(rows.values()), None) if rows else ([], "no_mushroom_products")
+        parsed = list(rows.values())
+        for row in parsed:
+            row["source_type"] = source_type
+        return (parsed, None) if parsed else ([], "no_mushroom_products")
 
     def _row(self, product_id, title, price, url, response):
         return {**self.config, "platform_product_id": product_id, "url": url,
                 "original_title": title, "current_price": price,
                 "raw_price_text": str(price), "source_type": "search_page",
                 "page_fingerprint": hashlib.sha256(response.content).hexdigest()}
+
+
+class RenderedCatalogSearchAdapter(CatalogSearchAdapter):
+    """Browser fallback for catalogues whose products are inserted by JavaScript."""
+
+    def collect_many(self):
+        from adapters.render import RenderedProductAdapter
+
+        rendered, error = RenderedProductAdapter(self.config).render(self.config["url"])
+        if error:
+            return [], error
+        html, _body = rendered
+        return self.parse_html(html, self.config["url"], source_type="rendered_catalog")
