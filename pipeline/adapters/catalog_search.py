@@ -146,3 +146,16 @@ class RenderedCatalogSearchAdapter(CatalogSearchAdapter):
             return [], error
         html, _body = rendered
         return self.parse_html(html, self.config["url"], source_type="rendered_catalog")
+
+
+class ProxyRenderedCatalogSearchAdapter(RenderedCatalogSearchAdapter):
+    """Try the HTTP/Cloudflare route before launching a browser."""
+
+    def collect_many(self):
+        rows, static_error = CatalogSearchAdapter.collect_many(self)
+        if rows:
+            return rows, None
+        rows, rendered_error = RenderedCatalogSearchAdapter.collect_many(self)
+        if rows:
+            return rows, None
+        return [], f"static:{static_error};rendered:{rendered_error}"

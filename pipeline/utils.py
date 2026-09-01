@@ -85,7 +85,11 @@ def response_text(response):
 # 设置环境变量 PROXY_BASE(如 https://tm-proxy.xxx.workers.dev)后,
 # 这些域名的请求改经 CF Worker 中转出口;不设置则保持直连(本地正常)。
 # gipertm/asmanexpress = TM 站防火墙;olx.uz = 数据中心 IP 反爬(2026-08 实测)
-PROXY_DOMAINS = ("gipertm.com", "asmanexpress.com", "olx.uz")
+PROXY_DOMAINS = (
+    "gipertm.com", "asmanexpress.com", "olx.uz",
+    "bigc.co.th", "bachhoaxanh.com", "foodpanda.la",
+    "foodpanda.com.mm", "foodpanda.com.kh", "vgmart.la",
+)
 _LAST_REQUEST_BY_HOST = {}
 _REQUEST_LOCK = threading.Lock()
 MIN_REQUEST_INTERVAL = 1.5
