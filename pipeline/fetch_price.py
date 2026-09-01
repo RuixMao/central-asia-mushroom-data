@@ -165,6 +165,10 @@ RENDERED_PLATFORMS = {
  "foodpanda-champa-market-la", "bach-hoa-xanh-vn", "bigc-th",
  "foodpanda-mm", "lucky-foodpanda-kh",
 }
+SEA_RENDERED_PLATFORMS = {
+ "foodpanda-champa-market-la", "bach-hoa-xanh-vn", "bigc-th",
+ "foodpanda-mm", "lucky-foodpanda-kh",
+}
 # 长期无产出的平台(面议 B2B / 无蘑菇数据),日常模式跳过避免空跑,
 # 仅在 expanded/all 模式或显式指定 PLATFORM 时采集(降频不删除)。
 LOW_FREQUENCY_PLATFORMS = {
@@ -185,6 +189,9 @@ def run():
   is_rendered=config["platform"] in RENDERED_PLATFORMS
   if COLLECTION_MODE=="static" and is_rendered:continue
   if COLLECTION_MODE=="rendered" and not is_rendered:continue
+  # Daily schedule = all static sources + only the rendered Southeast Asia
+  # catalogues. Other rendered sources keep their independent low-frequency jobs.
+  if COLLECTION_MODE=="daily" and is_rendered and config["platform"] not in SEA_RENDERED_PLATFORMS:continue
   # 低频平台:日常(static)跳过,显式指定 platform 或 all/rendered 才跑
   if config["platform"] in LOW_FREQUENCY_PLATFORMS and COLLECTION_MODE=="static" and not wanted_platform:
    continue

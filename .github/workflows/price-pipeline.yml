@@ -72,7 +72,7 @@ jobs:
           COLLECTION_POINT: ${{ inputs.collection_point }}
           DRY_RUN: ${{ inputs.dry_run }}
           # Scheduled runs must include browser-rendered Southeast Asian catalogues.
-          COLLECTION_MODE: ${{ inputs.collection_mode || 'all' }}
+          COLLECTION_MODE: ${{ inputs.collection_mode || 'daily' }}
           AUDIT_OUTPUT: tmp/price-pipeline-audit.json
           UZUM_DEBUG: ${{ inputs.uzum_debug && '1' || '0' }}
           MAGNUM_DEBUG: ${{ inputs.magnum_debug && '1' || '0' }}
