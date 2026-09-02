@@ -28,6 +28,8 @@ from adapters.wildberries import DESTINATIONS as WB_DESTINATIONS,WildberriesAdap
 from adapters.flagma import FlagmaAdapter
 from adapters.uzum import UzumAdapter
 from adapters.magnum import MagnumAdapter
+from adapters.makro_pro import MakroProAdapter
+from adapters.foodpanda_graphql import FoodpandaGraphQLAdapter
 from config import TARGET_SPECIES
 from search_queries import COUNTRY_SEARCH_TERMS, SearchQuery,iter_country_queries
 from taxonomy import classify,normalize_price,parse_package
@@ -76,6 +78,10 @@ SOURCES=[
 (FlagmaAdapter,{"platform":"flagma-kg","platform_name":"Flagma.kg","platform_product_id":"catalog-search","country":"KG","city":"Bishkek","collection_point_id":"BISHKEK_POINT_01","url":"https://flagma-kg.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"KGS","language":"ru"}),
 (FlagmaAdapter,{"platform":"flagma-tj","platform_name":"Flagma.tj","platform_product_id":"catalog-search","country":"TJ","city":"Dushanbe","collection_point_id":"DUSHANBE_POINT_01","url":"https://flagma-tj.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"TJS","language":"ru"}),
 (FlagmaAdapter,{"platform":"flagma-tm","platform_name":"Flagma-TM","platform_product_id":"catalog-search","country":"TM","city":"Ashgabat","collection_point_id":"ASHGABAT_POINT_01","url":"https://flagma-tm.com/ru/products/q=грибы/","title":"B2B грибы","package":"","currency":"TMT","language":"ru"}),
+# 东南亚优先使用国家专用公开目录；通用浏览器渲染源保留为兜底。
+(MakroProAdapter,{"platform":"makro-pro-th","platform_name":"Makro PRO","platform_product_id":"mushroom-collection","country":"TH","city":"Bangkok","collection_point_id":"BANGKOK_POINT_01","url":"https://www.makro.pro/en/c/collections/Yummy%20and%20Healthy%20Mushrooms","title":"Mushroom collection","package":"","currency":"THB","language":"en","source_role":"primary"}),
+(MakroProAdapter,{"platform":"makro-pro-mm","platform_name":"Makro PRO Myanmar","platform_product_id":"vegetable-category","country":"MM","city":"Yangon","collection_point_id":"YANGON_POINT_01","url":"https://www.makropro.com.mm/en/c/fruit-vegetables/vegetables","title":"Vegetables and mushrooms","package":"","currency":"MMK","language":"en","source_role":"primary"}),
+(FoodpandaGraphQLAdapter,{"platform":"foodpanda-api-champa-la","platform_name":"Champa Market / foodpanda","platform_product_id":"fresh-produce-api","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.foodpanda.la/en/shop/s8f0/champa-market/category/4908d63c-388a-43f4-9866-3ae2a936cc6a","title":"Fresh produce","package":"","currency":"LAK","language":"en","vendor_code":"s8f0","category_id":"4908d63c-388a-43f4-9866-3ae2a936cc6a","source_role":"primary"}),
 (ProxyRenderedCatalogSearchAdapter,{"platform":"foodpanda-champa-market-la","platform_name":"Foodpanda Laos / Champa Market","platform_product_id":"fresh-produce-category","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.foodpanda.la/en/shop/s8f0/champa-market/category/4908d63c-388a-43f4-9866-3ae2a936cc6a","title":"ຜັກ/ໝາກໄມ້ Fresh produce","package":"","currency":"LAK","language":"lo"}),
 (ProxyRenderedCatalogSearchAdapter,{"platform":"foodpanda-champa-market-la","platform_name":"Foodpanda Laos / Champa Market","platform_product_id":"store-catalog","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.foodpanda.la/en/shop/s8f0/champa-market","title":"Champa Market","package":"","currency":"LAK","language":"lo"}),
 (CatalogSearchAdapter,{"platform":"vgmart-la","platform_name":"VG Mart","platform_product_id":"online-grocery-catalog","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.vgmart.la/","title":"Vientiane online grocery","package":"","currency":"LAK","language":"en"}),

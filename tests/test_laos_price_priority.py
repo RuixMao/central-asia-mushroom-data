@@ -12,7 +12,7 @@ class LaosPricePriorityTest(unittest.TestCase):
         configs = [config for _, config in fetch_price.SOURCES if config.get("country") == "LA"]
         self.assertGreaterEqual(len(configs), 3)
         self.assertEqual({config["platform"] for config in configs},
-                         {"foodpanda-champa-market-la", "vgmart-la"})
+                         {"foodpanda-api-champa-la", "foodpanda-champa-market-la", "vgmart-la"})
         self.assertTrue(all(config["currency"] == "LAK" for config in configs))
 
 
