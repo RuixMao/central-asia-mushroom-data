@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from adapters.foodpanda_graphql import FoodpandaGraphQLAdapter
+from adapters.foodpanda_graphql import FoodpandaGraphQLAdapter, FoodpandaPrimaryFallbackAdapter
 
 
 class FakeResponse:
@@ -39,6 +39,22 @@ class FoodpandaGraphQLAdapterTest(unittest.TestCase):
         get.return_value.raise_for_status.return_value = None
         config = {"url": "https://www.foodpanda.com.kh/en/shop/bq32/lucky", "vendor_code": "bq32"}
         self.assertEqual(["4908d63c-388a-43f4-9866-3ae2a936cc6a"], FoodpandaGraphQLAdapter(config)._category_ids())
+
+    @patch("adapters.foodpanda_graphql.requests.get")
+    def test_parses_server_rendered_storefront_as_api_fallback(self, get):
+        get.return_value.content = b'''<article data-testid="groceries-product-card-9046521" data-id="product-9046521">
+          <p data-testid="groceries-product-card-name">LUCKY MUSHROOM ENOKI 200G</p>
+          <span data-testid="groceries-product-card-price">$ 0.76</span>
+        </article>'''
+        get.return_value.text = get.return_value.content.decode()
+        get.return_value.raise_for_status.return_value = None
+        adapter = FoodpandaPrimaryFallbackAdapter({**self.config, "currency": "USD"})
+        rows = adapter._storefront_rows()
+        self.assertEqual(1, len(rows))
+        self.assertEqual("9046521", rows[0]["platform_product_id"])
+        self.assertEqual("200 g", rows[0]["package"])
+        self.assertEqual(0.76, rows[0]["current_price"])
+        self.assertEqual("foodpanda_storefront_html", rows[0]["source_type"])
 
 
 if __name__ == "__main__":
