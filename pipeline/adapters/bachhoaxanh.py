@@ -81,4 +81,24 @@ class BachHoaXanhAdapter:
                     row["source_type"] = source_type
                 return rows, None
             alternative_errors.append(f"{platform_name}:{error}")
+        # Product-detail pages are substantially less dynamic than category
+        # pages and remain usable when infinite-scroll catalogues change.
+        detail_urls = [
+            "https://brgshopping.vn/nong-san/nong-san/nam-huong-100g.html",
+            "https://sieuthithanhdo.vn/nam-kim-cham-trang-long-hai-tui-150gr",
+            "https://sieuthithanhdo.vn/nam-ngoc-cham-trang-gog-khay-200gr",
+            "https://sieuthithanhdo.vn/nam-mo-gog-khay-200gr-1001562",
+            "https://sieuthithanhdo.vn/nam-dui-ga-gog-huu-co-khay-250gr",
+        ]
+        detail_rows = {}
+        for url in detail_urls:
+            detail_config = {**self.config, "platform_name": "越南零售商", "url": url, "title": "Nấm"}
+            rows, error = ProxyRenderedCatalogSearchAdapter(detail_config).collect_many()
+            for row in rows:
+                row["source_type"] = "vietnam_product_page_fallback"
+                detail_rows[row["platform_product_id"]] = row
+            if error:
+                alternative_errors.append(f"detail:{error}")
+        if detail_rows:
+            return list(detail_rows.values()), None
         return [], f"primary:{primary_error};bhx_storefront:{fallback_error};" + ";".join(alternative_errors)
