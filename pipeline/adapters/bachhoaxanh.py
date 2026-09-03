@@ -65,4 +65,17 @@ class BachHoaXanhAdapter:
             for row in rows:
                 row["source_type"] = "bachhoaxanh_storefront_fallback"
             return rows, None
-        return [], f"primary:{primary_error};fallback:{fallback_error}"
+        # A second Vietnamese retailer prevents a BHX network policy or DNS
+        # incident from turning the whole country into a zero-result day.
+        winmart_config = {
+            **self.config,
+            "platform_name": "WinMart",
+            "url": "https://winmart.vn/rau-cu-trai-cay--c02?storeCode=1539",
+            "title": "Rau củ trái cây",
+        }
+        rows, winmart_error = ProxyRenderedCatalogSearchAdapter(winmart_config).collect_many()
+        if rows:
+            for row in rows:
+                row["source_type"] = "winmart_storefront_fallback"
+            return rows, None
+        return [], f"primary:{primary_error};bhx_storefront:{fallback_error};winmart:{winmart_error}"
