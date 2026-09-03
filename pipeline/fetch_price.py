@@ -29,7 +29,8 @@ from adapters.flagma import FlagmaAdapter
 from adapters.uzum import UzumAdapter
 from adapters.magnum import MagnumAdapter
 from adapters.makro_pro import MakroProAdapter
-from adapters.foodpanda_graphql import FoodpandaGraphQLAdapter
+from adapters.foodpanda_graphql import FoodpandaGraphQLAdapter, FoodpandaPrimaryFallbackAdapter
+from adapters.bachhoaxanh import BachHoaXanhAdapter
 from config import TARGET_SPECIES
 from search_queries import COUNTRY_SEARCH_TERMS, SearchQuery,iter_country_queries
 from taxonomy import classify,normalize_price,parse_package
@@ -85,10 +86,10 @@ SOURCES=[
 (ProxyRenderedCatalogSearchAdapter,{"platform":"foodpanda-champa-market-la","platform_name":"Foodpanda Laos / Champa Market","platform_product_id":"fresh-produce-category","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.foodpanda.la/en/shop/s8f0/champa-market/category/4908d63c-388a-43f4-9866-3ae2a936cc6a","title":"ຜັກ/ໝາກໄມ້ Fresh produce","package":"","currency":"LAK","language":"lo"}),
 (ProxyRenderedCatalogSearchAdapter,{"platform":"foodpanda-champa-market-la","platform_name":"Foodpanda Laos / Champa Market","platform_product_id":"store-catalog","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.foodpanda.la/en/shop/s8f0/champa-market","title":"Champa Market","package":"","currency":"LAK","language":"lo"}),
 (CatalogSearchAdapter,{"platform":"vgmart-la","platform_name":"VG Mart","platform_product_id":"online-grocery-catalog","country":"LA","city":"Vientiane","collection_point_id":"VIENTIANE_POINT_01","url":"https://www.vgmart.la/","title":"Vientiane online grocery","package":"","currency":"LAK","language":"en"}),
-(ProxyRenderedCatalogSearchAdapter,{"platform":"bach-hoa-xanh-vn","platform_name":"Bách hoá XANH","platform_product_id":"fresh-mushroom-category","country":"VN","city":"Ho Chi Minh City","collection_point_id":"HCMC_POINT_01","url":"https://www.bachhoaxanh.com/nam-tuoi-bach-hoa-xanh/","title":"Nấm các loại","package":"","currency":"VND","language":"vi"}),
+(BachHoaXanhAdapter,{"platform":"bach-hoa-xanh-vn","platform_name":"Bách hoá XANH","platform_product_id":"fresh-mushroom-category","country":"VN","city":"Ho Chi Minh City","collection_point_id":"HCMC_POINT_01","url":"https://www.bachhoaxanh.com/nam-tuoi/","title":"Nấm các loại","package":"","currency":"VND","language":"vi","source_role":"primary_with_fallback"}),
 (ProxyRenderedCatalogSearchAdapter,{"platform":"bigc-th","platform_name":"Big C Online","platform_product_id":"mushroom-category","country":"TH","city":"Bangkok","collection_point_id":"BANGKOK_POINT_01","url":"https://www.bigc.co.th/category/mushroom?page=1","title":"เห็ด","package":"","currency":"THB","language":"th"}),
 (ProxyRenderedCatalogSearchAdapter,{"platform":"foodpanda-mm","platform_name":"Capital Hypermarket / foodpanda","platform_product_id":"capital-hypermarket-mushrooms","country":"MM","city":"Yangon","collection_point_id":"YANGON_POINT_01","url":"https://www.foodpanda.com.mm/en/shop/z2su/capital-hypermarket-h001-dawbon-z2su","title":"Mushrooms","package":"","currency":"MMK","language":"en"}),
-(ProxyRenderedCatalogSearchAdapter,{"platform":"lucky-foodpanda-kh","platform_name":"Lucky Supermarket / foodpanda","platform_product_id":"lucky-olympia-mushrooms","country":"KH","city":"Phnom Penh","collection_point_id":"PHNOM_PENH_POINT_01","url":"https://www.foodpanda.com.kh/en/shop/bq32/lucky-supermarket-olympia","title":"Fresh mushrooms","package":"","currency":"USD","language":"en"}),
+(FoodpandaPrimaryFallbackAdapter,{"platform":"lucky-foodpanda-kh","platform_name":"Lucky Supermarket / foodpanda","platform_product_id":"lucky-olympia-mushrooms","country":"KH","city":"Phnom Penh","collection_point_id":"PHNOM_PENH_POINT_01","url":"https://www.foodpanda.com.kh/en/shop/bq32/lucky-supermarket-olympia","title":"Fresh mushrooms","package":"","currency":"USD","language":"en","vendor_code":"bq32","api_endpoint":"https://kh.fd-api.com/graphql","global_entity_id":"FP_KH","locale":"en_KH","origin":"https://www.foodpanda.com.kh","source_role":"primary_with_fallback"}),
 ]
 
 # 中亚任务使用本地语言和俄语，东南亚任务使用本地语言和英语。对可靠的商品搜索站扫描全品类；
@@ -307,11 +308,15 @@ def run():
   output_path.parent.mkdir(parents=True,exist_ok=True)
   output_path.write_text(json.dumps(audit,ensure_ascii=False,indent=2),encoding="utf-8")
   log(f"检索词审计报告已写入: {output_path}")
+ required_nonzero={code.strip().upper() for code in os.getenv("REQUIRED_NONZERO_COUNTRIES", "").split(",") if code.strip()}
+ missing_required=sorted(code for code in required_nonzero if summary["valid_by_country"].get(code,0)<1)
  sanity_count=sum(1 for it in items if it.get("sanity_outlier"));sanity_pct=(sanity_count/len(items)*100) if items else 0
  log(f"sanity: {sanity_count} 条超出区间（{sanity_pct:.1f}%），已标记 needs_review")
  log(f"sanity review: {auto_reviewed} 条已找到有页面规格证据的价格差异原因")
  log(f"targeted investigation: {json.dumps(investigation_stats,ensure_ascii=False)}")
  log(f"auto review loop: {json.dumps(review_stats,ensure_ascii=False)}")
  log(f"平台适配器完成：{json.dumps(summary,ensure_ascii=False)}，失败任务 {len(errors)} 条，dry_run={dry_run}；{errors}")
+ if missing_required:
+  raise RuntimeError(f"国家级非零门禁失败：{','.join(missing_required)} 当次没有有效价格；主备源诊断已写入审计报告")
  if not items and not dry_run:raise RuntimeError("没有有效价格")
 if __name__=="__main__":run()
