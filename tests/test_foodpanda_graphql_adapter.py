@@ -33,6 +33,13 @@ class FoodpandaGraphQLAdapterTest(unittest.TestCase):
         self.assertEqual("1 packet", rows[1]["package"])
         self.assertEqual("foodpanda_graphql_catalog", rows[0]["source_type"])
 
+    @patch("adapters.foodpanda_graphql.requests.get")
+    def test_discovers_category_ids_for_cambodia(self, get):
+        get.return_value.text = '/category/4908d63c-388a-43f4-9866-3ae2a936cc6a'
+        get.return_value.raise_for_status.return_value = None
+        config = {"url": "https://www.foodpanda.com.kh/en/shop/bq32/lucky", "vendor_code": "bq32"}
+        self.assertEqual(["4908d63c-388a-43f4-9866-3ae2a936cc6a"], FoodpandaGraphQLAdapter(config)._category_ids())
+
 
 if __name__ == "__main__":
     unittest.main()
