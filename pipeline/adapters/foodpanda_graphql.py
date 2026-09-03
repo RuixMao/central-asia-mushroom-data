@@ -151,7 +151,8 @@ class FoodpandaPrimaryFallbackAdapter:
             price_text = price_node.get_text(" ", strip=True) if price_node else ""
             if not MUSHROOM.search(title) or NON_FOOD.search(title):
                 continue
-            price = parse_price_text(price_text)
+            numeric_price = re.search(r"\d[\d\s,.]*", price_text)
+            price = parse_price_text(numeric_price.group(0)) if numeric_price else None
             product_id = str(card.get("data-id") or "").removeprefix("product-")
             if not product_id or not price or price <= 0:
                 continue
