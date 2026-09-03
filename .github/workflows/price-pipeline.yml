@@ -80,6 +80,9 @@ jobs:
           WB_DESTS_JSON: ${{ secrets.WB_DESTS_JSON }}
           # 默认开启闭环：无法由可验证证据解决的记录自动隔离，下次定时采集重试。
           AUTO_REVIEW_QUARANTINE: '1'
+          # Vietnam and Cambodia have primary+fallback collectors. A scheduled
+          # run must not report success when either country produced zero rows.
+          REQUIRED_NONZERO_COUNTRIES: ${{ github.event_name == 'schedule' && 'VN,KH' || (inputs.platform == '' && 'VN,KH' || '') }}
       - name: Report Southeast Asia collection coverage
         if: ${{ always() && inputs.dry_run != true }}
         run: python pipeline/report_sea_coverage.py tmp/price-pipeline-audit.json
