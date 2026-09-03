@@ -231,7 +231,7 @@ def run():
    elif category["status"]=="excluded":
     excluded_by_query[(row["platform"],row.get("query_language") or "fixed_page",row.get("query_term") or "",row.get("query_species") or "")]+=1
     continue
-   norm=normalize_price(row["current_price"],package_text,allow_volume=True,volume_kg_per_l=VOLUME_KG_PER_L);local_per_usd=float(fx[row["currency"]]);now=dt.datetime.now(dt.timezone.utc).isoformat()
+   norm=normalize_price(row["current_price"],package_text,allow_volume=True,volume_kg_per_l=VOLUME_KG_PER_L);local_per_usd=1.0 if row["currency"]=="USD" else float(fx[row["currency"]]);now=dt.datetime.now(dt.timezone.utc).isoformat()
    dimensions=describe_product(row["original_title"],category["product_form"],norm["value"],norm["unit"],row)
    item={**row,**dimensions,"product_url":row.pop("url"),"original_language":row.pop("language"),"species_id":category["species_id"],"product_form":category["product_form"],"classification_status":category["status"],"classification_confidence":category["confidence"],"classification_evidence":category["evidence"],"observed_at":now,"observation_date":today_str(),"package_value":norm["value"],"package_unit":norm["unit"],"package_source":package_source,"package_conversion_basis":norm.get("conversion_basis"),"normalized_quantity_kg":norm["quantity_kg"],"normalized_price_per_kg":norm["price_per_kg"],"price_usd":round(row["current_price"]/local_per_usd,2),"usd_rate_local_per_usd":local_per_usd,"fx_source":"fxapi.app","fx_timestamp":fx_time,"in_stock":row.get("in_stock"),"source_type":row.pop("source_type","server_html")}
    review=review_record(item)
