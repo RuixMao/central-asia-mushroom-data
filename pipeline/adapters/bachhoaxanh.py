@@ -67,15 +67,18 @@ class BachHoaXanhAdapter:
             return rows, None
         # A second Vietnamese retailer prevents a BHX network policy or DNS
         # incident from turning the whole country into a zero-result day.
-        winmart_config = {
-            **self.config,
-            "platform_name": "WinMart",
-            "url": "https://winmart.vn/rau-cu-trai-cay--c02?storeCode=1539",
-            "title": "Rau củ trái cây",
-        }
-        rows, winmart_error = ProxyRenderedCatalogSearchAdapter(winmart_config).collect_many()
-        if rows:
-            for row in rows:
-                row["source_type"] = "winmart_storefront_fallback"
-            return rows, None
-        return [], f"primary:{primary_error};bhx_storefront:{fallback_error};winmart:{winmart_error}"
+        alternatives = [
+            ("WinMart", "https://winmart.vn/rau-cu-trai-cay--c02?storeCode=1539", "winmart_storefront_fallback"),
+            ("BRG Shopping", "https://brgshopping.vn/rau-hoa-qua", "brg_storefront_fallback"),
+            ("Siêu thị Thành Đô", "https://sieuthithanhdo.vn/nam-tuoi", "thanhdo_storefront_fallback"),
+        ]
+        alternative_errors = []
+        for platform_name, url, source_type in alternatives:
+            alternative_config = {**self.config, "platform_name": platform_name, "url": url, "title": "Nấm tươi"}
+            rows, error = ProxyRenderedCatalogSearchAdapter(alternative_config).collect_many()
+            if rows:
+                for row in rows:
+                    row["source_type"] = source_type
+                return rows, None
+            alternative_errors.append(f"{platform_name}:{error}")
+        return [], f"primary:{primary_error};bhx_storefront:{fallback_error};" + ";".join(alternative_errors)
