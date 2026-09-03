@@ -5,6 +5,7 @@ import re
 import time
 
 import requests
+from bs4 import BeautifulSoup
 
 from adapters.catalog_search import MUSHROOM, NON_FOOD
 from utils import parse_price_text
@@ -129,8 +130,53 @@ class FoodpandaPrimaryFallbackAdapter:
     def __init__(self, config):
         self.config = config
 
+    def _storefront_rows(self):
+        """Parse Foodpanda's server-rendered product cards without category IDs."""
+        try:
+            response = requests.get(
+                self.config["url"],
+                headers={"User-Agent": "Mozilla/5.0 YinhengMarketResearch/1.0"},
+                timeout=30,
+            )
+            response.raise_for_status()
+        except requests.RequestException:
+            return []
+        soup = BeautifulSoup(response.text, "html.parser")
+        fingerprint = hashlib.sha256(response.content).hexdigest()
+        rows = []
+        for card in soup.select('[data-testid^="groceries-product-card-"]'):
+            title_node = card.select_one('[data-testid="groceries-product-card-name"]')
+            price_node = card.select_one('[data-testid="groceries-product-card-price"]')
+            title = title_node.get_text(" ", strip=True) if title_node else ""
+            price_text = price_node.get_text(" ", strip=True) if price_node else ""
+            if not MUSHROOM.search(title) or NON_FOOD.search(title):
+                continue
+            price = parse_price_text(price_text)
+            product_id = str(card.get("data-id") or "").removeprefix("product-")
+            if not product_id or not price or price <= 0:
+                continue
+            package_match = re.search(r"(?i)(\d+(?:[.,]\d+)?)\s*(kg|g|gram|grams)\b", title)
+            package = f"{package_match.group(1)} {package_match.group(2).lower()}" if package_match else ""
+            rows.append({
+                **self.config,
+                "platform_product_id": product_id,
+                "url": self.config["url"],
+                "original_title": title,
+                "package": package,
+                "package_verified": bool(package_match),
+                "current_price": price,
+                "raw_price_text": price_text,
+                "source_type": "foodpanda_storefront_html",
+                "page_fingerprint": fingerprint,
+                "in_stock": True,
+            })
+        return rows
+
     def collect_many(self):
         rows, primary_error = FoodpandaGraphQLAdapter(self.config).collect_many()
+        if rows:
+            return rows, None
+        rows = self._storefront_rows()
         if rows:
             return rows, None
         from adapters.catalog_search import ProxyRenderedCatalogSearchAdapter
