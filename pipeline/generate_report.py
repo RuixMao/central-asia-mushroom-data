@@ -91,13 +91,36 @@ def display_usd_per_kg(value):
  except (TypeError,ValueError):
   return "—"
 
-def title_from(today,body,prices=None):
+def title_from(today,body,prices=None,recent_titles=None):
  day=date.fromisoformat(today);headline="市场平稳无异常"
- buttons=[r for r in prices or [] if r.get("data",{}).get("species_id")=="button_mushroom" and r.get("data",{}).get("observed_at") in (None,today)]
- if len(buttons)>=2:
-  values=[float(r["data"]["normalized_price_usd_per_kg"]) for r in buttons]
-  headline=f"双孢菇价差{max(values)/min(values):.1f}倍"
- else:
+ rows=[]
+ for row in prices or []:
+  d=row.get("data",{})
+  if d.get("observed_at") not in (None,today):continue
+  try:value=float(d["normalized_price_usd_per_kg"])
+  except (KeyError,TypeError,ValueError):continue
+  if value<=0 or d.get("species_id") not in SPECIES_NAMES:continue
+  rows.append((row,value))
+
+ # 先生成多个可复算的当日看点，再避开上一期已经使用的标题。
+ grouped=defaultdict(list)
+ for row,value in rows:grouped[row["data"]["species_id"]].append((row,value))
+ candidates=[]
+ for species_id,items in grouped.items():
+  values=[value for _,value in items]
+  if len(values)>=2 and min(values)>0:
+   candidates.append((max(values)/min(values),f"{SPECIES_NAMES[species_id]}跨市场价差{max(values)/min(values):.1f}倍"))
+ candidates.sort(key=lambda item:item[0],reverse=True)
+ headlines=[text for _,text in candidates]
+ if rows:
+  high_row,high_value=max(rows,key=lambda item:item[1])
+  high_data=high_row["data"]
+  headlines.append(f"{COUNTRIES.get(high_row.get('country'),high_row.get('country',''))}{SPECIES_NAMES[high_data['species_id']]}{high_value:.2f}美元/公斤")
+  countries={row.get("country") for row,_ in rows if row.get("country")}
+  headlines.append(f"{len(countries)}国{len(grouped)}个品种价格更新")
+ previous=str((recent_titles or [""])[0])
+ headline=next((item for item in headlines if item and item not in previous),headlines[0] if headlines else headline)
+ if headline=="市场平稳无异常":
   match=re.search(r"\*\*(?:\d+[.、]\s*)?([^*。！？]{8,25})[。！？]?\*\*",body)
   if match:headline=match.group(1).strip("：:，,。 ")
  prefix=f"食用菌出海市场日报｜{day.month}月{day.day}日："
@@ -397,7 +420,8 @@ def run():
   source_note="\n\n来源：\n"+"\n".join(f'- {item["发布机构"]}｜{item["标题"]}｜{item["发布日期"]}' for _,item in used_evidence[:5])
  body=f"{main_text.rstrip()}\n\n{fixed_data_note}{source_note}"
  # 公众号版只有在同品类同形态连续覆盖达到门槛时才展示趋势；当前不自动附加内部指数表。
- title=title_from(today,analysis,prices)
+ recent_titles=[report.get("title","") for report in existing]
+ title=title_from(today,analysis,prices,recent_titles)
  if preview_output:
   preview_path=Path(preview_output)
   preview_path.parent.mkdir(parents=True,exist_ok=True)
