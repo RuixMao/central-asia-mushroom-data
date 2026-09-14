@@ -13,11 +13,12 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title,
     description,
+    robots: { index: false, follow: false, noarchive: true },
     openGraph: { title, description, type: "website", locale: "zh_CN", images: [{ url: imageUrl, width: 1536, height: 1024, alt: "因恒科技食用菌出海数据与市场研究平台" }] },
     twitter: { card: "summary_large_image", title, description, images: [imageUrl] },
   };
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="zh-CN"><body>{children}</body></html>;
+  return <html lang="zh-CN"><body><div className="internal-test-notice" role="status">内部测试中 · 尚未正式上线 · 仅供授权测试使用</div>{children}</body></html>;
 }
