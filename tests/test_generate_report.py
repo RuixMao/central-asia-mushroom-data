@@ -39,7 +39,7 @@ def test_title_uses_largest_verified_same_species_spread():
         {"country":"TH","data":{"species_id":"shiitake","normalized_price_usd_per_kg":20.00}},
     ]
     title=title_from("2026-08-20","## 今日要点\n\n**内部标题不应采用。**",prices)
-    assert title.endswith("香菇跨市场价差10.0倍")
+    assert title.endswith("香菇价差10.0倍")
     assert len(title.encode("utf-8")) <= 64
     assert "待确认" not in title
 
@@ -51,9 +51,9 @@ def test_title_avoids_repeating_previous_headline():
         {"country":"LA","data":{"species_id":"shiitake","normalized_price_usd_per_kg":8.00}},
         {"country":"TH","data":{"species_id":"shiitake","normalized_price_usd_per_kg":16.00}},
     ]
-    previous=["食用菌出海市场日报｜8月19日：双孢菇跨市场价差3.6倍"]
+    previous=["食用菌出海市场日报｜8月19日：双孢菇价差3.6倍"]
     title=title_from("2026-08-20","",prices,previous)
-    assert title.endswith("香菇跨市场价差2.0倍")
+    assert title.endswith("香菇价差2.0倍")
 
 
 def test_report_prices_backfill_missing_southeast_asia_with_recent_rows():
