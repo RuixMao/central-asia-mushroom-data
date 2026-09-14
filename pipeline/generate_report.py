@@ -109,13 +109,13 @@ def title_from(today,body,prices=None,recent_titles=None):
  for species_id,items in grouped.items():
   values=[value for _,value in items]
   if len(values)>=2 and min(values)>0:
-   candidates.append((max(values)/min(values),f"{SPECIES_NAMES[species_id]}跨市场价差{max(values)/min(values):.1f}倍"))
+   candidates.append((max(values)/min(values),f"{SPECIES_NAMES[species_id]}价差{max(values)/min(values):.1f}倍"))
  candidates.sort(key=lambda item:item[0],reverse=True)
  headlines=[text for _,text in candidates]
  if rows:
   high_row,high_value=max(rows,key=lambda item:item[1])
   high_data=high_row["data"]
-  headlines.append(f"{COUNTRIES.get(high_row.get('country'),high_row.get('country',''))}{SPECIES_NAMES[high_data['species_id']]}{high_value:.2f}美元/公斤")
+  headlines.append(f"{COUNTRIES.get(high_row.get('country'),high_row.get('country',''))}{SPECIES_NAMES[high_data['species_id']]}报价{high_value:.1f}美元")
   countries={row.get("country") for row,_ in rows if row.get("country")}
   headlines.append(f"{len(countries)}国{len(grouped)}个品种价格更新")
  previous=str((recent_titles or [""])[0])
