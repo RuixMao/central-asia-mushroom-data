@@ -1,7 +1,7 @@
 """WinMart Vietnam public search API adapter."""
 
 import hashlib
-import json
+import re
 
 import requests
 
@@ -11,6 +11,11 @@ from utils import parse_price_text
 
 class WinMartAdapter:
     API_URL = "https://api-crownx.winmart.vn/ss/api/v2/public/winmart/item-search"
+    PREPARED_FOOD = re.compile(
+        r"mọc viên|mushroom ball|yogurt|sữa chua|nước tương|hạt nêm|"
+        r"mì |bánh |dầu hào|pork|chicken|gia vị|nước chấm",
+        re.I,
+    )
 
     def __init__(self, config):
         self.config = config
@@ -48,6 +53,8 @@ class WinMartAdapter:
             # "Nam Dương". Require the mushroom taxonomy/category in addition to
             # the title match, and reject sauces, noodles and prepared foods.
             if not MUSHROOM.search(title) or NON_FOOD.search(title):
+                continue
+            if self.PREPARED_FOOD.search(title):
                 continue
             if "Nấm" not in category and "nấm" not in title.lower():
                 continue
