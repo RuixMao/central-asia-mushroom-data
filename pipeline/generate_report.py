@@ -51,7 +51,7 @@ def utf8_truncate(text,max_bytes):
 def customer_visible_price(row):
  """客户版只接收品种、规格和价格均完整且已确认的记录。"""
  d=row.get("data",{})
- return d.get("status")=="live" and d.get("validation_status","valid")=="valid" and not d.get("sanity_outlier") and d.get("species_id") in SPECIES_NAMES and d.get("package_display") not in (None,"") and d.get("normalized_price_usd_per_kg") is not None and d.get("price_local") is not None and d.get("currency") and d.get("package_source") in {"page_title","page_structured_data"}
+ return d.get("status")=="live" and d.get("validation_status","valid")=="valid" and d.get("cross_validation_status","verified")=="verified" and not d.get("sanity_outlier") and d.get("species_id") in SPECIES_NAMES and d.get("package_display") not in (None,"") and d.get("normalized_price_usd_per_kg") is not None and d.get("price_local") is not None and d.get("currency") and d.get("package_source") in {"page_title","page_structured_data"}
 
 def select_report_prices(live,today,max_age_days=7):
  """Use today's qualified rows, then add each missing SEA market's latest qualified rows."""
