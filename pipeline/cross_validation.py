@@ -34,12 +34,14 @@ def _history_rows(records):
             "product_form": data.get("product_form"),
             "value": value,
             "observed_at": data.get("observed_at"),
+            "grade": data.get("grade"),
+            "source_type": data.get("source_type"),
         })
     return rows
 
 
 def cross_validate_prices(items, historical_records=None, *, repeat_tolerance=0.10, peer_ratio=2.5):
-    """就地写入交叉验证证据，并返回本轮统计。"""
+    """以加权且来源独立的证据判定价格是否可进入客户版。"""
     history = _history_rows(historical_records)
     stats = Counter(scanned=len(items))
     current = []
@@ -61,9 +63,10 @@ def cross_validate_prices(items, historical_records=None, *, repeat_tolerance=0.
         if item.get("validation_status") != "valid":
             stats["not_eligible"] += 1
             continue
-        evidence = [{"type": "source_page", "source": item.get("product_url")}]
+        evidence = [{"type": "source_page", "source": item.get("product_url"), "weight": 40}]
+        risk_flags = []
         if item.get("detail_verified"):
-            evidence.append({"type": "detail_recheck", "source": item.get("platform")})
+            evidence.append({"type": "detail_recheck", "source": item.get("platform"), "weight": 25})
 
         product_key = f'{item.get("platform")}:{item.get("collection_point_id")}:{item.get("platform_product_id")}'
         repeats = [old for old in history if old["product_key"] == product_key
@@ -71,7 +74,7 @@ def cross_validate_prices(items, historical_records=None, *, repeat_tolerance=0.
         if repeats:
             latest = repeats[0]
             evidence.append({"type": "repeat_observation", "observed_at": latest.get("observed_at"),
-                             "price_usd_per_kg": latest["value"]})
+                             "price_usd_per_kg": latest["value"], "weight": 30})
 
         peers = [peer for peer in current if peer is not row
                  and peer["country"] == row["country"]
@@ -79,20 +82,31 @@ def cross_validate_prices(items, historical_records=None, *, repeat_tolerance=0.
                  and peer["product_form"] == row["product_form"]
                  and peer["platform"] != row["platform"]
                  and _ratio(row["value"], peer["value"]) <= peer_ratio]
-        peers.extend(old for old in history
+        historical_peers = [old for old in history
                      if old["country"] == row["country"]
                      and old["species_id"] == row["species_id"]
                      and old["product_form"] == row["product_form"]
-                     and old["platform"] != row["platform"]
-                     and _ratio(row["value"], old["value"]) <= peer_ratio)
+                     and old["platform"] != row["platform"]]
+        peers.extend(old for old in historical_peers if _ratio(row["value"], old["value"]) <= peer_ratio)
         if peers:
             peer = peers[0]
-            evidence.append({"type": "independent_channel", "source": peer.get("platform"),
-                             "price_usd_per_kg": peer["value"]})
+            third_party = peer.get("grade") in {"C", "D"} or peer.get("source_type") in {
+                "official_statistics", "industry_report", "trade_database", "third_party_audit"
+            }
+            evidence.append({"type": "third_party_anchor" if third_party else "independent_channel",
+                             "source": peer.get("platform"), "price_usd_per_kg": peer["value"],
+                             "weight": 25})
+        if any(_ratio(row["value"], peer["value"]) > 4 for peer in historical_peers):
+            risk_flags.append("independent_source_price_conflict")
 
         item["verification_evidence"] = evidence
-        item["verification_score"] = len(evidence)
-        if len(evidence) >= 2:
+        score = min(100, sum(entry["weight"] for entry in evidence))
+        if risk_flags:
+            score = max(0, score - 15)
+        item["verification_method_version"] = "smart-v1"
+        item["verification_score"] = score
+        item["verification_risk_flags"] = risk_flags
+        if score >= 65:
             item["cross_validation_status"] = "verified"
             stats["verified"] += 1
         else:
