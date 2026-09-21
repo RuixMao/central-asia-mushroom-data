@@ -70,7 +70,8 @@ class CatalogSearchAdapter:
         # React 目录页通常把商品卡片直接内嵌在 HTML 中，标题和价格并不在同一个链接里。
         card_selectors = (
             '[data-testid="product-card"], article, '
-            '[class*="product-item"], [class*="productItem"], [class*="product-card"]'
+            '[class*="product-item"], [class*="productItem"], '
+            '[class*="product-card"], [class*="product-list"]'
         )
         for card in soup.select(card_selectors):
             title_node = card.find("h3")
