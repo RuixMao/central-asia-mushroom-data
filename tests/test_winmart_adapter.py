@@ -15,6 +15,9 @@ class FakeResponse:
             {"sku": "sauce", "description": "Nước tương nấm 330ml", "seoName": "sauce",
              "mch3Name": "Thực phẩm khô", "mch4Name": "Gia vị", "mch5Name": "Nước tương",
              "price": {"salePrice": 19000}, "warehouse": {"availableQuantity": 5}},
+            {"sku": "meatball", "description": "MEAT DELI Mọc viên nấm hương 250G", "seoName": "meatball",
+             "mch3Name": "Thực phẩm tươi sống, Chế biến", "mch4Name": "Thực phẩm chế biến", "mch5Name": "",
+             "price": {"salePrice": 66900}, "warehouse": {"availableQuantity": 5}},
         ]}
 
 
