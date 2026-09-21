@@ -35,6 +35,7 @@ from adapters.foodpanda_graphql import FoodpandaGraphQLAdapter, FoodpandaPrimary
 from adapters.bachhoaxanh import BachHoaXanhAdapter
 from adapters.next_data import NextDataProductAdapter
 from adapters.winmart import WinMartAdapter
+from adapters.citymall import CityMallAdapter
 from config import TARGET_SPECIES
 from search_queries import COUNTRY_SEARCH_TERMS, SearchQuery,iter_country_queries
 from taxonomy import classify,normalize_price,parse_package
@@ -96,7 +97,7 @@ SOURCES=[
 (FoodpandaPrimaryFallbackAdapter,{"platform":"lucky-foodpanda-kh","platform_name":"Lucky Supermarket / foodpanda","platform_product_id":"lucky-olympia-mushrooms","country":"KH","city":"Phnom Penh","collection_point_id":"PHNOM_PENH_POINT_01","url":"https://www.foodpanda.com.kh/en/shop/bq32/lucky-supermarket-olympia","title":"Fresh mushrooms","package":"","currency":"USD","language":"en","vendor_code":"bq32","category_ids":["62318e7a-1ded-4dd8-972a-eadeaefd4619","4a99b652-893d-4aa4-bbc3-169471e697d8"],"api_endpoint":"https://kh.fd-api.com/graphql","global_entity_id":"FP_KH","locale":"en_KH","origin":"https://www.foodpanda.com.kh","source_role":"primary_with_fallback"}),
 (NextDataProductAdapter,{"platform":"lotuss-th","platform_name":"Lotus's Online","platform_product_id":"eryngii-mushroom","country":"TH","city":"Bangkok","collection_point_id":"BANGKOK_POINT_02","url":"https://www.lotuss.com/th/product/lotuss-fresh-eryngii-mushroom-1-pack-23886552","title":"เห็ดนางรมหลวง","package":"","currency":"THB","language":"th","source_role":"independent_validation"}),
 (WinMartAdapter,{"platform":"winmart-vn","platform_name":"WinMart Online","platform_product_id":"mushroom-search","country":"VN","city":"Ho Chi Minh City","collection_point_id":"HCMC_POINT_02","url":"https://winmart.vn/search/n%E1%BA%A5m","title":"Nấm","package":"","currency":"VND","language":"vi","query_language":"vi","query_term":"nấm","query_species":"mushrooms","source_role":"independent_validation"}),
-(CatalogSearchAdapter,{"platform":"citymall-mm","platform_name":"City Mall Online","platform_product_id":"mushroom-search","country":"MM","city":"Yangon","collection_point_id":"YANGON_POINT_02","url":"https://www.citymall.com.mm/citymall/my/search/?text=mushroom","title":"Mushroom","package":"","currency":"MMK","language":"my","source_role":"independent_validation"}),
+(CityMallAdapter,{"platform":"citymall-mm","platform_name":"City Mall Online","platform_product_id":"mushroom-search","country":"MM","city":"Yangon","collection_point_id":"YANGON_POINT_02","url":"https://www.citymall.com.mm/citymall/my/search/?text=mushroom","title":"Mushroom","package":"","currency":"MMK","language":"my","source_role":"independent_validation"}),
 ]
 
 # 中亚任务使用本地语言和俄语，东南亚任务使用本地语言和英语。对可靠的商品搜索站扫描全品类；
