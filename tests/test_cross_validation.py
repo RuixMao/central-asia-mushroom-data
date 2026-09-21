@@ -31,10 +31,21 @@ class CrossValidationTest(unittest.TestCase):
                     "platform_id": "shop-a", "species_id": "oyster_mushroom", "product_form": "fresh",
                     "normalized_price_usd_per_kg": 10.5, "observed_at": "2026-09-20"}}]
         stats = cross_validate_prices([row], history)
-        self.assertEqual(stats["verified"], 1)
-        self.assertEqual(row["validation_status"], "valid")
-        self.assertEqual(row["verification_score"], 70)
+        self.assertEqual(stats["pending"], 1)
+        self.assertEqual(row["validation_status"], "needs_review")
+        self.assertEqual(row["verification_score"], 55)
         self.assertIn("repeat_observation", {entry["type"] for entry in row["verification_evidence"]})
+
+    def test_two_repeat_observations_verify_price(self):
+        row = item()
+        history = [{"country": "LA", "source": "shop-a", "data": {"status": "live", "product_key": "shop-a:VTE:sku-1",
+                    "platform_id": "shop-a", "species_id": "oyster_mushroom", "product_form": "fresh",
+                    "normalized_price_usd_per_kg": value, "observed_at": date, "cross_validation_status": "pending",
+                    "candidate_attempt": attempt}} for value, date, attempt in [(10.4, "2026-09-19", 1), (10.2, "2026-09-20", 2)]]
+        stats = cross_validate_prices([row], history)
+        self.assertEqual(stats["verified"], 1)
+        self.assertEqual(row["verification_score"], 70)
+        self.assertEqual(row["candidate_state"], "promoted")
 
     def test_independent_channel_verifies_both_prices(self):
         rows = [item("shop-a", 10), item("shop-b", 12, platform_product_id="sku-2")]
@@ -57,7 +68,7 @@ class CrossValidationTest(unittest.TestCase):
         self.assertIn("third_party_anchor", {entry["type"] for entry in row["verification_evidence"]})
         self.assertEqual(row["cross_validation_status"], "verified")
 
-    def test_unconfirmed_candidate_is_archived_after_three_attempts(self):
+    def test_unconfirmed_candidate_is_deleted_after_three_attempts(self):
         row = item()
         history = [{"country": "LA", "source": "shop-a", "data": {"status": "live", "product_key": "shop-a:VTE:sku-1",
                     "platform_id": "shop-a", "species_id": "oyster_mushroom", "product_form": "fresh",
@@ -65,8 +76,10 @@ class CrossValidationTest(unittest.TestCase):
                     "candidate_attempt": 2}}]
         cross_validate_prices([row], history)
         self.assertEqual(row["candidate_attempt"], 3)
-        self.assertEqual(row["candidate_state"], "archived_unconfirmed")
-        self.assertEqual(row["review_decision"], "auto_archive")
+        self.assertEqual(row["candidate_state"], "deleted_unqualified")
+        self.assertEqual(row["review_decision"], "auto_delete")
+        self.assertEqual(row["validation_status"], "rejected")
+        self.assertEqual(row["status"], "deleted")
 
 
 if __name__ == "__main__":
