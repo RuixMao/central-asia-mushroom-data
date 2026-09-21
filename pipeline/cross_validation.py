@@ -1,7 +1,8 @@
 """为价格记录建立独立于单页解析的第二层证据。
 
-原始记录始终保留；只有源页面证据之外，再得到跨日复采、详情接口复核，
-或独立渠道价格带支持的记录，才保持 ``validation_status=valid``。
+只有源页面证据之外，再得到多次跨日复采、详情接口复核，或独立渠道价格带
+支持的记录，才保持 ``validation_status=valid``。连续三次无法取得第二证据的
+记录会从活动价格池删除，仅保留删除状态用于防止同一坏数据反复进入。
 """
 
 from collections import Counter
@@ -79,8 +80,10 @@ def cross_validate_prices(items, historical_records=None, *, repeat_tolerance=0.
                    and _ratio(row["value"], old["value"]) <= 1 + repeat_tolerance]
         if repeats:
             latest = repeats[0]
+            repeat_weight = 30 if len(repeats) >= 2 else 15
             evidence.append({"type": "repeat_observation", "observed_at": latest.get("observed_at"),
-                             "price_usd_per_kg": latest["value"], "weight": 30})
+                             "price_usd_per_kg": latest["value"], "repeat_count": len(repeats),
+                             "weight": repeat_weight})
 
         peers = [peer for peer in current if peer is not row
                  and peer["country"] == row["country"]
@@ -120,17 +123,19 @@ def cross_validate_prices(items, historical_records=None, *, repeat_tolerance=0.
         else:
             item["cross_validation_status"] = "pending"
             item["validation_status"] = "needs_review"
-            if risk_flags:
+            if attempt >= 3:
+                state, action = "deleted_unqualified", "remove_from_active_price_pool"
+                item["validation_status"] = "rejected"
+                item["status"] = "deleted"
+            elif risk_flags:
                 state, action = "conflict_review", "recheck_source_and_compare_independent_channel"
             elif attempt == 1:
                 state, action = "awaiting_recheck", "recollect_same_product_next_run"
             elif attempt == 2:
                 state, action = "seeking_independent_source", "collect_independent_channel_or_third_party_anchor"
-            else:
-                state, action = "archived_unconfirmed", "retain_raw_record_and_reopen_only_with_new_evidence"
             item["candidate_state"] = state
             item["candidate_next_action"] = action
-            item["review_decision"] = "auto_archive" if state == "archived_unconfirmed" else "cross_check_required"
+            item["review_decision"] = "auto_delete" if state == "deleted_unqualified" else "cross_check_required"
             item["review_reasons"] = list(dict.fromkeys([*(item.get("review_reasons") or []), "cross_validation_insufficient"]))
             item["review_actions"] = list(dict.fromkeys([*(item.get("review_actions") or []), action]))
             stats["pending"] += 1
