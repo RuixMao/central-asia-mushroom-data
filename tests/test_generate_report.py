@@ -22,6 +22,8 @@ def test_customer_visible_price_rejects_pending_missing_and_generic_rows():
     assert not customer_visible_price({"data":{**base,"validation_status":"needs_review"}})
     assert not customer_visible_price({"data":{**base,"package_display":None}})
     assert not customer_visible_price({"data":{**base,"species_id":"unknown"}})
+    assert not customer_visible_price({"data":{**base,"cross_validation_status":"pending"}})
+    assert customer_visible_price({"data":{**base,"cross_validation_status":"verified"}})
 
 
 def test_customer_safe_rejects_pending_sections_and_empty_references():
