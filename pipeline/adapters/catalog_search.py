@@ -29,6 +29,7 @@ NON_FOOD = re.compile(
 )
 PRICE = re.compile(
     r"(?:₭|฿|₫|៛|MMK|KHR|LAK|VND|THB|USD|\$|K(?=\s*\d))\s*(\d[\d\s,.]{0,15})|"
+    r"(\d[\d\s,.]{0,15})\s*Ks|"
     r"(\d[\d\s,.]{0,15})\s*(?:₸|KZT|сом|KGS|сум|UZS|TJS|TMT|LAK|VND|THB|MMK|KHR|ကျပ်|đ|บาท|ກີບ|រៀល|c\.|с\.)",
     re.I,
 )
