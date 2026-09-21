@@ -8,6 +8,7 @@ from review import review_record
 from sanity import apply_sanity_validation, review_sanity_outliers
 from auto_review import resolve_pending_reviews
 from cross_validation import cross_validate_prices
+from collection_planner import pending_targets, prioritize_sources
 from investigate_review import investigate_pending_reviews
 from product_dimensions import describe_product
 from adapters.globus import GlobusAdapter
@@ -190,7 +191,14 @@ COLLECTION_MODE = os.getenv("COLLECTION_MODE", "static").strip().lower()
 
 def run():
  fx,fx_time=rates();items=[];errors=[];active_configs=[];seen_products=set();query_runs=[];excluded_by_query=Counter();wanted_country=os.getenv("COUNTRY","").strip().upper();wanted_platform=os.getenv("PLATFORM","").strip();wanted_point=os.getenv("COLLECTION_POINT","").strip();dry_run=os.getenv("DRY_RUN","false").lower()=="true";query_task_limit=max(0,int(os.getenv("QUERY_TASK_LIMIT","0") or 0));executed_query_tasks=0
- for Adapter,config in SOURCES:
+ try:
+  historical_prices=get_site("/api/ingest/snapshot?metric=price_retail&limit=500").get("records",[])
+ except RuntimeError as exc:
+  historical_prices=[];log(f"历史价格读取失败，候选验证将保持保守状态: {exc}")
+ verification_targets=pending_targets(historical_prices)
+ planned_sources=prioritize_sources(SOURCES,verification_targets)
+ log(f"candidate-driven collection plan: {len(verification_targets)} pending targets prioritized")
+ for Adapter,config in planned_sources:
   if wanted_country and config["country"]!=wanted_country:continue
   if wanted_platform and config["platform"]!=wanted_platform:continue
   if wanted_point and config["collection_point_id"]!=wanted_point:continue
@@ -245,10 +253,6 @@ def run():
  # 会再次读取源页面，解析器一旦获得完整证据即可自然恢复为 valid。
  quarantine_unresolved=os.getenv("AUTO_REVIEW_QUARANTINE", "1").lower() not in {"0","false","no"}
  review_stats=resolve_pending_reviews(items,quarantine_unresolved=quarantine_unresolved)
- try:
-  historical_prices=get_site("/api/ingest/snapshot?metric=price_retail&limit=500").get("records",[])
- except RuntimeError as exc:
-  historical_prices=[];log(f"历史价格读取失败，新增记录保持待交叉验证: {exc}")
  cross_validation_stats=cross_validate_prices(items,historical_prices)
  if items and not dry_run:
   payload={"items":items}
