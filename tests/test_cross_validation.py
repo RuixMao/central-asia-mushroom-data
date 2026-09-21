@@ -21,6 +21,7 @@ class CrossValidationTest(unittest.TestCase):
         self.assertEqual(stats["pending"], 1)
         self.assertEqual(row["validation_status"], "needs_review")
         self.assertEqual(row["cross_validation_status"], "pending")
+        self.assertEqual(row["verification_score"], 40)
 
     def test_repeat_observation_verifies_price(self):
         row = item()
@@ -30,6 +31,7 @@ class CrossValidationTest(unittest.TestCase):
         stats = cross_validate_prices([row], history)
         self.assertEqual(stats["verified"], 1)
         self.assertEqual(row["validation_status"], "valid")
+        self.assertEqual(row["verification_score"], 70)
         self.assertIn("repeat_observation", {entry["type"] for entry in row["verification_evidence"]})
 
     def test_independent_channel_verifies_both_prices(self):
@@ -42,6 +44,16 @@ class CrossValidationTest(unittest.TestCase):
         rows = [item("shop-a", 2), item("shop-b", 20, platform_product_id="sku-2")]
         stats = cross_validate_prices(rows, [])
         self.assertEqual(stats["pending"], 2)
+
+    def test_third_party_anchor_is_identified_as_independent_evidence(self):
+        row = item()
+        history = [{"country": "LA", "source": "industry-audit", "data": {"status": "live", "product_key": "audit:1",
+                    "platform_id": "industry-audit", "species_id": "oyster_mushroom", "product_form": "fresh",
+                    "normalized_price_usd_per_kg": 11, "observed_at": "2026-09-20", "grade": "C",
+                    "source_type": "third_party_audit"}}]
+        cross_validate_prices([row], history)
+        self.assertIn("third_party_anchor", {entry["type"] for entry in row["verification_evidence"]})
+        self.assertEqual(row["cross_validation_status"], "verified")
 
 
 if __name__ == "__main__":
