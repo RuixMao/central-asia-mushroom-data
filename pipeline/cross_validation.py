@@ -36,6 +36,8 @@ def _history_rows(records):
             "observed_at": data.get("observed_at"),
             "grade": data.get("grade"),
             "source_type": data.get("source_type"),
+            "cross_validation_status": data.get("cross_validation_status"),
+            "candidate_attempt": int(data.get("candidate_attempt") or 0),
         })
     return rows
 
@@ -69,6 +71,10 @@ def cross_validate_prices(items, historical_records=None, *, repeat_tolerance=0.
             evidence.append({"type": "detail_recheck", "source": item.get("platform"), "weight": 25})
 
         product_key = f'{item.get("platform")}:{item.get("collection_point_id")}:{item.get("platform_product_id")}'
+        prior_candidates = [old for old in history if old["product_key"] == product_key
+                            and old.get("cross_validation_status") == "pending"]
+        attempt = max([old.get("candidate_attempt", 0) for old in prior_candidates] or [0]) + 1
+        item["candidate_attempt"] = attempt
         repeats = [old for old in history if old["product_key"] == product_key
                    and _ratio(row["value"], old["value"]) <= 1 + repeat_tolerance]
         if repeats:
@@ -108,12 +114,25 @@ def cross_validate_prices(items, historical_records=None, *, repeat_tolerance=0.
         item["verification_risk_flags"] = risk_flags
         if score >= 65:
             item["cross_validation_status"] = "verified"
+            item["candidate_state"] = "promoted"
+            item["candidate_next_action"] = None
             stats["verified"] += 1
         else:
             item["cross_validation_status"] = "pending"
             item["validation_status"] = "needs_review"
-            item["review_decision"] = "cross_check_required"
+            if risk_flags:
+                state, action = "conflict_review", "recheck_source_and_compare_independent_channel"
+            elif attempt == 1:
+                state, action = "awaiting_recheck", "recollect_same_product_next_run"
+            elif attempt == 2:
+                state, action = "seeking_independent_source", "collect_independent_channel_or_third_party_anchor"
+            else:
+                state, action = "archived_unconfirmed", "retain_raw_record_and_reopen_only_with_new_evidence"
+            item["candidate_state"] = state
+            item["candidate_next_action"] = action
+            item["review_decision"] = "auto_archive" if state == "archived_unconfirmed" else "cross_check_required"
             item["review_reasons"] = list(dict.fromkeys([*(item.get("review_reasons") or []), "cross_validation_insufficient"]))
-            item["review_actions"] = list(dict.fromkeys([*(item.get("review_actions") or []), "repeat_or_confirm_with_independent_channel"]))
+            item["review_actions"] = list(dict.fromkeys([*(item.get("review_actions") or []), action]))
             stats["pending"] += 1
+            stats[state] += 1
     return dict(stats)
