@@ -7,6 +7,7 @@ from urllib.parse import quote
 from review import review_record
 from sanity import apply_sanity_validation, review_sanity_outliers
 from auto_review import resolve_pending_reviews
+from cross_validation import cross_validate_prices
 from investigate_review import investigate_pending_reviews
 from product_dimensions import describe_product
 from adapters.globus import GlobusAdapter
@@ -34,7 +35,7 @@ from adapters.bachhoaxanh import BachHoaXanhAdapter
 from config import TARGET_SPECIES
 from search_queries import COUNTRY_SEARCH_TERMS, SearchQuery,iter_country_queries
 from taxonomy import classify,normalize_price,parse_package
-from utils import log,post_to_data,post_to_site,safe_get,today_str
+from utils import get_site,log,post_to_data,post_to_site,safe_get,today_str
 
 VOLUME_KG_PER_L=float(os.getenv("MUSHROOM_VOLUME_KG_PER_L", "1.0"))
 
@@ -244,6 +245,11 @@ def run():
  # 会再次读取源页面，解析器一旦获得完整证据即可自然恢复为 valid。
  quarantine_unresolved=os.getenv("AUTO_REVIEW_QUARANTINE", "1").lower() not in {"0","false","no"}
  review_stats=resolve_pending_reviews(items,quarantine_unresolved=quarantine_unresolved)
+ try:
+  historical_prices=get_site("/api/ingest/snapshot?metric=price_retail&limit=500").get("records",[])
+ except RuntimeError as exc:
+  historical_prices=[];log(f"历史价格读取失败，新增记录保持待交叉验证: {exc}")
+ cross_validation_stats=cross_validate_prices(items,historical_prices)
  if items and not dry_run:
   payload={"items":items}
   post_to_site("/api/ingest/prices",payload)
@@ -263,7 +269,7 @@ def run():
    labels=TARGET_SPECIES.get(it["species_id"],{})
    normalized_usd_per_kg=it.get("normalized_price_usd_per_kg")
    package_display=f'{it["package_value"]:g} {it["package_unit"]}' if it.get("package_value") and it.get("package_unit") else ""
-   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":it["country"],"source":it["platform"],"data":{"product_key":f'{it["platform"]}:{it["collection_point_id"]}:{it["platform_product_id"]}',"species_id":it["species_id"],"species_zh":labels.get("zh",it["species_id"]),"species_foreign":labels.get("ru") or labels.get("en"),"original_title":it["original_title"],"original_language":it["original_language"],"discovery":{"query_language":it.get("query_language"),"query_term":it.get("query_term"),"query_species":it.get("query_species")},"product_form":it["product_form"],"product_shape":it["product_shape"],"processing_state":it["processing_state"],"packaging_type":it["packaging_type"],"brand":it.get("brand"),"origin_country":it.get("origin_country"),"package_display":package_display,"package_source":it["package_source"],"package_conversion_basis":it.get("package_conversion_basis"),"platform_id":it["platform"],"platform_name":it["platform_name"],"status":"live","validation_status":it["validation_status"],"auto_review_status":it.get("auto_review_status"),"auto_review_reason":it.get("auto_review_reason"),"sanity_outlier":it["sanity_outlier"],"sanity_reason":it["sanity_reason"],"price_local":it["current_price"],"price_usd":it["price_usd"],"normalized_price_usd_per_kg":normalized_usd_per_kg,"currency":it["currency"],"observed_at":today,"retrieved_at":it["observed_at"],"source_url":it["product_url"]}})
+   post_to_site("/api/ingest/snapshot",{"metric":"price_retail","country":it["country"],"source":it["platform"],"data":{"product_key":f'{it["platform"]}:{it["collection_point_id"]}:{it["platform_product_id"]}',"species_id":it["species_id"],"species_zh":labels.get("zh",it["species_id"]),"species_foreign":labels.get("ru") or labels.get("en"),"original_title":it["original_title"],"original_language":it["original_language"],"discovery":{"query_language":it.get("query_language"),"query_term":it.get("query_term"),"query_species":it.get("query_species")},"product_form":it["product_form"],"product_shape":it["product_shape"],"processing_state":it["processing_state"],"packaging_type":it["packaging_type"],"brand":it.get("brand"),"origin_country":it.get("origin_country"),"package_display":package_display,"package_source":it["package_source"],"package_conversion_basis":it.get("package_conversion_basis"),"platform_id":it["platform"],"platform_name":it["platform_name"],"status":"live","validation_status":it["validation_status"],"cross_validation_status":it.get("cross_validation_status"),"verification_score":it.get("verification_score",0),"verification_evidence":it.get("verification_evidence",[]),"auto_review_status":it.get("auto_review_status"),"auto_review_reason":it.get("auto_review_reason"),"sanity_outlier":it["sanity_outlier"],"sanity_reason":it["sanity_reason"],"price_local":it["current_price"],"price_usd":it["price_usd"],"normalized_price_usd_per_kg":normalized_usd_per_kg,"currency":it["currency"],"observed_at":today,"retrieved_at":it["observed_at"],"source_url":it["product_url"]}})
   successful_platforms={it["platform"] for it in items}
   platform_errors={e["platform"]:e["reason"] for e in errors if e["platform"] not in successful_platforms}
   for platform,reason in platform_errors.items():
@@ -289,7 +295,7 @@ def run():
    except RuntimeError as exc:
     log(f"source_health 写入失败(降级): {exc}")
  valid_items=[it for it in items if it["validation_status"]=="valid"]
- summary={"candidates":len(items),"valid":len(valid_items),"needs_review":sum(it["validation_status"]=="needs_review" for it in items),"quarantined":sum(it["validation_status"]=="rejected" for it in items),"investigation":investigation_stats,"auto_review":review_stats,
+ summary={"candidates":len(items),"valid":len(valid_items),"needs_review":sum(it["validation_status"]=="needs_review" for it in items),"quarantined":sum(it["validation_status"]=="rejected" for it in items),"investigation":investigation_stats,"auto_review":review_stats,"cross_validation":cross_validation_stats,
           "valid_by_country":dict(sorted(Counter(it["country"] for it in valid_items).items())),
           "valid_by_platform":dict(sorted(Counter(it["platform"] for it in valid_items).items())),
           "valid_by_species":dict(sorted(Counter(it["species_id"] for it in valid_items).items())),
@@ -315,6 +321,7 @@ def run():
  log(f"sanity review: {auto_reviewed} 条已找到有页面规格证据的价格差异原因")
  log(f"targeted investigation: {json.dumps(investigation_stats,ensure_ascii=False)}")
  log(f"auto review loop: {json.dumps(review_stats,ensure_ascii=False)}")
+ log(f"cross validation: {json.dumps(cross_validation_stats,ensure_ascii=False)}")
  log(f"平台适配器完成：{json.dumps(summary,ensure_ascii=False)}，失败任务 {len(errors)} 条，dry_run={dry_run}；{errors}")
  if missing_required:
   raise RuntimeError(f"国家级非零门禁失败：{','.join(missing_required)} 当次没有有效价格；主备源诊断已写入审计报告")
