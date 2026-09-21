@@ -22,6 +22,8 @@ class CrossValidationTest(unittest.TestCase):
         self.assertEqual(row["validation_status"], "needs_review")
         self.assertEqual(row["cross_validation_status"], "pending")
         self.assertEqual(row["verification_score"], 40)
+        self.assertEqual(row["candidate_state"], "awaiting_recheck")
+        self.assertEqual(row["candidate_attempt"], 1)
 
     def test_repeat_observation_verifies_price(self):
         row = item()
@@ -54,6 +56,17 @@ class CrossValidationTest(unittest.TestCase):
         cross_validate_prices([row], history)
         self.assertIn("third_party_anchor", {entry["type"] for entry in row["verification_evidence"]})
         self.assertEqual(row["cross_validation_status"], "verified")
+
+    def test_unconfirmed_candidate_is_archived_after_three_attempts(self):
+        row = item()
+        history = [{"country": "LA", "source": "shop-a", "data": {"status": "live", "product_key": "shop-a:VTE:sku-1",
+                    "platform_id": "shop-a", "species_id": "oyster_mushroom", "product_form": "fresh",
+                    "normalized_price_usd_per_kg": 20, "observed_at": "2026-09-20", "cross_validation_status": "pending",
+                    "candidate_attempt": 2}}]
+        cross_validate_prices([row], history)
+        self.assertEqual(row["candidate_attempt"], 3)
+        self.assertEqual(row["candidate_state"], "archived_unconfirmed")
+        self.assertEqual(row["review_decision"], "auto_archive")
 
 
 if __name__ == "__main__":
