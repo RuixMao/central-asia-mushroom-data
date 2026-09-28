@@ -18,6 +18,9 @@ class FakeResponse:
             {"sku": "meatball", "description": "MEAT DELI Mọc viên nấm hương 250G", "seoName": "meatball",
              "mch3Name": "Thực phẩm tươi sống, Chế biến", "mch4Name": "Thực phẩm chế biến", "mch5Name": "",
              "price": {"salePrice": 66900}, "warehouse": {"availableQuantity": 5}},
+            {"sku": "porridge", "description": "Thùng 50 gói cháo nấm đông cô Vifon 70g", "seoName": "porridge",
+             "mch3Name": "Thực phẩm khô", "mch4Name": "Cháo ăn liền", "mch5Name": "",
+             "price": {"salePrice": 531000}, "warehouse": {"availableQuantity": 5}},
         ]}
 
 

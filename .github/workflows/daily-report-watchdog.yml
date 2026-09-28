@@ -26,7 +26,20 @@ jobs:
             "$SITE_URL/api/ingest/report?type=daily" \
             --output /tmp/daily-reports.json
 
-          if python -c 'import json,sys; today=sys.argv[1]; payload=json.load(open(sys.argv[2], encoding="utf-8")); rows=payload.get("records") or payload.get("reports") or payload.get("items") or []; sys.exit(0 if any(str(row.get("date") or row.get("publishedAt") or row.get("createdAt") or row.get("slug") or "").startswith(today) for row in rows) else 1)' "$today" /tmp/daily-reports.json; then
+          if python - "$today" /tmp/daily-reports.json <<'PY'
+          import json, sys
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          rows = json.load(open(sys.argv[2], encoding="utf-8")).get("records", [])
+          def published_day(row):
+              try:
+                  stamp = datetime.fromisoformat(row["publishedAt"].replace("Z", "+00:00"))
+                  return stamp.astimezone(ZoneInfo("Asia/Shanghai")).date().isoformat()
+              except (KeyError, TypeError, ValueError):
+                  return str(row.get("slug", ""))[:10]
+          sys.exit(0 if any(published_day(row) == sys.argv[1] for row in rows) else 1)
+          PY
+          then
             echo "Customer daily report for $today is already available."
           else
             gh workflow run daily-report.yml --ref main
@@ -34,4 +47,5 @@ jobs:
           fi
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           SITE_URL: ${{ secrets.SITE_URL }}

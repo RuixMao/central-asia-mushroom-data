@@ -13,7 +13,7 @@ class WinMartAdapter:
     API_URL = "https://api-crownx.winmart.vn/ss/api/v2/public/winmart/item-search"
     PREPARED_FOOD = re.compile(
         r"mọc viên|mushroom ball|yogurt|sữa chua|nước tương|hạt nêm|"
-        r"mì |bánh |dầu hào|pork|chicken|gia vị|nước chấm",
+        r"mì |bánh |cháo|porridge|dầu hào|pork|chicken|gia vị|nước chấm",
         re.I,
     )
 

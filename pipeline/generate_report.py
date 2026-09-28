@@ -4,13 +4,14 @@ import re
 import statistics
 import unicodedata
 from collections import defaultdict
-from datetime import date,timedelta
+from datetime import date,datetime,timedelta,timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from openai import APIError, AuthenticationError, OpenAI
 from config import AI_API_KEY,AI_BASE_URL,AI_MODEL,TARGET_SPECIES
 from sanity import check_usd_per_kg, review_sanity_outliers
-from utils import delete_from_site,get_site,log,post_to_site,today_str
+from utils import delete_from_site,get_site,log,post_to_site
 
 COUNTRIES={"KZ":"哈萨克斯坦","UZ":"乌兹别克斯坦","KG":"吉尔吉斯斯坦","TJ":"塔吉克斯坦","TM":"土库曼斯坦","LA":"老挝","VN":"越南","TH":"泰国","MM":"缅甸","KH":"柬埔寨"}
 FORMS={"fresh":"鲜品","chilled":"冷藏","frozen":"冷冻","dried":"干制","pickled":"腌渍","canned":"罐装","powder":"粉剂"}
@@ -277,168 +278,76 @@ def package_kg(display):
  if not match:return None
  value=float(match.group(1));return value if match.group(2).lower()=="kg" else value/1000
 
+def report_publication_date(report):
+ """Use the Shanghai publication day; old slugs are a fallback, not title text.
+
+ The API serializes publishedAt as an ISO timestamp from the UTC database value.
+ Slugs contain a UTC date, so a valid timestamp must take precedence at midnight.
+ """
+ value=report.get("publishedAt")
+ try:
+  if isinstance(value,(int,float)) and not isinstance(value,bool):
+   published=datetime.fromtimestamp(value/1000,tz=timezone.utc)
+  elif isinstance(value,str) and value.strip():
+   published=datetime.fromisoformat(value.strip().replace("Z","+00:00"))
+   if published.tzinfo is None:published=published.replace(tzinfo=timezone.utc)
+  else:published=None
+  if published is not None:return published.astimezone(ZoneInfo("Asia/Shanghai")).date().isoformat()
+ except (ValueError,TypeError,OverflowError,OSError):pass
+ match=re.match(r"^(\d{4}-\d{2}-\d{2})(?:-|$)",str(report.get("slug") or ""))
+ if match:
+  try:return date.fromisoformat(match.group(1)).isoformat()
+  except ValueError:pass
+ return None
+
+
 def run():
- today=today_str();today_date=date.fromisoformat(today);snapshots=get_site("/api/ingest/snapshot?metric=price_retail&limit=500").get("records",[])
+ today=datetime.now(ZoneInfo("Asia/Shanghai")).date().isoformat()
  existing=get_site("/api/ingest/report?type=daily").get("records",[])
  revision=os.environ.get("REPORT_REVISION", "").lower() in {"1","true","yes"}
- if not revision and any(today in str(report.get("title", "")) for report in existing):
+ current=next((report for report in existing if report_publication_date(report)==today),None)
+ artifact_output=os.environ.get("REPORT_ARTIFACT_OUTPUT","").strip()
+ preview_output=os.environ.get("REPORT_PREVIEW_OUTPUT","").strip()
+ if not revision and current:
+  if artifact_output:
+   artifact_path=Path(artifact_output);artifact_path.parent.mkdir(parents=True,exist_ok=True)
+   artifact_path.write_text(json.dumps({**{key:current.get(key,"") for key in ("title","summary","body","slug")},"date":today},ensure_ascii=False),encoding="utf-8")
+  if preview_output:
+   preview_path=Path(preview_output);preview_path.parent.mkdir(parents=True,exist_ok=True)
+   preview_path.write_text(f'# {current["title"]}\n\n{current["body"]}\n',encoding="utf-8")
   print(f"{today} 日报已存在，跳过重复生成")
   return
- # 兼容尚未写入 sanity 字段的历史快照：生成前再次校验，并用同日规格做二次复核。
- review_candidates=[]
- for row in snapshots:
-  d=row.get("data",{});value=d.get("normalized_price_usd_per_kg")
-  if d.get("status")!="live" or value is None:continue
-  d.setdefault("validation_status","valid")
-  sanity=check_usd_per_kg(d.get("species_id"),row.get("country"),value)
-  if sanity["sanity_outlier"]:
-   d.update(sanity);d["validation_status"]="needs_review"
-  review_candidates.append({"country":row.get("country"),**d,"normalized_quantity_kg":package_kg(d.get("package_display"))})
- review_sanity_outliers(review_candidates)
- for item in review_candidates:
-  if not item.get("sanity_outlier"):continue
-  for row in snapshots:
-   d=row.get("data",{})
-   if row.get("country")==item.get("country") and d.get("product_key")==item.get("product_key"):
-    d["sanity_review_status"]=item.get("sanity_review_status");d["sanity_review_reason"]=item.get("sanity_review_reason");d["sanity_reason"]=item.get("sanity_reason")
- live=[r for r in snapshots if customer_visible_price(r)]
- review_prices=[r for r in snapshots if r.get("data",{}).get("status")=="live" and (r.get("data",{}).get("validation_status")=="needs_review" or r.get("data",{}).get("sanity_outlier")) and r.get("data",{}).get("observed_at")==today]
- specialty_prices=[r for r in review_prices if r.get("data",{}).get("sanity_review_status")=="explained"]
- prices=select_report_prices(live,today)
- if not prices:raise RuntimeError(f"{today} 没有可用于客户版的已确认价格，拒绝生成误导性日报")
- # 同一商品同日去重，避免重复运行把样本量放大。
- latest_prices={}
- for row in prices:
-  key=(row["data"].get("product_key") or f'{row.get("country")}:{row.get("source")}:{row["data"].get("original_title")}',today)
-  latest_prices.setdefault(key,row)
- prices=list(latest_prices.values())
- signals=build_signals(prices,live,today_date)
- market_facts=build_market_facts(prices)
- table_groups=defaultdict(list)
- for row in prices+specialty_prices:
-  d=row["data"];form=d.get("product_form") or "other";name=SPECIES_NAMES.get(d.get("species_id"),d.get("species_zh") or "食用菌");spec=cell(d.get("package_display"));premium=row in specialty_prices
-  product=f'{name}（精品{spec}装）' if premium else f'{name}（{spec}装）'
-  table_groups[form].append(f'| {COUNTRIES.get(row["country"],row["country"])} | {product} | {cell(d.get("platform_name") or row.get("source"))} | {cell(d.get("price_local"))} {cell(d.get("currency"))} | {float(d["normalized_price_usd_per_kg"]):.2f} | {cell(d.get("observed_at"))} |')
- table_parts=[]
- for form in ("fresh","dried","frozen","chilled","pickled","canned","other"):
-  if form not in table_groups:continue
-  label={"fresh":"鲜品","dried":"干品","frozen":"冷冻","chilled":"冷藏","pickled":"腌渍","canned":"罐装","other":"其他"}[form]
-  table_parts.append("\n".join([f"### {label}","","| 国家 | 品类（中文，注明规格） | 渠道 | 当地挂牌价 | 折合美元/公斤 | 观察日期 |","|---|---|---|---:|---:|---:|",*table_groups[form]]))
- table_text="\n\n".join(table_parts)
- history=defaultdict(lambda:defaultdict(list))
- for row in live:
-  d=row["data"];observed=d.get("observed_at")
-  if not observed:continue
-  try:
-   if date.fromisoformat(observed)<today_date-timedelta(days=30):continue
-  except ValueError:continue
-  key=(row["country"],d.get("species_id"),d.get("product_form"));history[key][observed].append(float(d["normalized_price_usd_per_kg"]))
- trends=[]
- for (country,species_id,_),days in history.items():
-  ordered=sorted(days.items(),reverse=True);latest=statistics.median(ordered[0][1]);previous=statistics.median(ordered[1][1]) if len(ordered)>1 else None
-  trends.append({"国家":COUNTRIES.get(country,country),"品类":TARGET_SPECIES.get(species_id,{}).get("zh",species_id),"有效日期数":len(days),"最新美元每公斤":round(latest,2),"较前次可比变化":f'{(latest/previous-1)*100:.1f}%' if len(days)>=3 and previous else None})
- # 年度进口单价（贸易口径，UN Comtrade）历史序列：供零售序列不足的品类做年度趋势参考
- trade_rows=get_site("/api/ingest/snapshot?metric=trade&limit=500").get("records",[])
- annual_by_country_hs=defaultdict(dict)
- for r in trade_rows:
-  d=r.get("data",{})
-  if d.get("status")!="live" or d.get("period_type")=="monthly":continue
-  year=d.get("year");unit=d.get("unit_price_usd_kg");hs=d.get("hs")
-  if year and unit is not None and hs:
-   annual_by_country_hs[(r.get("country"),hs)][str(year)]=float(unit)
- annual_ref=[]
- for (country,species_id,form),days in history.items():
-  hs=SPECIES_HS.get(species_id or "unknown")
-  seq=annual_by_country_hs.get((country,hs)) if hs else None
-  seq=seq or {}
-  if len(seq)>=2:
-   years=sorted(seq);first=seq[years[0]];last=seq[years[-1]]
-   change=f"{(last/first-1)*100:.1f}%" if first else None
-   annual_ref.append({"国家":COUNTRIES.get(country,country),"品类":TARGET_SPECIES.get(species_id,{}).get("zh",species_id),"贸易口径年度进口单价USD/kg":{y:seq[y] for y in years},"多年变化":change})
- documents=[doc for doc in get_site("/api/market-context?days=90").get("records",[]) if doc.get("primarySource") and doc.get("kind") in {"policy","news"}][:25]
- calendar=get_site(f"/api/ingest/snapshot?metric=event_calendar&year={today_date.year}&limit=1000").get("records",[])
- upcoming_events=[]
- for row in calendar:
-  d=row.get("data",{})
-  try:start=date.fromisoformat(str(d.get("start_date")));end=date.fromisoformat(str(d.get("end_date")))
-  except (TypeError,ValueError):continue
-  if end>=today_date and start<=today_date+timedelta(days=7):upcoming_events.append({"国家":COUNTRIES.get(row.get("country"),row.get("country")),"事件":d.get("name_zh"),"开始":d.get("start_date"),"结束":d.get("end_date"),"业务影响":d.get("business_impact"),"物流影响":d.get("logistics_impact")})
- evidence=[]
- for index,doc in enumerate(documents):evidence.append({"id":f"S{index+1}","document_id":doc["id"],"source_type":doc["kind"],"国家":COUNTRIES.get(doc["country"],doc["country"]),"类型":doc["kind"],"标题":doc["title"],"发布机构":doc["publisher"],"发布日期":str(doc["publishedAt"])[:10],"事实摘要":doc["excerpt"],"url":doc["sourceUrl"],"retrieved":str(doc["retrievedAt"])[:10]})
- allowed={item["id"] for item in evidence}
- review_findings=[{"国家":COUNTRIES.get(row["country"],row["country"]),"品类":f'{SPECIES_NAMES[row["data"]["species_id"]]}（精品）',"规格":row["data"].get("package_display"),"美元每公斤":row["data"].get("normalized_price_usd_per_kg"),"说明":row["data"].get("sanity_review_reason")} for row in specialty_prices if customer_visible_price({**row,"data":{**row["data"],"validation_status":"valid","sanity_outlier":False}})]
- prompt=f"""你是因恒科技的中亚及东南亚食用菌首席市场研究员。日报必须同时研究中亚与东南亚，东南亚覆盖老挝、越南、泰国、缅甸、柬埔寨，老挝为首要拓展市场；有符合门禁的当日或最近可用事实时优先呈现老挝，不得预设正面结论。请写一份面向进口商、渠道商、投资人与经营管理层的中文决策简报。客户为减少验证成本和错误决策付费，不为报价复述或通用建议付费。只可使用下方价格、结构化信号和证据包，不得自行补充新闻、政策、数字、来源、因果、利润或预测。
-{CUSTOMER_PAIN_GUIDANCE}
-日期：{today}
-价格表由系统确定性生成，正文不要抄写全部数字：
-{table_text}
-同口径零售历史序列：{json.dumps(trends,ensure_ascii=False)}
-结构化商业信号（正文判断只能从这里选择，不得把其他价差写成机会）：{json.dumps(signals,ensure_ascii=False)}
-确定性市场统计与异常离散（必须分析，不得忽略）：{json.dumps(market_facts,ensure_ascii=False)}
-精品小包装及待复核价格（精品价格应正常展示并标注“精品”，但与普通大包装分开比较）：{json.dumps(review_findings,ensure_ascii=False)}
-年度进口单价参考（贸易口径，UN Comtrade）：{json.dumps(annual_ref,ensure_ascii=False)}
-已核验政策/新闻/宏观证据包：{json.dumps([{k:v for k,v in item.items() if k not in ('url','retrieved')} for item in evidence],ensure_ascii=False)}
-未来7天官方节日事件（只有列表非空时才可写入正文）：{json.dumps(upcoming_events,ensure_ascii=False)}
 
-成稿要求：
-1. 正文写500至1400字，恰好使用“今日要点”“市场动态”“机会与风险”“行动建议”“数据说明”五个二级标题，适合微信公众号手机阅读。
-2. “今日要点”写3至5条，每条采用“结论+具体数字或事实+是否行动”的客户语言；老板只读本节就能知道今天发生了什么、要不要动。
-3. 禁止出现样本有限、报价有限、仅供参考、自动复核、已核验材料、检索数量、不作外推等后台或自我否定表达。能确认的用数字直接写，不能确认的内容省略。
-4. 鲜品、干品、冷冻和腌渍分开点评。只有同品类同形态至少3条有效报价且连续覆盖至少5个交易日，才可写趋势或涨跌；否则不得输出指数和强趋势结论。
-5. 已确认是小包装的高价作为正常精品价格展示，品类后标注“（精品Xg装）”，说明是规格溢价并与普通大包装分开比较；不得描述后台复核过程。任何未核实记录、空规格、空价格和未识别到具体品种的记录一律不进入客户版，也不得作为标题或今日要点。
-6. 政策或新闻事实必须引用 [S1] 形式的证据编号；无新增事件时写“今日无新增政策、海关、物流事件，市场面平稳”，并说明是否需要调整出货安排。
-7. 机会与风险必须具体到国家、品类、触发条件、潜在损失和规避动作。行动建议固定用“决策参考、采购落地、报价规范”三个栏目，引用当日价格，使用“建议、应”等语气。
-8. 涉及土库曼斯坦写明其海关透明度低、许可获取难度高，谨慎进入；涉及鸡枞写明其仅适合华人小众圈层，不建议作为主力出口。
-9. “数据说明”不得写样本限制，统一由程序替换为固定客户版文字。政策或事件只能引用证据包中的官方公告并写明机构与日期；价格不附网址。不得虚构批发价、物流价、政策、原因、利润或需求。输出标准 Markdown，不重复输出完整明细表或网址，后续程序会附加。"""
- if any(row.get("country") in {"LA","VN","TH","MM","KH"} for row in prices):
-  prompt += "\n10. 价格表中出现的每一个东南亚国家，都必须在正文中逐国点名分析至少一次，并保留真实观察日期；不得只分析泰国或省略老挝、越南、缅甸、柬埔寨。"
- preview_output=os.environ.get("REPORT_PREVIEW_OUTPUT","").strip()
- if not AI_API_KEY and not preview_output:raise RuntimeError("AI_API_KEY is not configured")
- client=OpenAI(api_key=AI_API_KEY,base_url=AI_BASE_URL or "https://api.deepseek.com") if AI_API_KEY else None;analysis="";used_fallback=False
- try:
-  if client is None:raise RuntimeError("preview fallback")
-  for attempt in range(2):
-   request=prompt if attempt==0 else f"{prompt}\n\n上一稿未通过发布检查。请仅使用允许的证据编号，严格保留五个公众号栏目；删除所有内部研究术语，用客户听得懂的短句和当日数字完整重写。"
-   result=client.chat.completions.create(model=AI_MODEL or "deepseek-v4-flash",messages=[{"role":"user","content":request}],temperature=.15,max_tokens=5000,extra_body={"thinking":{"type":"disabled"}});analysis=clean_analysis(result.choices[0].message.content or "")
-   if customer_safe(analysis,allowed) and covers_today_sea_markets(analysis,prices):break
- except (AuthenticationError,APIError,RuntimeError) as exc:
-  log(f"DeepSeek unavailable, using verified fallback: {type(exc).__name__}")
-  analysis=clean_analysis(decision_fallback(today,prices,evidence));used_fallback=True
- if not used_fallback and (not customer_safe(analysis,allowed) or not covers_today_sea_markets(analysis,prices)):
-  log("模型稿未通过成稿检查，改用固定日报模板")
-  analysis=clean_analysis(decision_fallback(today,prices,evidence));used_fallback=True
- if not customer_safe(analysis,allowed) or not covers_today_sea_markets(analysis,prices):raise RuntimeError("日报未完整覆盖当日东南亚市场，拒绝发布")
- used_ids=set(re.findall(r"\[(S\d+)\]",analysis));used_evidence=[(index,item) for index,item in enumerate(evidence) if item["id"] in used_ids]
- marker="\n## 数据说明"
- market_marker="\n## 机会与风险"
- if market_marker in analysis:
-  before_risk,after_risk=analysis.split(market_marker,1);analysis=f"{before_risk}\n\n{table_text}{market_marker}{after_risk}"
- fixed_data_note=f"## 数据说明\n\n本报告价格来自中亚及东南亚目标市场主流零售与电商渠道公开挂牌价，统一折算为美元/公斤。零售挂牌价与批发成交价、到岸成本存在差异，正式决策请以批量报价为准。数据来源：因恒科技监测，采集日期 {today}。如需核验具体报价来源，可联系专属客服索取。"
- main_text=analysis.split(marker,1)[0] if marker in analysis else analysis
- source_note=""
- if used_evidence:
-  source_note="\n\n来源：\n"+"\n".join(f'- {item["发布机构"]}｜{item["标题"]}｜{item["发布日期"]}' for _,item in used_evidence[:5])
- body=f"{main_text.rstrip()}\n\n{fixed_data_note}{source_note}"
- # 公众号版只有在同品类同形态连续覆盖达到门槛时才展示趋势；当前不自动附加内部指数表。
- recent_titles=[report.get("title","") for report in existing]
- title=title_from(today,analysis,prices,recent_titles)
+ from report_release import build_customer_report, customer_price_is_eligible, validate_customer_report
+ snapshots=get_site("/api/ingest/snapshot?metric=price_retail&limit=500").get("records",[])
+ if not any(customer_price_is_eligible(row,today) for row in snapshots):
+  raise RuntimeError(f"{today} 没有可用于客户版的已确认价格，拒绝生成误导性日报")
+ # A busy country must not evict another country's current observations from the global page.
+ covered={row.get("country") for row in snapshots if customer_price_is_eligible(row,today)}
+ for country in COUNTRIES:
+  if country not in covered:
+   snapshots.extend(get_site(f"/api/ingest/snapshot?metric=price_retail&country={country}&limit=200").get("records",[]))
+ documents=get_site("/api/market-context?days=1").get("records",[])
+ report=build_customer_report(today,snapshots,[row.get("title","") for row in existing],official_events=documents)
+ validate_customer_report(report,today)
+ title,body,summary=report["title"],report["body"],report["summary"]
  if preview_output:
-  preview_path=Path(preview_output)
-  preview_path.parent.mkdir(parents=True,exist_ok=True)
+  preview_path=Path(preview_output);preview_path.parent.mkdir(parents=True,exist_ok=True)
   preview_path.write_text(f"# {title}\n\n{body}\n",encoding="utf-8")
-  print(f"日报预览已生成（未发布）：{preview_path}")
-  return
- summary=summary_from(body)
- result=post_to_site("/api/ingest/report",{"title":title,"type":"daily","summary":summary,"body":body,"country":"KZ","aiGenerated":True,"sources":[{"evidence_id":item["id"],"document_id":item["document_id"],"source_type":item["source_type"],"title":item["标题"],"url":item["url"],"publisher":item["发布机构"],"published_at":item["发布日期"],"retrieved_at":item["retrieved"]} for _,item in used_evidence]})
- replace_slugs=[slug.strip() for slug in os.environ.get("REPORT_REPLACE_SLUG","").split(",") if slug.strip()]
- for replace_slug in dict.fromkeys(replace_slugs):
-  if replace_slug!=result.get("slug"):delete_from_site(f"/api/ingest/report?slug={replace_slug}")
- artifact_output=os.environ.get("REPORT_ARTIFACT_OUTPUT","").strip()
+  result={}
+ else:
+  result=post_to_site("/api/ingest/report",{"title":title,"type":"daily","summary":summary,"body":body,"country":"KZ","aiGenerated":False,"sources":report.get("sources",[])})
+  if not result.get("slug"):raise RuntimeError("Report publication returned no slug")
+  confirmed=get_site("/api/ingest/report?type=daily").get("records",[])
+  if not any(row.get("slug")==result["slug"] and row.get("body")==body for row in confirmed):
+   raise RuntimeError("Published report could not be confirmed by read-back")
+  replace_slugs=[slug.strip() for slug in os.environ.get("REPORT_REPLACE_SLUG","").split(",") if slug.strip()]
+  for replace_slug in dict.fromkeys(replace_slugs):
+   if replace_slug!=result["slug"]:delete_from_site(f"/api/ingest/report?slug={replace_slug}")
+  post_to_site("/api/ingest/revalidate",{})
  if artifact_output:
-  artifact_path=Path(artifact_output)
-  artifact_path.parent.mkdir(parents=True,exist_ok=True)
+  artifact_path=Path(artifact_output);artifact_path.parent.mkdir(parents=True,exist_ok=True)
   artifact_path.write_text(json.dumps({"title":title,"summary":summary,"body":body,"slug":result.get("slug"),"date":today},ensure_ascii=False),encoding="utf-8")
- post_to_site("/api/ingest/revalidate",{})
- print(f'市场研究日报完成：{len(prices)} 条标准化价格，{len(evidence)} 条已核验证据，slug={result.get("slug")}')
+ print(f'{"日报预览完成（未发布）" if preview_output else "市场研究日报完成"}：{len(report["prices"])} 条当日价格，slug={result.get("slug","")}')
 
 if __name__=="__main__":run()
